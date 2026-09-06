@@ -333,6 +333,50 @@ for (const model of ["pct", "flat"]) {
   }
 }
 
+/* progression — the gate for META. Fixed grids, so this consumes no master draws and every
+   other corpus file stays byte-identical. Perk text is recorded alongside the numbers: it is
+   what the level-up screen shows, so a perk credited to the wrong level is a real bug even
+   when the stat totals happen to agree. */
+const progression = {
+  need: Array.from({ length: 30 }, (_, i) => ({ level: i + 1, need: api.META.need(i + 1) })),
+  levels: [],
+  rewardMult: [],
+  tierMult: Array.from({ length: 10 }, (_, i) => ({ tier: i + 1, mult: api.META.tierMult(i + 1) })),
+  xpSteps: api.META.XP_STEPS,
+  xpFloor: api.META.XP_FLOOR,
+  structuralPerks: api.META.STRUCT,
+};
+
+for (let level = 1; level <= 25; level++) {
+  progression.levels.push({
+    level,
+    bonuses: api.META.bonuses(level),
+    perkDesc: api.META.perkDesc(level),
+  });
+}
+
+/* xp thresholds, including the exact boundary either side of each level-up */
+const xpProbes = new Set([0, 1, 999, 1000, 1001]);
+let acc = 0;
+for (let l = 2; l <= 22; l++) {
+  acc += api.META.need(l);
+  for (const d of [-1, 0, 1]) xpProbes.add(Math.max(0, acc + d));
+}
+progression.xp = [...xpProbes].sort((a, b) => a - b).map((xp) => ({
+  xp,
+  level: api.META.levelFor(xp),
+  progress: api.META.progress(xp),
+}));
+
+/* the frontier-relative reward table: every hall against every frontier */
+for (let unlocked = 1; unlocked <= 10; unlocked++) {
+  api.setUnlocked(unlocked);
+  for (let tier = 1; tier <= 10; tier++) {
+    progression.rewardMult.push({ unlocked, tier, mult: api.META.rewardMult(tier) });
+  }
+}
+api.setUnlocked(1);
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });
@@ -351,6 +395,8 @@ write("packs.json", packs);
 write("rng.json", rngCases);
 write("defense.json", defense);
 write("statledger.json", ledger);
+writeFileSync(join(OUT, "progression.json"), JSON.stringify(progression), "utf8");
+console.log("  → progression.json      " + progression.levels.length + " levels, " + progression.xp.length + " xp probes");
 
 const totalEvents = cases.reduce((n, c) => n + c.events.length, 0);
 const manifest = {
@@ -379,7 +425,7 @@ const manifest = {
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
-      "phase 5": "packs.json",
+      "phase 5": "packs.json + progression.json",
       "phase 6": "duel.json",
     },
   },

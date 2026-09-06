@@ -83,6 +83,11 @@ node Tools/capture/capture.mjs    # regenerate (deterministic, fixed master seed
 node Tools/capture/verify.mjs     # prove every case replays from its recorded input
 ```
 
+Note that `Tools/out/progression.json` and `Tools/corpus/progression.json` are different
+files: the first is content extracted from the source, the second is recorded behaviour used
+as a gate. Tests read the corpus one through `Corpus.Object`, and content through
+`Corpus.ArrayFromContent`.
+
 Content JSON is separate, and has its own gate:
 
 ```bash
@@ -105,3 +110,4 @@ node Tools/extract/validate.mjs
 | Phase 4a — relic effects | `solo.json` | passing, all 50 relics alone across 150 fights |
 | Phase 4b — sockets | `mixed.json` | passing, 120 fights with duplicates, sockets and awakenings |
 | Phase 5a — enemy packs | `packs.json` | passing, 360 packs regenerate exactly |
+| Phase 5b — progression | `corpus/progression.json` | passing, levels, perks and the reward table |
