@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-06T19:00:44.870Z",
+  "generated": "2026-09-06T19:20:22.428Z",
   "masterSeed": 98693133,
   "engine": "lifted from .port/Daily Delve.dc.html",
   "tiers": {
@@ -25,7 +25,7 @@
     "srcIsStructural": "Set-bonus log lines (e.g. \"Flesh set — +3 max HP\") carry no rid, so `src` is their only identity. Those strings are hardcoded English in the engine and port verbatim.",
     "isolation": "Packs are recorded verbatim and fights use a separate seed, so the combat engine and EnemyPackGenerator fail independently.",
     "gates": {
-      "phase 1": "rng.json",
+      "phase 1": "rng.json + defense.json",
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",

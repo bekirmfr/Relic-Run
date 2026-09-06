@@ -182,6 +182,17 @@ const rngCases = [1, 2, 12345, 0x5E1F00D, 20260906].map((s) => {
   return { seed: s, draws: Array.from({ length: 1000 }, () => r()) };
 });
 
+/* defence — the Phase 1 gate for applyDef. A fixed grid, so it consumes no master
+   draws and appending it leaves every other corpus file byte-identical. */
+const defense = [];
+for (const model of ["pct", "flat"]) {
+  for (let dmg = 1; dmg <= 60; dmg++) {
+    for (const def of [0, 1, 2, 3, 5, 8, 10, 12, 16, 20, 25, 30, 40, 60, 100]) {
+      defense.push({ model, dmg, def, out: api.applyDef(dmg, def, model) });
+    }
+  }
+}
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });
@@ -198,6 +209,7 @@ console.log("\ncorpus");
 for (const [tier, list] of Object.entries(byTier)) write(`${tier}.json`, list);
 write("packs.json", packs);
 write("rng.json", rngCases);
+write("defense.json", defense);
 
 const totalEvents = cases.reduce((n, c) => n + c.events.length, 0);
 const manifest = {
@@ -222,7 +234,7 @@ const manifest = {
       "Packs are recorded verbatim and fights use a separate seed, so the combat engine and " +
       "EnemyPackGenerator fail independently.",
     gates: {
-      "phase 1": "rng.json",
+      "phase 1": "rng.json + defense.json",
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",

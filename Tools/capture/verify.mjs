@@ -73,7 +73,7 @@ console.log(`  ${load("packs.json").length} packs`);
 /* ---------- fights ---------- */
 
 const tiers = readdirSync(DIR)
-  .filter((f) => f.endsWith(".json") && !["manifest.json", "packs.json", "rng.json"].includes(f))
+  .filter((f) => f.endsWith(".json") && !["manifest.json", "packs.json", "rng.json", "defense.json"].includes(f))
   .map((f) => f.replace(/\.json$/, ""));
 
 for (const tier of tiers) {
