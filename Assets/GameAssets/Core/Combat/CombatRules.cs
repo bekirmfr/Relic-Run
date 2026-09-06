@@ -34,6 +34,19 @@ namespace RelicRun.Core.Combat
         /// </summary>
         public DefenderReaction[] ReactionOrder = CombatDamage.DelveOrder;
 
+        /// <summary>
+        /// Whether the Stone Emitter's minimum is applied before deciding an effect fizzled.
+        /// A delve floors it first, so a decayed Stone activation still hardens by one; a duel
+        /// checks for nothing first, so the same activation fizzles.
+        /// </summary>
+        public bool StoneEmitterFloorsBeforeFizzle = true;
+
+        /// <summary>Whether the Edge set sharpens permanently with every kill.</summary>
+        public bool EdgeSetSharpensOnKill = true;
+
+        /// <summary>Whether a kill puts a socketed trigger on the bus.</summary>
+        public bool KillFiresTrigger = true;
+
         /// <summary>Whether the Curse set detonates as its bearer falls.</summary>
         public bool CurseSetExplodes = true;
 
@@ -55,6 +68,9 @@ namespace RelicRun.Core.Combat
                 ReactionOrder = CombatDamage.DuelOrder,
                 CurseSetExplodes = false,
                 GreedEmitterFiresOnPain = false,
+                StoneEmitterFloorsBeforeFizzle = false,
+                EdgeSetSharpensOnKill = false,
+                KillFiresTrigger = false,
             };
         }
     }

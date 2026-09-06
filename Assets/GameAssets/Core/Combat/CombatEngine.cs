@@ -309,6 +309,36 @@ namespace RelicRun.Core.Combat
                 get { return _engine._painCount; }
                 set { _engine._painCount = value; }
             }
+
+            public int StoneCount
+            {
+                get { return _engine._carry.StoneCount; }
+                set { _engine._carry.StoneCount = value; }
+            }
+
+            public int HeadsmanBonus
+            {
+                get { return _engine._headsmanBonus; }
+                set { _engine._headsmanBonus = value; }
+            }
+
+            public int Kills
+            {
+                get { return _engine._hero.Kills; }
+                set { _engine._hero.Kills = value; }
+            }
+
+            public int ItemCount { get { return _engine._hero.Items.Count; } }
+
+            public RelicId ItemAt(int slot) { return _engine._hero.Items[slot]; }
+
+            public SocketTrigger TriggerAt(int slot) { return _engine.TriggerAt(slot); }
+
+            public SocketEmitter EmitterAt(int slot) { return _engine.EmitterAt(slot); }
+
+            public bool HasFiredThisBeat(int slot) { return _engine._firedThisBeat[slot]; }
+
+            public void MarkFiredThisBeat(int slot) { _engine._firedThisBeat[slot] = true; }
         }
 
         private HeroActor _actor;
@@ -384,13 +414,17 @@ namespace RelicRun.Core.Combat
 
         void ICombatBus.FireEmitter(ICombatActor actor, RelicId id, int depth, IChain chain, double scale)
         {
-            FireEmitter(id, depth, (ChainContext)chain, scale);
+            SocketFiring.FireEmitter(actor, this, _rules, id, depth, chain, scale);
         }
+
+        void ICombatBus.BeginFire(ICombatActor actor, int slot) { _fireSlot = slot; }
+
+        void ICombatBus.EndFire(ICombatActor actor) { _fireSlot = -1; }
 
         void ICombatBus.FireTrigger(ICombatActor actor, SocketTrigger trigger, int depth,
             RelicId exclude, RelicId cause, IChain chain)
         {
-            FireTrigger(trigger, depth, exclude, cause, (ChainContext)chain);
+            SocketFiring.FireTrigger(actor, this, _rules, trigger, depth, exclude, cause, chain);
         }
 
         /// <summary>A side that holds nothing, for rules that ask about an opponent's relics.</summary>
@@ -455,6 +489,24 @@ namespace RelicRun.Core.Combat
             public int Adrenaline { get; set; }
 
             public int PainCount { get; set; }
+
+            public int StoneCount { get; set; }
+
+            public int HeadsmanBonus { get; set; }
+
+            public int Kills { get; set; }
+
+            public int ItemCount { get { return 0; } }
+
+            public RelicId ItemAt(int slot) { return RelicId.None; }
+
+            public SocketTrigger TriggerAt(int slot) { return SocketTrigger.None; }
+
+            public SocketEmitter EmitterAt(int slot) { return SocketEmitter.None; }
+
+            public bool HasFiredThisBeat(int slot) { return true; }
+
+            public void MarkFiredThisBeat(int slot) { }
         }
 
         // ---------- what a turn asks of this mode ----------
@@ -468,7 +520,34 @@ namespace RelicRun.Core.Combat
 
         double ICombatBus.NextRandom() { return _rng.Next(); }
 
-        bool ICombatBus.TryExecute(ICombatActor attacker) { return TryExecuteInternal(); }
+        bool ICombatBus.TryExecute(ICombatActor attacker)
+        {
+            return CombatDamage.TryExecute(attacker, this, _rules);
+        }
+
+        void ICombatBus.ReportKill(ICombatActor killer, int depth) { Snap(CombatEventType.Kill, depth); }
+
+        /// <summary>A corpse's purse, swelled by the Greed set and by Coin Magnet.</summary>
+        int ICombatBus.LootFor(ICombatActor killer)
+        {
+            int magnet = RelicTuning.For(RelicId.CoinMagnet, _rules.Mode).AmplifiesLoot
+                ? EffectiveCount(RelicId.CoinMagnet)
+                : 0;
+
+            return JsMath.RoundToInt(_cur.Drop * (SetCount(RelicKind.Greed) >= 7 ? 1.5 : 1.0)) + magnet;
+        }
+
+        string ICombatBus.LootLabel { get { return "killLoot"; } }
+
+        int ICombatBus.TargetHealth(ICombatActor attacker) { return _enemyHp; }
+
+        int ICombatBus.TargetDefence(ICombatActor attacker) { return _cur != null ? _cur.Armor : 0; }
+
+        int ICombatBus.TargetMaxHealth(ICombatActor attacker) { return EnemyMax; }
+
+        bool ICombatBus.ExecutionSpent(ICombatActor attacker) { return _carry.ExecutionerUsed; }
+
+        void ICombatBus.SpendExecution(ICombatActor attacker) { _carry.ExecutionerUsed = true; }
 
         /// <summary>In a delve only elites and bosses are worth the Oath.</summary>
         bool ICombatBus.FacingWorthyBlood(ICombatActor attacker)
@@ -906,24 +985,6 @@ namespace RelicRun.Core.Combat
         /// most once per floor, and the flag lives in carry state so a revive cannot hand the
         /// hero a second execution.
         /// </summary>
-        private bool TryExecuteInternal()
-        {
-            if (EffectiveCount(RelicId.ExecutionersCoin) == 0 || _carry.ExecutionerUsed ||
-                _enemyHp <= 0 ||
-                _enemyHp > EnemyMax * (IsAwake(RelicId.ExecutionersCoin) ? 0.3 : 0.2))
-            {
-                return false;
-            }
-
-            _carry.ExecutionerUsed = true;
-            Snap(CombatEventType.First, 0, relic: RelicId.ExecutionersCoin,
-                source: RelicCatalog.KeyOf(RelicId.ExecutionersCoin) + " — the sentence is carried out");
-
-            // Armor is added back so the blow is lethal after reduction.
-            DealDamage(_enemyHp + _cur.Armor, RelicCatalog.KeyOf(RelicId.ExecutionersCoin), 1,
-                RelicId.ExecutionersCoin, NewChain());
-            return true;
-        }
 
 
         // ---------- helpers ----------

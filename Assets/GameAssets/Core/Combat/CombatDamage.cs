@@ -104,6 +104,84 @@ namespace RelicRun.Core.Combat
             }
         }
 
+        /// <summary>
+        /// A kill, and everything that answers one.
+        /// </summary>
+        public static void OnKill(ICombatActor killer, ICombatBus bus, CombatRules rules, int depth, IChain chain)
+        {
+            killer.Kills++;
+            bus.ReportKill(killer, depth);
+
+            // The kill is one genuine event, so everything it sets off shares a single chain.
+            chain = chain ?? bus.NewChain();
+
+            // The Edge set sharpens permanently with every kill this floor.
+            if (rules.EdgeSetSharpensOnKill && killer.SetCount(RelicKind.Edge) >= 7)
+            {
+                killer.HeadsmanBonus += 1;
+                bus.Line(killer, RelicId.None, "Edge set — +1 ATK", 1);
+            }
+
+            CombatPrimitives.GainGold(killer, bus, rules, bus.LootFor(killer), bus.LootLabel,
+                0, RelicId.None, chain);
+
+            // Tollkeeper's Ring collects at the gate on every death.
+            int toll = killer.Effective(RelicId.TollkeepersRing);
+            if (toll > 0 && RelicTuning.For(RelicId.TollkeepersRing, rules.Mode).AnswersOnKill)
+            {
+                double scale = chain.Scale(killer, RelicId.TollkeepersRing);
+                CombatPrimitives.GainGold(killer, bus, rules,
+                    Math.Max(1, JsMath.RoundToInt(5 * toll * scale)),
+                    killer.Label(RelicId.TollkeepersRing), 1, RelicId.TollkeepersRing, chain);
+                bus.FireEmitter(killer, RelicId.TollkeepersRing, 0, chain, scale);
+            }
+
+            // Coin Magnet takes no node of its own — it swelled the loot above — but its
+            // socketed emitter still answers.
+            int magnet = killer.Effective(RelicId.CoinMagnet);
+            if (magnet > 0 && RelicTuning.For(RelicId.CoinMagnet, rules.Mode).AmplifiesLoot)
+            {
+                bus.FireEmitter(killer, RelicId.CoinMagnet, 0, chain, chain.Scale(killer, RelicId.CoinMagnet));
+            }
+
+            if (rules.KillFiresTrigger)
+            {
+                bus.FireTrigger(killer, SocketTrigger.Kill, 0, RelicId.CoinMagnet, RelicId.None, chain);
+            }
+        }
+
+        /// <summary>
+        /// Executioner's Coin finishes a foe already on the edge. It fires once per floor in a
+        /// delve and once per duel in versus, and the window is a share of the target's pool.
+        /// </summary>
+        public static bool TryExecute(ICombatActor attacker, ICombatBus bus, CombatRules rules)
+        {
+            int copies = attacker.Effective(RelicId.ExecutionersCoin);
+            if (copies == 0 || bus.ExecutionSpent(attacker) || bus.TargetHealth(attacker) <= 0)
+            {
+                return false;
+            }
+
+            RelicTuning coin = RelicTuning.For(RelicId.ExecutionersCoin, rules.Mode);
+            double share = attacker.IsAwake(RelicId.ExecutionersCoin)
+                ? coin.ExecuteThresholdAwakened
+                : coin.ExecuteThreshold;
+
+            double window = bus.TargetMaxHealth(attacker) * share;
+            if (coin.ExecuteScalesWithCopies) window *= Math.Min(2, copies);
+
+            if (bus.TargetHealth(attacker) > window) return false;
+
+            bus.SpendExecution(attacker);
+            bus.Line(attacker, RelicId.ExecutionersCoin,
+                attacker.Label(RelicId.ExecutionersCoin) + " — the sentence is carried out", 0);
+
+            // Defence is added back so the blow is still lethal after reduction.
+            bus.DealDamage(attacker, bus.TargetHealth(attacker) + bus.TargetDefence(attacker),
+                attacker.Label(RelicId.ExecutionersCoin), 1, RelicId.ExecutionersCoin, bus.NewChain());
+            return true;
+        }
+
         /// <summary>Runs the defender's answers in this mode's order.</summary>
         public static void React(ICombatActor defender, ICombatActor attacker, int damageDealt,
             bool wasCrit, ICombatBus bus, CombatRules rules)

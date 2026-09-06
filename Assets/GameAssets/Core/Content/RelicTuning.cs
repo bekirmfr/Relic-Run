@@ -57,6 +57,21 @@ namespace RelicRun.Core.Content
         /// <summary>Share restored once awakened. A duel grants no bonus for awakening it.</summary>
         public double ReviveFractionAwakened = 0.25;
 
+        /// <summary>Share of the target's pool below which an execution lands.</summary>
+        public double ExecuteThreshold = 0.2;
+
+        /// <summary>The same, once awakened.</summary>
+        public double ExecuteThresholdAwakened = 0.3;
+
+        /// <summary>Whether extra copies widen the execution window, up to two.</summary>
+        public bool ExecuteScalesWithCopies;
+
+        /// <summary>Whether this relic answers a kill at all.</summary>
+        public bool AnswersOnKill = true;
+
+        /// <summary>Whether this relic swells the loot a corpse drops.</summary>
+        public bool AmplifiesLoot = true;
+
         private static readonly RelicTuning Default = new RelicTuning();
 
         /// <summary>
@@ -112,6 +127,27 @@ namespace RelicRun.Core.Content
                         versus: new RelicTuning())
                 },
 
+                // Executioner's Coin finishes a foe already on the edge. A duel narrows the
+                // window but lets a second copy widen it again.
+                {
+                    RelicId.ExecutionersCoin, Pair(
+                        delve: new RelicTuning(),
+                        versus: new RelicTuning
+                        {
+                            ExecuteThreshold = 0.1,
+                            ExecuteThresholdAwakened = 0.15,
+                            ExecuteScalesWithCopies = true,
+                        })
+                },
+
+                // Tollkeeper's Ring collects at the gate on a kill, and Coin Magnet swells what
+                // the corpse drops. Neither has anything to work with in a duel.
+                {
+                    RelicId.TollkeepersRing, Pair(
+                        delve: new RelicTuning(),
+                        versus: new RelicTuning { AnswersOnKill = false })
+                },
+
                 // Sentinel Bell rings defence on a dodge. A duel is long enough to let an
                 // awakened Bell climb higher before it stops.
                 {
@@ -140,7 +176,11 @@ namespace RelicRun.Core.Content
                 // to amplify, so a socket cannot make them pay out.
                 { RelicId.GreedyCurse, NoVersusActivation() },
                 { RelicId.PiggyBank, NoVersusActivation() },
-                { RelicId.CoinMagnet, NoVersusActivation() },
+                {
+                    RelicId.CoinMagnet, Pair(
+                        delve: new RelicTuning(),
+                        versus: new RelicTuning { HasActivation = false, AmplifiesLoot = false })
+                },
             };
 
         private static RelicTuning[] Pair(RelicTuning delve, RelicTuning versus)

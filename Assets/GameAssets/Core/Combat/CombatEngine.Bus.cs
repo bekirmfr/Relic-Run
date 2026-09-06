@@ -79,7 +79,10 @@ namespace RelicRun.Core.Combat
 
             if (_enemyHp <= 0)
             {
-                OnKill(depth);
+                // A delve's kill opens its OWN chain: the loot is a genuine event, not a
+                // continuation of the blow that earned it. A duel deliberately shares the
+                // blow's chain instead, so its purse decays with what preceded it.
+                CombatDamage.OnKill(_actor, this, _rules, depth, null);
                 return;
             }
 
@@ -132,44 +135,5 @@ namespace RelicRun.Core.Combat
             CombatPrimitives.EmitLuck(_actor, this, _rules, source, depth, relic, chain ?? NewChain(), quiet);
         }
 
-        private void OnKill(int depth)
-        {
-            _hero.Kills++;
-            Snap(CombatEventType.Kill, depth);
-
-            // The kill is one genuine event, so everything it sets off shares a single chain.
-            ChainContext chain = NewChain();
-
-            // The Edge set sharpens permanently with every kill this floor.
-            if (SetCount(RelicKind.Edge) >= 7)
-            {
-                _headsmanBonus += 1;
-                Snap(CombatEventType.First, 1, source: "Edge set — +1 ATK");
-            }
-
-            // Coin Magnet does not pay out on its own — it swells the loot the corpse already
-            // drops, so it adds no node of its own to the chain.
-            int magnet = EffectiveCount(RelicId.CoinMagnet);
-            int loot = JsMath.RoundToInt(_cur.Drop * (SetCount(RelicKind.Greed) >= 7 ? 1.5 : 1.0)) + magnet;
-
-            GainGold(loot, "killLoot", 0, RelicId.None, chain);
-
-            // Tollkeeper's Ring collects at the gate on every death.
-            int toll = EffectiveCount(RelicId.TollkeepersRing);
-            if (toll > 0)
-            {
-                double scale = chain.Scale(RelicId.TollkeepersRing);
-                GainGold(Math.Max(1, JsMath.RoundToInt(5 * toll * scale)),
-                    RelicCatalog.KeyOf(RelicId.TollkeepersRing), 1, RelicId.TollkeepersRing, chain);
-                FireEmitter(RelicId.TollkeepersRing, 0, chain, scale);
-            }
-
-            if (magnet > 0)
-            {
-                FireEmitter(RelicId.CoinMagnet, 0, chain, chain.Scale(RelicId.CoinMagnet));
-            }
-
-            FireTrigger(SocketTrigger.Kill, 0, RelicId.CoinMagnet, RelicId.None, chain);
-        }
     }
 }

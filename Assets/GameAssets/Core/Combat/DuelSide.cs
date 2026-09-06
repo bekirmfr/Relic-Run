@@ -37,7 +37,7 @@ namespace RelicRun.Core.Combat
         public int Php { get; set; } = 60;
         public int Pmax { get; set; } = 60;
         public int Gold { get; set; }
-        public int Kills;
+        public int Kills { get; set; }
 
         /// <summary>The purse this side pays out when it loses the round.</summary>
         public int Drop;
@@ -94,7 +94,7 @@ namespace RelicRun.Core.Combat
         public int StrikeCount { get; set; }
         public int PainCount { get; set; }
         public int GoldCount { get; set; }
-        public int StoneCount;
+        public int StoneCount { get; set; }
         public int RabbitCount { get; set; }
         public int StrikeTotal { get; set; }
 
@@ -123,6 +123,29 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Per-slot guard, cleared each beat, so a genuine event wakes a copy once.</summary>
         public bool[] FiredThisBeat;
+
+        /// <summary>Unused in a duel: no set sharpens a duellist on a kill.</summary>
+        public int HeadsmanBonus { get; set; }
+
+        public int ItemCount { get { return Items.Count; } }
+
+        public RelicId ItemAt(int slot) { return Items[slot]; }
+
+        public SocketTrigger TriggerAt(int slot)
+        {
+            SocketTrigger t;
+            return SocketTriggers.TryGetValue(slot, out t) ? t : SocketTrigger.None;
+        }
+
+        public SocketEmitter EmitterAt(int slot)
+        {
+            SocketEmitter e;
+            return SocketEmitters.TryGetValue(slot, out e) ? e : SocketEmitter.None;
+        }
+
+        public bool HasFiredThisBeat(int slot) { return FiredThisBeat[slot]; }
+
+        public void MarkFiredThisBeat(int slot) { FiredThisBeat[slot] = true; }
 
         public int CountRelic(RelicId id)
         {

@@ -31,6 +31,17 @@ namespace RelicRun.Core.Combat
     /// </remarks>
     public sealed class DuelEngine : ICombatBus, IAdrenalineReporter
     {
+        private void FireEmitter(DuelSide side, RelicId id, int depth, DuelChain chain, double scale)
+        {
+            SocketFiring.FireEmitter(side, this, _rules, id, depth, chain ?? NewChain(), scale);
+        }
+
+        private void FireTrigger(DuelSide side, SocketTrigger trigger, int depth,
+            RelicId exclude, RelicId cause, DuelChain chain)
+        {
+            SocketFiring.FireTrigger(side, this, _rules, trigger, depth, exclude, cause, chain);
+        }
+
         /// <summary>Chains die four levels deep here, against forty in a delve.</summary>
         private readonly CombatRules _rules = CombatRules.Duel();
 
@@ -413,7 +424,7 @@ namespace RelicRun.Core.Combat
 
             if (target.Php <= 0)
             {
-                OnKill(side, depth, chain);
+                CombatDamage.OnKill(side, this, _rules, depth, chain);
                 return;
             }
 
@@ -536,121 +547,13 @@ namespace RelicRun.Core.Combat
             FireTrigger(side, SocketTrigger.Dodge, 0, RelicId.LuckyClover, RelicId.None, chain);
         }
 
-        private void OnKill(DuelSide side, int depth, DuelChain chain)
-        {
-            side.Kills++;
-            if (side.IsHero)
-            {
-                Snap(CombatEventType.Kill, depth);
-            }
-
-            // The winner takes the loser's round purse.
-            int purse = Other(side).Drop;
-            if (purse > 0)
-            {
-                GainGold(side, purse, "loot", 0, RelicId.None, chain ?? NewChain());
-            }
-        }
 
         // ---------- sockets ----------
 
-        private void FireEmitterAt(DuelSide side, int slot, int depth, DuelChain chain, double scale)
-        {
-            if (!side.SocketEmitters.TryGetValue(slot, out SocketEmitter emitter) || emitter == SocketEmitter.None)
-            {
-                return;
-            }
-
-            chain = chain ?? NewChain();
-            RelicId id = side.Items[slot];
-            int amount = JsMath.RoundToInt(EmitterAmount(emitter) * scale);
-
-            if (amount <= 0)
-            {
-                Snap(CombatEventType.Fizzle, depth + 1);
-                return;
-            }
-
-            string name = side.Label(id);
-            switch (emitter)
-            {
-                case SocketEmitter.Dmg: DealDamage(side, amount, name, depth + 1, id, chain); break;
-                case SocketEmitter.Heal: Heal(side, amount, name, depth + 1, id, chain); break;
-                case SocketEmitter.Gold: GainGold(side, amount, name, depth + 1, id, chain); break;
-                case SocketEmitter.Atk:
-                    side.Fury += amount;
-                    Line(side, id, name + " +" + amount + " ATK", depth + 1);
-                    break;
-                case SocketEmitter.Def:
-                {
-                    side.StoneCount++;
-                    int hardened = Math.Max(amount, 1);
-                    side.Stone += hardened;
-                    Line(side, id, name + " +" + hardened + " DEF", depth + 1);
-                    break;
-                }
-
-                case SocketEmitter.Spd:
-                    side.Gale += amount;
-                    Line(side, id, name + " +" + amount + " SPD", depth + 1);
-                    break;
-                case SocketEmitter.Luck:
-                    side.LuckGain += amount;
-                    Line(side, id, name + " +" + amount + " LUCK", depth + 1);
-                    break;
-            }
-        }
-
-        private void FireEmitter(DuelSide side, RelicId id, int depth, DuelChain chain, double scale)
-        {
-            for (int slot = 0; slot < side.Items.Count; slot++)
-            {
-                if (side.Items[slot] == id) FireEmitterAt(side, slot, depth, chain, scale);
-            }
-        }
-
-        private void FireTrigger(DuelSide side, SocketTrigger trigger, int depth,
-            RelicId exclude, RelicId cause, DuelChain chain)
-        {
-            if (depth > ChainCap) return;
-
-            for (int slot = 0; slot < side.Items.Count; slot++)
-            {
-                RelicId id = side.Items[slot];
-                if (id == exclude) continue;
-                if (!side.SocketTriggers.TryGetValue(slot, out SocketTrigger fitted) || fitted != trigger) continue;
-
-                if (cause != RelicId.None)
-                {
-                    if (cause == id) continue;
-                    chain = chain ?? NewChain();
-                    double scale = chain.Scale(side, id);
-                    RelicEffects.Apply(side, this, _rules, id, depth + 1, chain, scale, true);
-                    FireEmitterAt(side, slot, depth + 1, chain, scale);
-                }
-                else
-                {
-                    if (side.FiredThisBeat[slot]) continue;
-                    side.FiredThisBeat[slot] = true;
-
-                    DuelChain fresh = NewChain();
-                    double scale = fresh.Scale(side, id);
-                    RelicEffects.Apply(side, this, _rules, id, 0, fresh, scale, true);
-                    FireEmitterAt(side, slot, 0, fresh, scale);
-                }
-            }
-        }
 
 
-        private static int EmitterAmount(SocketEmitter emitter)
-        {
-            switch (emitter)
-            {
-                case SocketEmitter.Dmg: return 2;
-                case SocketEmitter.Gold: return 2;
-                default: return 1;
-            }
-        }
+
+
 
         // ---------- the shared primitives ----------
 
@@ -714,13 +617,18 @@ namespace RelicRun.Core.Combat
 
         void ICombatBus.FireEmitter(ICombatActor actor, RelicId id, int depth, IChain chain, double scale)
         {
-            FireEmitter((DuelSide)actor, id, depth, (DuelChain)chain, scale);
+            SocketFiring.FireEmitter(actor, this, _rules, id, depth, chain, scale);
         }
+
+        /// <summary>A duel does not name the firing copy on its events.</summary>
+        void ICombatBus.BeginFire(ICombatActor actor, int slot) { }
+
+        void ICombatBus.EndFire(ICombatActor actor) { }
 
         void ICombatBus.FireTrigger(ICombatActor actor, SocketTrigger trigger, int depth,
             RelicId exclude, RelicId cause, IChain chain)
         {
-            FireTrigger((DuelSide)actor, trigger, depth, exclude, cause, (DuelChain)chain);
+            SocketFiring.FireTrigger(actor, this, _rules, trigger, depth, exclude, cause, chain);
         }
 
         void ICombatBus.DealDamage(ICombatActor from, int amount, string source, int depth, RelicId relic, IChain chain)
@@ -768,9 +676,31 @@ namespace RelicRun.Core.Combat
 
         bool ICombatBus.TryExecute(ICombatActor attacker)
         {
-            var side = (DuelSide)attacker;
-            return TryExecuteInternal(side, Other(side));
+            return CombatDamage.TryExecute(attacker, this, _rules);
         }
+
+        void ICombatBus.ReportKill(ICombatActor killer, int depth)
+        {
+            if (((DuelSide)killer).IsHero) Snap(CombatEventType.Kill, depth);
+        }
+
+        /// <summary>The winner takes the loser's round purse.</summary>
+        int ICombatBus.LootFor(ICombatActor killer) { return Other((DuelSide)killer).Drop; }
+
+        string ICombatBus.LootLabel { get { return "loot"; } }
+
+        int ICombatBus.TargetHealth(ICombatActor attacker) { return Other((DuelSide)attacker).Php; }
+
+        int ICombatBus.TargetDefence(ICombatActor attacker)
+        {
+            return Other((DuelSide)attacker).StatOf(Stat.Def);
+        }
+
+        int ICombatBus.TargetMaxHealth(ICombatActor attacker) { return Other((DuelSide)attacker).Pmax; }
+
+        bool ICombatBus.ExecutionSpent(ICombatActor attacker) { return ((DuelSide)attacker).ExecutionerUsed; }
+
+        void ICombatBus.SpendExecution(ICombatActor attacker) { ((DuelSide)attacker).ExecutionerUsed = true; }
 
         /// <summary>Every rival is worthy blood.</summary>
         bool ICombatBus.FacingWorthyBlood(ICombatActor attacker) { return true; }
@@ -834,21 +764,5 @@ namespace RelicRun.Core.Combat
         /// Executioner's Coin, versus rules: the threshold is 10% per copy up to two, and it
         /// fires once for the whole duel rather than once per floor.
         /// </summary>
-        private bool TryExecuteInternal(DuelSide side, DuelSide target)
-        {
-            int copies = side.Effective(RelicId.ExecutionersCoin);
-            if (copies == 0 || side.ExecutionerUsed || target.Php <= 0) return false;
-
-            double threshold = target.Pmax * (side.IsAwake(RelicId.ExecutionersCoin) ? 0.15 : 0.1) *
-                               Math.Min(2, copies);
-            if (target.Php > threshold) return false;
-
-            side.ExecutionerUsed = true;
-            Line(side, RelicId.ExecutionersCoin,
-                side.Label(RelicId.ExecutionersCoin) + " — the sentence is carried out", 0);
-            DealDamage(side, target.Php + target.StatOf(Stat.Def),
-                side.Label(RelicId.ExecutionersCoin), 1, RelicId.ExecutionersCoin, NewChain());
-            return true;
-        }
     }
 }

@@ -23,84 +23,20 @@ namespace RelicRun.Core.Combat
     /// </remarks>
     public sealed partial class CombatEngine
     {
-        /// <summary>Fires the emitter welded to one specific inventory slot.</summary>
-        private void FireEmitterAt(int slot, int depth, ChainContext chain, double scale)
-        {
-            SocketEmitter emitter = EmitterAt(slot);
-            if (emitter == SocketEmitter.None)
-            {
-                return;
-            }
-
-            RelicId id = _hero.Items[slot];
-            _fireSlot = slot;
-            try
-            {
-                chain = chain ?? NewChain();
-                int baseAmount = EmitterAmount(emitter);
-                int amount = JsMath.RoundToInt(baseAmount * scale);
-
-                // The Stone Emitter always hardens by at least its base, because the
-                // percentage defence model absorbs a stack that would otherwise vanish.
-                if (emitter == SocketEmitter.Def)
-                {
-                    _carry.StoneCount++;
-                    amount = Math.Max(amount, baseAmount);
-                }
-
-                if (amount <= 0)
-                {
-                    Snap(CombatEventType.Fizzle, depth + 1);
-                    return;
-                }
-
-                string name = RelicCatalog.KeyOf(id);
-                switch (emitter)
-                {
-                    case SocketEmitter.Dmg:
-                        if (_enemyHp > 0) DealDamage(amount, name, depth + 1, id, chain);
-                        break;
-                    case SocketEmitter.Heal:
-                        Heal(amount, name, depth + 1, id, chain);
-                        break;
-                    case SocketEmitter.Gold:
-                        GainGold(amount, name, depth + 1, id, chain);
-                        break;
-                    case SocketEmitter.Atk:
-                        _furyBonus += amount;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + amount + " ATK");
-                        break;
-                    case SocketEmitter.Def:
-                        _stoneBonus += amount;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + amount + " DEF");
-                        break;
-                    case SocketEmitter.Spd:
-                        _galeBonus += amount;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + amount + " SPD");
-                        break;
-                    case SocketEmitter.Luck:
-                        _luckBonus += amount;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + amount + " LUCK");
-                        break;
-                }
-            }
-            finally
-            {
-                _fireSlot = -1;
-            }
-        }
-
-        /// <summary>Fires the emitter on every copy of a relic that has one.</summary>
         private void FireEmitter(RelicId id, int depth, ChainContext chain, double scale)
         {
-            for (int slot = 0; slot < _hero.Items.Count; slot++)
-            {
-                if (_hero.Items[slot] == id)
-                {
-                    FireEmitterAt(slot, depth, chain, scale);
-                }
-            }
+            SocketFiring.FireEmitter(_actor, this, _rules, id, depth, chain, scale);
         }
+
+        private void FireTrigger(SocketTrigger trigger, int depth, RelicId exclude,
+            RelicId cause, ChainContext chain)
+        {
+            SocketFiring.FireTrigger(_actor, this, _rules, trigger, depth, exclude, cause, chain);
+        }
+
+        /// <summary>Fires the emitter welded to one specific inventory slot.</summary>
+
+        /// <summary>Fires the emitter on every copy of a relic that has one.</summary>
 
         /// <summary>
         /// Puts a trigger event on the bus. Every copy whose socket listens for it activates.
@@ -111,48 +47,6 @@ namespace RelicRun.Core.Combat
         /// starts a fresh chain — and then only once per copy per beat, which is what
         /// <see cref="_firedThisBeat"/> enforces.
         /// </param>
-        private void FireTrigger(SocketTrigger trigger, int depth, RelicId exclude,
-            RelicId cause, ChainContext chain)
-        {
-            if (depth > ChainCap)
-            {
-                return;
-            }
-
-            for (int slot = 0; slot < _hero.Items.Count; slot++)
-            {
-                RelicId id = _hero.Items[slot];
-                if (id == exclude || TriggerAt(slot) != trigger)
-                {
-                    continue;
-                }
-
-                if (cause != RelicId.None)
-                {
-                    // A relic cannot answer itself, or a two-relic pair would run forever.
-                    if (cause == id) continue;
-
-                    chain = chain ?? NewChain();
-                    double scale = chain.Scale(id);
-                    _fireSlot = slot;
-                    RelicEffects.Apply(_actor, this, _rules, id, depth + 1, chain, scale, true);
-                    FireEmitterAt(slot, depth + 1, chain, scale);
-                    _fireSlot = -1;
-                }
-                else
-                {
-                    if (_firedThisBeat[slot]) continue;
-                    _firedThisBeat[slot] = true;
-
-                    ChainContext fresh = NewChain();
-                    double scale = fresh.Scale(id);
-                    _fireSlot = slot;
-                    RelicEffects.Apply(_actor, this, _rules, id, 0, fresh, scale, true);
-                    FireEmitterAt(slot, 0, fresh, scale);
-                    _fireSlot = -1;
-                }
-            }
-        }
 
         /// <summary>
         /// A relic's own effect, re-fireable by a socketed trigger.
@@ -203,19 +97,5 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>Base strength of each emitter, before chain decay.</summary>
-        private static int EmitterAmount(SocketEmitter emitter)
-        {
-            switch (emitter)
-            {
-                case SocketEmitter.Dmg: return 2;
-                case SocketEmitter.Gold: return 2;
-                case SocketEmitter.Heal: return 1;
-                case SocketEmitter.Atk: return 1;
-                case SocketEmitter.Def: return 1;
-                case SocketEmitter.Spd: return 1;
-                case SocketEmitter.Luck: return 1;
-                default: return 0;
-            }
-        }
     }
 }

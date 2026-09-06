@@ -102,6 +102,28 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Hits taken, counted toward the socketed pain trigger.</summary>
         int PainCount { get; set; }
+
+        /// <summary>Stone Emitter activations.</summary>
+        int StoneCount { get; set; }
+
+        /// <summary>Attack sharpened permanently this floor, by the Edge set or its kin.</summary>
+        int HeadsmanBonus { get; set; }
+
+        int Kills { get; set; }
+
+        // ---- inventory, walked by slot because a socket belongs to one copy ----
+
+        int ItemCount { get; }
+
+        RelicId ItemAt(int slot);
+
+        SocketTrigger TriggerAt(int slot);
+
+        SocketEmitter EmitterAt(int slot);
+
+        bool HasFiredThisBeat(int slot);
+
+        void MarkFiredThisBeat(int slot);
     }
 
     /// <summary>The primitives a relic effect can reach for.</summary>
@@ -197,6 +219,33 @@ namespace RelicRun.Core.Combat
         string RefusesToFallLabel(ICombatActor actor);
 
         string SoilLabel(ICombatActor actor);
+
+        /// <summary>Marks which copy is firing, so events can name it.</summary>
+        void BeginFire(ICombatActor actor, int slot);
+
+        void EndFire(ICombatActor actor);
+
+        // ---- a kill, and the blow that forces one ----
+
+        void ReportKill(ICombatActor killer, int depth);
+
+        /// <summary>What the fallen leaves behind, already scaled by this mode's rules.</summary>
+        int LootFor(ICombatActor killer);
+
+        string LootLabel { get; }
+
+        /// <summary>The target's remaining health, for a blow meant to be exactly lethal.</summary>
+        int TargetHealth(ICombatActor attacker);
+
+        /// <summary>The target's defence, added back so an execution is not reduced below lethal.</summary>
+        int TargetDefence(ICombatActor attacker);
+
+        bool ExecutionSpent(ICombatActor attacker);
+
+        void SpendExecution(ICombatActor attacker);
+
+        /// <summary>The target's maximum health, which the execution window is a share of.</summary>
+        int TargetMaxHealth(ICombatActor attacker);
     }
 
     /// <summary>
