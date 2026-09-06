@@ -1,0 +1,36 @@
+{
+  "generated": "2026-09-06T19:00:44.870Z",
+  "masterSeed": 98693133,
+  "engine": "lifted from .port/Daily Delve.dc.html",
+  "tiers": {
+    "bare": 48,
+    "primitives": 40,
+    "solo": 150,
+    "mixed": 120,
+    "duel": 60
+  },
+  "cases": 418,
+  "events": 16434,
+  "packs": 360,
+  "rngSeeds": [
+    1,
+    2,
+    12345,
+    98693133,
+    20260906
+  ],
+  "contract": {
+    "note": "Every field of every event is contractual. RelicRun.Core must reproduce all of them.",
+    "naming": "Events were recorded with itemName(id) => id and t(key) => key. The C# differ must run the engine in the same corpus mode, so `src` contains relic ids and string keys rather than display names. That keeps `src` comparable and locale-independent.",
+    "srcIsStructural": "Set-bonus log lines (e.g. \"Flesh set — +3 max HP\") carry no rid, so `src` is their only identity. Those strings are hardcoded English in the engine and port verbatim.",
+    "isolation": "Packs are recorded verbatim and fights use a separate seed, so the combat engine and EnemyPackGenerator fail independently.",
+    "gates": {
+      "phase 1": "rng.json",
+      "phase 2": "bare.json",
+      "phase 3": "primitives.json",
+      "phase 4": "solo.json + mixed.json",
+      "phase 5": "packs.json",
+      "phase 6": "duel.json"
+    }
+  }
+}
