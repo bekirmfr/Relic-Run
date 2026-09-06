@@ -30,16 +30,12 @@ namespace RelicRun.Core.Combat
     /// </remarks>
     public sealed partial class CombatEngine : ICombatBus, IAdrenalineReporter
     {
-        /// <summary>Points a combatant must drain before acting.</summary>
-        private const int Gauge = 100;
 
         private readonly CombatRules _rules = CombatRules.Delve();
 
         /// <summary>Chain depth beyond which effects fizzle rather than continue.</summary>
         private int ChainCap { get { return _rules.ChainCap; } }
 
-        /// <summary>Stops a pathological loop from hanging the harness.</summary>
-        private const int MaxIterations = 600;
 
         private HeroState _hero;
         private Mulberry32 _rng;
@@ -430,8 +426,6 @@ namespace RelicRun.Core.Combat
                 Snap(CombatEventType.First, 0, source: "Flesh set — +3 max HP");
             }
 
-            int guard = 0;
-
             for (int k = 0; k < pack.Count && _hero.Php > 0; k++)
             {
                 _cur = pack[k];
@@ -466,13 +460,28 @@ namespace RelicRun.Core.Combat
                 bool heroDash = CountItem(RelicId.BattleDash) > 0;
                 bool enemyDash = _cur.CountRelic(RelicId.BattleDash) > 0;
 
-                int heroGauge = (heroDash && !enemyDash) ? 0 : Gauge;
-                int enemyGauge = (enemyDash && !heroDash) ? 0 : Gauge;
+                var heroSlot = new AtbSlot
+                {
+                    Gauge = (heroDash && !enemyDash) ? 0 : AtbScheduler.Gauge,
+                    Alive = () => _hero.Php > 0,
+                    Act = PlayerHits,
+                    Speed = () => HeroStat(Stat.Spd),
+                    WantsFreeAction = AwakenedBootsReady,
+                    WantsRiposte = TakeRiposte,
+                };
+
+                var enemySlot = new AtbSlot
+                {
+                    Gauge = (enemyDash && !heroDash) ? 0 : AtbScheduler.Gauge,
+                    Alive = () => _enemyHp > 0,
+                    Act = EnemyHits,
+                    Speed = () => Math.Max(10, _cur.Spd),
+                };
 
                 // The Pace set starts the hero's gauge a quarter filled.
-                if (heroGauge > 0 && SetCount(RelicKind.Pace) >= 5)
+                if (heroSlot.Gauge > 0 && SetCount(RelicKind.Pace) >= 5)
                 {
-                    heroGauge = Math.Max(0, heroGauge - 25);
+                    heroSlot.Gauge = Math.Max(0, heroSlot.Gauge - 25);
                 }
 
 
@@ -490,68 +499,9 @@ namespace RelicRun.Core.Combat
                     Snap(CombatEventType.EnemyDashOpen, 0, relic: RelicId.BattleDash, foe: true);
                 }
 
-                while (_hero.Php > 0 && _enemyHp > 0 && guard++ < MaxIterations)
-                {
-                    if (enemyGauge <= 0 && heroGauge > 0)
-                    {
-                        EnemyHits();
-                        if (_hero.Php <= 0) break;
-                        enemyGauge += Gauge;
-
-                        // Hare's Drum: a dodge lets the hero answer immediately.
-                        if (_instantRiposte)
-                        {
-                            _instantRiposte = false;
-                            heroGauge = 0;
-                            if (IsAwake(RelicId.HaresDrum) && _enemyHp > 0)
-                            {
-                                DealDamage(2, RelicCatalog.KeyOf(RelicId.HaresDrum), 1,
-                                    RelicId.HaresDrum, NewChain());
-                            }
-
-                            Snap(CombatEventType.First, 0, relic: RelicId.HaresDrum,
-                                source: RelicCatalog.KeyOf(RelicId.HaresDrum) + " — instant riposte!");
-                        }
-                    }
-                    else if (heroGauge <= 0 && enemyGauge > 0)
-                    {
-                        PlayerHits();
-                        if (_enemyHp <= 0 || _hero.Php <= 0) break;
-                        heroGauge += Gauge;
-                    }
-                    else if (heroGauge <= 0 && enemyGauge <= 0)
-                    {
-                        // Simultaneous: the enemy resolves first, so a killing blow still costs
-                        // the hero the hit they were already taking.
-                        EnemyHits();
-                        if (_hero.Php <= 0) break;
-                        enemyGauge += Gauge;
-
-                        PlayerHits();
-                        if (_enemyHp <= 0 || _hero.Php <= 0) break;
-                        heroGauge += Gauge;
-                    }
-                    else
-                    {
-                        // Awakened Swift Boots skip the wait on every fourth strike.
-                        if (IsAwake(RelicId.SwiftBoots) && EffectiveCount(RelicId.SwiftBoots) > 0 &&
-                            _fightStrikes > 0 && _fightStrikes % 4 == 0 &&
-                            _bootsUsedOnStrike != _fightStrikes)
-                        {
-                            _bootsUsedOnStrike = _fightStrikes;
-                            heroGauge = 0;
-                            continue;
-                        }
-
-                        // Jump the clock to whichever gauge empties first.
-                        int heroSpd = HeroStat(Stat.Spd);
-                        int enemySpd = Math.Max(10, _cur.Spd);
-                        int step = Math.Min(CeilDiv(heroGauge, heroSpd), CeilDiv(enemyGauge, enemySpd));
-                        heroGauge -= heroSpd * step;
-                        enemyGauge -= enemySpd * step;
-                        _tick += step;
-                    }
-                }
+                // The enemy holds the first slot: on a tie it acts before the hero, so a
+                // killing blow still costs the hero the hit they were already taking.
+                AtbScheduler.Run(enemySlot, heroSlot, step => _tick += step);
             }
 
             if (_hero.Php <= 0)
@@ -573,6 +523,33 @@ namespace RelicRun.Core.Combat
         }
 
         // ---------- turns ----------
+
+        /// <summary>Hare's Drum: a dodge lets the hero answer immediately.</summary>
+        private bool TakeRiposte()
+        {
+            if (!_instantRiposte) return false;
+            _instantRiposte = false;
+
+            if (IsAwake(RelicId.HaresDrum) && _enemyHp > 0)
+            {
+                DealDamage(2, RelicCatalog.KeyOf(RelicId.HaresDrum), 1, RelicId.HaresDrum, NewChain());
+            }
+
+            Snap(CombatEventType.First, 0, relic: RelicId.HaresDrum,
+                source: RelicCatalog.KeyOf(RelicId.HaresDrum) + " — instant riposte!");
+            return true;
+        }
+
+        /// <summary>Awakened Swift Boots skip the wait on every fourth strike.</summary>
+        private bool AwakenedBootsReady()
+        {
+            if (!IsAwake(RelicId.SwiftBoots) || EffectiveCount(RelicId.SwiftBoots) == 0) return false;
+            if (_fightStrikes <= 0 || _fightStrikes % 4 != 0) return false;
+            if (_bootsUsedOnStrike == _fightStrikes) return false;
+
+            _bootsUsedOnStrike = _fightStrikes;
+            return true;
+        }
 
         private void EnemyHits()
         {

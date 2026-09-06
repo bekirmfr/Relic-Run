@@ -31,14 +31,10 @@ namespace RelicRun.Core.Combat
     /// </remarks>
     public sealed class DuelEngine : ICombatBus, IAdrenalineReporter
     {
-        private const int Gauge = 100;
-
         /// <summary>Chains die four levels deep here, against forty in a delve.</summary>
         private readonly CombatRules _rules = CombatRules.Duel();
 
         private int ChainCap { get { return _rules.ChainCap; } }
-
-        private const int MaxIterations = 600;
 
         private DuelSide _a;
         private DuelSide _b;
@@ -88,11 +84,36 @@ namespace RelicRun.Core.Combat
             FireTrigger(_a, SocketTrigger.Fight, 0, RelicId.None, RelicId.None, null);
             FireTrigger(_b, SocketTrigger.Fight, 0, RelicId.None, RelicId.None, null);
 
-            int gaugeA = (dashA && !dashB) ? 0 : Gauge;
-            int gaugeB = (dashB && !dashA) ? 0 : Gauge;
+            var heroSlot = new AtbSlot
+            {
+                Gauge = (dashA && !dashB) ? 0 : AtbScheduler.Gauge,
+                Alive = () => _a.Php > 0,
+                Act = () => Strike(_a),
+                Speed = () => _a.StatOf(Stat.Spd),
+                WantsFreeAction = () => FreeAction(_a),
+                WantsRiposte = () => Riposte(_a),
+            };
 
-            if (gaugeA > 0 && _a.SetCount(RelicKind.Pace) >= 5) gaugeA = Math.Max(0, gaugeA - 25);
-            if (gaugeB > 0 && _b.SetCount(RelicKind.Pace) >= 5) gaugeB = Math.Max(0, gaugeB - 25);
+            var rivalSlot = new AtbSlot
+            {
+                Gauge = (dashB && !dashA) ? 0 : AtbScheduler.Gauge,
+                Alive = () => _b.Php > 0,
+                Act = () => Strike(_b),
+                Speed = () => _b.StatOf(Stat.Spd),
+                WantsFreeAction = () => FreeAction(_b),
+                WantsRiposte = () => Riposte(_b),
+            };
+
+            // The Pace set starts a gauge a quarter filled.
+            if (heroSlot.Gauge > 0 && _a.SetCount(RelicKind.Pace) >= 5)
+            {
+                heroSlot.Gauge = Math.Max(0, heroSlot.Gauge - 25);
+            }
+
+            if (rivalSlot.Gauge > 0 && _b.SetCount(RelicKind.Pace) >= 5)
+            {
+                rivalSlot.Gauge = Math.Max(0, rivalSlot.Gauge - 25);
+            }
 
             if (dashA && dashB)
             {
@@ -108,47 +129,9 @@ namespace RelicRun.Core.Combat
                 Snap(CombatEventType.EnemyDashOpen, 0, relic: RelicId.BattleDash, foe: true);
             }
 
-            int guard = 0;
-            while (_a.Php > 0 && _b.Php > 0 && guard++ < MaxIterations)
-            {
-                if (gaugeB <= 0 && gaugeA > 0)
-                {
-                    Strike(_b);
-                    if (_a.Php <= 0) break;
-                    gaugeB += Gauge;
-                    if (Riposte(_a)) gaugeA = 0;
-                }
-                else if (gaugeA <= 0 && gaugeB > 0)
-                {
-                    Strike(_a);
-                    if (_b.Php <= 0 || _a.Php <= 0) break;
-                    gaugeA += Gauge;
-                    if (Riposte(_b)) gaugeB = 0;
-                }
-                else if (gaugeA <= 0 && gaugeB <= 0)
-                {
-                    // The rival resolves first on a tie, mirroring the delve engine.
-                    Strike(_b);
-                    if (_a.Php <= 0) break;
-                    gaugeB += Gauge;
-
-                    Strike(_a);
-                    if (_b.Php <= 0 || _a.Php <= 0) break;
-                    gaugeA += Gauge;
-                }
-                else
-                {
-                    if (FreeAction(_a)) { gaugeA = 0; continue; }
-                    if (FreeAction(_b)) { gaugeB = 0; continue; }
-
-                    int spdA = _a.StatOf(Stat.Spd);
-                    int spdB = _b.StatOf(Stat.Spd);
-                    int step = Math.Min(CeilDiv(gaugeA, spdA), CeilDiv(gaugeB, spdB));
-                    gaugeA -= spdA * step;
-                    gaugeB -= spdB * step;
-                    _tick += step;
-                }
-            }
+            // The rival holds the first slot, mirroring the delve: on a tie it acts before the
+            // hero, so a killing blow still costs the hero the hit they were already taking.
+            AtbScheduler.Run(rivalSlot, heroSlot, step => _tick += step);
 
             if (_a.Php <= 0)
             {
@@ -188,11 +171,6 @@ namespace RelicRun.Core.Combat
         private static string Prefix(DuelSide side)
         {
             return side.IsHero ? string.Empty : side.Name + "'s ";
-        }
-
-        private static int CeilDiv(int numerator, int denominator)
-        {
-            return (numerator + denominator - 1) / denominator;
         }
 
         /// <summary>Hare's Drum: a dodge lets that side answer immediately.</summary>
