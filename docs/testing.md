@@ -63,6 +63,11 @@ were only found this way — the stat ledger's bloodied boundary, and the chain 
 exercising decay at all until loadouts were added that make one relic fire twice in a single
 chain.
 
+One Phase 4 rule is also unobservable: the per-beat guard that lets a genuine event wake each
+socketed copy only once. Removing it entirely still passes, because reaching the same socket
+twice inside one beat needs two kills or two qualifying strikes in a single turn, which the
+corpus never produces. It is ported as written.
+
 Two Phase 3 rules remain unobservable and are knowingly untested: Blood Altar's guard against
 answering its own heal (it cannot cause a heal until awakened, in Phase 4), and whether a
 relic's activation is counted when there is nothing left to hit (it changes only a third visit,
@@ -98,4 +103,4 @@ node Tools/extract/validate.mjs
 | Phase 2 — combat engine | `bare.json` | passing, 48 fights replay event-for-event |
 | Phase 3 — chain bus | `primitives.json` | passing, 86 fights; decay, depth and wasted heals covered |
 | Phase 4a — relic effects | `solo.json` | passing, all 50 relics alone across 150 fights |
-| Phase 4b — sockets | `mixed.json` | not yet ported |
+| Phase 4b — sockets | `mixed.json` | passing, 120 fights with duplicates, sockets and awakenings |

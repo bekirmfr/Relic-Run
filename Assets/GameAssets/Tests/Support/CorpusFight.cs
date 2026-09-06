@@ -78,10 +78,36 @@ namespace RelicRun.Tests.Support
                 }
             }
 
+            // Sockets are keyed by INVENTORY INDEX, not by relic, because a socket belongs to
+            // one copy. The source keeps triggers and emitters in a single map; here they are
+            // split by prefix, and a slot can hold at most one of them.
+            var triggers = new Dictionary<int, SocketTrigger>();
+            var emitters = new Dictionary<int, SocketEmitter>();
+            if (h["sockets"] != null && h["sockets"].Type != JTokenType.Null)
+            {
+                foreach (JProperty p in ((JObject)h["sockets"]).Properties())
+                {
+                    int slot = int.Parse(p.Name);
+                    string component = p.Value.Value<string>();
+                    if (component == null) continue;
+
+                    if (component.StartsWith("t_"))
+                    {
+                        triggers[slot] = ParseTrigger(component);
+                    }
+                    else if (component.StartsWith("e_"))
+                    {
+                        emitters[slot] = ParseEmitter(component);
+                    }
+                }
+            }
+
             return new HeroState
             {
                 Items = items,
                 Awakened = awakened,
+                SocketTriggers = triggers,
+                SocketEmitters = emitters,
                 IsVersus = h["mode"].Value<string>() == "versus",
                 Floor = h["floor"].Value<int>(),
                 Php = h["php"].Value<int>(),
@@ -105,6 +131,37 @@ namespace RelicRun.Tests.Support
                 GlassBroken = h["_glassBroken"].Value<bool>(),
                 SoilUsed = h["_soilUsed"].Value<bool>(),
             };
+        }
+
+        private static SocketTrigger ParseTrigger(string key)
+        {
+            switch (key)
+            {
+                case "t_attack": return SocketTrigger.Attack;
+                case "t_hit": return SocketTrigger.Hit;
+                case "t_gold": return SocketTrigger.Gold;
+                case "t_kill": return SocketTrigger.Kill;
+                case "t_dodge": return SocketTrigger.Dodge;
+                case "t_luck": return SocketTrigger.Luck;
+                case "t_floor": return SocketTrigger.Floor;
+                case "t_fight": return SocketTrigger.Fight;
+                default: throw new System.ArgumentException("unknown trigger " + key);
+            }
+        }
+
+        private static SocketEmitter ParseEmitter(string key)
+        {
+            switch (key)
+            {
+                case "e_dmg": return SocketEmitter.Dmg;
+                case "e_heal": return SocketEmitter.Heal;
+                case "e_gold": return SocketEmitter.Gold;
+                case "e_atk": return SocketEmitter.Atk;
+                case "e_def": return SocketEmitter.Def;
+                case "e_spd": return SocketEmitter.Spd;
+                case "e_luck": return SocketEmitter.Luck;
+                default: throw new System.ArgumentException("unknown emitter " + key);
+            }
         }
 
         private static List<EnemyState> ReadPack(JArray pack)

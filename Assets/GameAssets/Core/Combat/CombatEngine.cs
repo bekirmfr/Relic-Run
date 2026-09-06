@@ -69,7 +69,7 @@ namespace RelicRun.Core.Combat
         private int _furyBonus;      // Adrenaline / Fury emitters, this floor
         private int _quenchBonus;    // Quenched Blade, this floor
         private int _headsmanBonus;  // Edge set (7), this floor
-        private int _stoneBonus;     // Stone / Iron emitters, this fight
+        private int _stoneBonus;     // Stone / Iron emitters - label says fight, lives a floor
         private int _galeBonus;      // Gale emitters, this floor
         private int _momentumBonus;  // Momentum Bead - persists across the whole floor
         private int _luckBonus;      // Rabbit / Gambler, this floor
@@ -91,6 +91,63 @@ namespace RelicRun.Core.Combat
         /// <summary>Set by Hare's Drum: the hero's gauge empties again immediately.</summary>
         private bool _instantRiposte;
 
+        /// <summary>Set by Fortune's Edge: the next strike lands charged.</summary>
+        private bool _bladeCharged;
+
+        /// <summary>
+        /// The inventory slot currently firing, or -1. Relics are per-copy, so events carry the
+        /// exact copy responsible and the UI can light up the right icon.
+        /// </summary>
+        private int _fireSlot = -1;
+
+        /// <summary>Blows the awakened Martyr's Knot has absorbed this floor.</summary>
+        private int _martyrCount;
+
+        /// <summary>
+        /// The strike number on which awakened Swift Boots last granted a free action.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately scoped to the FLOOR, not the fight, because the source declares it
+        /// outside the pack loop while the strike counter resets per fight. The consequence is
+        /// that a later fight reaching the same strike number gets no free action. That is
+        /// almost certainly unintended in the original, but it is observable in play, so it is
+        /// reproduced rather than corrected.
+        /// </remarks>
+        private int _bootsUsedOnStrike;
+
+        /// <summary>
+        /// A log line that must be recorded after the event it modifies, so it captures the
+        /// state that event produced rather than the state before it.
+        /// </summary>
+        private readonly struct PendingLine
+        {
+            public readonly int Depth;
+            public readonly RelicId Relic;
+            public readonly string Source;
+
+            public PendingLine(int depth, RelicId relic, string source)
+            {
+                Depth = depth;
+                Relic = relic;
+                Source = source;
+            }
+        }
+
+        private void FlushPending(List<PendingLine> lines)
+        {
+            for (int i = 0; i < lines.Count; i++)
+            {
+                Snap(CombatEventType.First, lines[i].Depth, relic: lines[i].Relic, source: lines[i].Source);
+            }
+        }
+
+        /// <summary>
+        /// One entry per inventory slot, cleared at the start of every beat. A genuine event may
+        /// wake each socketed copy only once per beat, or two relics answering each other would
+        /// resolve forever inside a single turn.
+        /// </summary>
+        private bool[] _firedThisBeat;
+
         /// <summary>Runs every foe in the pack, in order, until they are dead or the hero is.</summary>
         public CombatResult ResolveFloor(HeroState hero, IReadOnlyList<EnemyState> pack, Mulberry32 rng)
         {
@@ -105,6 +162,8 @@ namespace RelicRun.Core.Combat
             _tick = 0;
 
             CacheLoadout();
+            _firedThisBeat = new bool[_hero.Items.Count];
+            _bladeCharged = false;
 
             _strikeCount = _carry.StrikeCount;
             _painCount = _carry.PainCount;
@@ -119,6 +178,8 @@ namespace RelicRun.Core.Combat
             _momentumCount = 0;
             _adrenalineUsed = false;
             _hideLearned = 0;
+            _martyrCount = 0;
+            _bootsUsedOnStrike = -1;
 
             // The Flesh set thickens the hero once per run, not once per floor.
             if (SetCount(RelicKind.Flesh) >= 3 && !_hero.FleshSetApplied)
@@ -140,7 +201,6 @@ namespace RelicRun.Core.Combat
                 _fightStrikes = 0;
                 _foeFury = false;
                 _blockedFight = false;
-                _stoneBonus = 0;
                 _whiskerUsed = false;
                 _ironGlanced = false;
                 _instantRiposte = false;
@@ -154,12 +214,27 @@ namespace RelicRun.Core.Combat
 
                 Snap(CombatEventType.Enter, 0, another: k > 0);
 
+                System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+                if (k == 0)
+                {
+                    FireTrigger(SocketTrigger.Floor, 0, RelicId.None, RelicId.None, NewChain());
+                }
+
+                FireTrigger(SocketTrigger.Fight, 0, RelicId.None, RelicId.None, NewChain());
+
                 // Battle Dash resolves before the gauges run. Both sides dashing cancels out.
                 bool heroDash = CountItem(RelicId.BattleDash) > 0;
                 bool enemyDash = _cur.CountRelic(RelicId.BattleDash) > 0;
 
                 int heroGauge = (heroDash && !enemyDash) ? 0 : Gauge;
                 int enemyGauge = (enemyDash && !heroDash) ? 0 : Gauge;
+
+                // The Pace set starts the hero's gauge a quarter filled.
+                if (heroGauge > 0 && SetCount(RelicKind.Pace) >= 5)
+                {
+                    heroGauge = Math.Max(0, heroGauge - 25);
+                }
+
 
                 if (heroDash && enemyDash)
                 {
@@ -218,6 +293,16 @@ namespace RelicRun.Core.Combat
                     }
                     else
                     {
+                        // Awakened Swift Boots skip the wait on every fourth strike.
+                        if (IsAwake(RelicId.SwiftBoots) && EffectiveCount(RelicId.SwiftBoots) > 0 &&
+                            _fightStrikes > 0 && _fightStrikes % 4 == 0 &&
+                            _bootsUsedOnStrike != _fightStrikes)
+                        {
+                            _bootsUsedOnStrike = _fightStrikes;
+                            heroGauge = 0;
+                            continue;
+                        }
+
                         // Jump the clock to whichever gauge empties first.
                         int heroSpd = HeroStat(Stat.Spd);
                         int enemySpd = Math.Max(10, _cur.Spd);
@@ -251,7 +336,9 @@ namespace RelicRun.Core.Combat
 
         private void EnemyHits()
         {
-            // The enemy's action is one genuine event: everything it provokes shares this chain.
+            // The enemy's action is one genuine event: everything it provokes shares this chain,
+            // and each socketed copy may wake at most once inside it.
+            System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
             ChainContext chain = NewChain();
 
             // Evasion lives entirely in the Lucky Clover. Without one the hero cannot dodge at
@@ -285,6 +372,25 @@ namespace RelicRun.Core.Combat
                 }
 
                 return;
+            }
+
+            // An awakened Martyr's Knot takes every third blow onto the foe instead.
+            if (IsAwake(RelicId.MartyrsKnot) && EffectiveCount(RelicId.MartyrsKnot) > 0)
+            {
+                _martyrCount++;
+                if (_martyrCount % 3 == 0)
+                {
+                    Snap(CombatEventType.First, 0, relic: RelicId.MartyrsKnot,
+                        source: RelicCatalog.KeyOf(RelicId.MartyrsKnot) +
+                                " bears it \u2014 the blow lands on the foe");
+                    if (_enemyHp > 0)
+                    {
+                        DealDamage(Math.Max(1, _cur.Atk), RelicCatalog.KeyOf(RelicId.MartyrsKnot), 1,
+                            RelicId.MartyrsKnot, NewChain());
+                    }
+
+                    return;
+                }
             }
 
             // The Greedy Curse makes every blow bite one deeper — unless awakened, when it pays
@@ -346,6 +452,13 @@ namespace RelicRun.Core.Combat
 
             RefuseDeath();
 
+            // Mirror Scale throws a critical hit straight back, in full. It needs a foe that
+            // can crit at all, so only a Weighted Dice carrier ever sets it off.
+            if (crit && EffectiveCount(RelicId.MirrorScale) > 0 && _hero.Php > 0 && _enemyHp > 0)
+            {
+                DealDamage(damage, RelicCatalog.KeyOf(RelicId.MirrorScale), 1, RelicId.MirrorScale, chain);
+            }
+
             // Troll Marrow knits the hero back together while they are bloodied.
             int marrow = EffectiveCount(RelicId.TrollMarrow);
             if (_hero.Php > 0 && _hero.Php < _hero.Pmax / 2.0 && marrow > 0)
@@ -374,9 +487,10 @@ namespace RelicRun.Core.Combat
             if (adrenaline > 0 && _hero.Php > 0 && !_adrenalineUsed)
             {
                 _adrenalineUsed = true;
-                chain.Scale(RelicId.AdrenalineGland);
+                double adrenScale = chain.Scale(RelicId.AdrenalineGland);
                 _hero.Adrenaline += adrenaline;
                 Snap(CombatEventType.Adrenaline, 1, amount: adrenaline, relic: RelicId.AdrenalineGland);
+                FireEmitter(RelicId.AdrenalineGland, 0, chain, adrenScale);
             }
 
             // Thorn Vest answers the blow that landed, not the one the hero threw.
@@ -387,12 +501,24 @@ namespace RelicRun.Core.Combat
                 DealDamage(
                     JsMath.RoundToInt(2 * thorns * scale) + (SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
                     RelicCatalog.KeyOf(RelicId.ThornVest), 1, RelicId.ThornVest, chain);
+                FireEmitter(RelicId.ThornVest, 0, chain, scale);
             }
 
             // Only a hit the hero survived counts toward the pain cadence.
             if (_hero.Php > 0)
             {
+                if (greedy)
+                {
+                    FireEmitter(RelicId.GreedyCurse, 0, chain, chain.Scale(RelicId.GreedyCurse));
+                }
+
                 _painCount++;
+
+                // Socketed pain triggers fire on every third hit taken.
+                if (_painCount % 3 == 0)
+                {
+                    FireTrigger(SocketTrigger.Hit, 0, RelicId.None, RelicId.None, chain);
+                }
             }
         }
 
@@ -401,8 +527,9 @@ namespace RelicRun.Core.Combat
         {
             Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
 
-            chain.Scale(RelicId.LuckyClover);
+            double cloverScale = chain.Scale(RelicId.LuckyClover);
             EmitLuck(RelicCatalog.KeyOf(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
+            FireEmitter(RelicId.LuckyClover, 0, chain, cloverScale);
 
             if (EffectiveCount(RelicId.LoadedHorseshoe) > 0)
             {
@@ -452,6 +579,8 @@ namespace RelicRun.Core.Combat
             {
                 _instantRiposte = true;
             }
+
+            FireTrigger(SocketTrigger.Dodge, 0, RelicId.LuckyClover, RelicId.None, chain);
         }
 
         /// <summary>
@@ -505,6 +634,8 @@ namespace RelicRun.Core.Combat
 
         private void PlayerHits()
         {
+            System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+
             _fightStrikes++;
             _hero.StrikeTotal++;
 
@@ -538,7 +669,7 @@ namespace RelicRun.Core.Combat
             if (CountItem(RelicId.WeightedDice) > 0 && _rng.Next() < HeroStat(Stat.Lck) / 100.0)
             {
                 ChainContext critChain = NewChain();
-                critChain.Scale(RelicId.WeightedDice);
+                double critScale = critChain.Scale(RelicId.WeightedDice);
                 Snap(CombatEventType.Luck, 0, source: RelicCatalog.KeyOf(RelicId.WeightedDice),
                     relic: RelicId.WeightedDice);
                 DealDamage(
@@ -551,6 +682,8 @@ namespace RelicRun.Core.Combat
                     EmitLuck("Luck set", 1, RelicId.None, critChain);
                 }
 
+                FireEmitter(RelicId.WeightedDice, 0, critChain, critScale);
+
                 // Quiet: the luck line above already reported it, but the signal still travels.
                 EmitLuck(RelicCatalog.KeyOf(RelicId.WeightedDice), 0, RelicId.WeightedDice, critChain, quiet: true);
             }
@@ -562,6 +695,15 @@ namespace RelicRun.Core.Combat
                 if (SetCount(RelicKind.Edge) >= 5 && _fightStrikes % 4 == 0)
                 {
                     amount = JsMath.RoundToInt(amount * 1.5);
+                }
+
+                // Fortune's Edge spends its charge on this one blow.
+                if (_bladeCharged)
+                {
+                    amount = JsMath.RoundToInt(amount * (IsAwake(RelicId.FortunesEdge) ? 2 : 1.5));
+                    _bladeCharged = false;
+                    Snap(CombatEventType.First, 1, relic: RelicId.FortunesEdge,
+                        source: RelicCatalog.KeyOf(RelicId.FortunesEdge) + " — charged strike!");
                 }
 
                 DealDamage(amount, "you", 0);
@@ -623,6 +765,8 @@ namespace RelicRun.Core.Combat
 
                     if (hook > 0)
                     {
+                        FireEmitter(RelicId.CutpurseHook, 0, chain, scale);
+
                         // Quiet: the luck line was already logged above, but the signal itself
                         // still has to reach anything listening for it.
                         EmitLuck("looseCoins", 0, RelicId.CutpurseHook, chain, quiet: true);
@@ -636,9 +780,16 @@ namespace RelicRun.Core.Combat
                     double scale = chain.Scale(RelicId.VampireTooth);
                     Heal(JsMath.RoundToInt(tooth * scale),
                         RelicCatalog.KeyOf(RelicId.VampireTooth), 1, RelicId.VampireTooth, chain);
+                    FireEmitter(RelicId.VampireTooth, 0, chain, scale);
                 }
 
                 _strikeCount++;
+
+                // Socketed attack triggers fire on every third strike, counted across the floor.
+                if (_strikeCount % 3 == 0)
+                {
+                    FireTrigger(SocketTrigger.Attack, 0, RelicId.VampireTooth, RelicId.None, chain);
+                }
             }
         }
 
@@ -658,14 +809,17 @@ namespace RelicRun.Core.Combat
         private void CacheLoadout()
         {
             _kindCounts = new int[8];
-            _hollowIdols = 0;
 
             for (int i = 0; i < _hero.Items.Count; i++)
             {
-                RelicId id = _hero.Items[i];
-                _kindCounts[(int)RelicCatalog.KindOf(id)]++;
-                if (id == RelicId.HollowIdol) _hollowIdols++;
+                _kindCounts[(int)RelicCatalog.KindOf(_hero.Items[i])]++;
             }
+
+            // Hollow Idol counts itself toward every set. The engine credits an awakened copy
+            // twice while the stat ledger credits it once — the two disagree in the source, and
+            // both are reproduced as written rather than reconciled, because "fixing" it here
+            // would silently change which set bonuses a real loadout reaches.
+            _hollowIdols = EffectiveCount(RelicId.HollowIdol);
 
             _chainDecay = ChainContext.DecayFor(SetCount(RelicKind.Chain));
         }
@@ -769,6 +923,17 @@ namespace RelicRun.Core.Combat
             RelicId relic = RelicId.None, int? relicSlot = null, bool? enemyCrit = null,
             bool? another = null, bool? foe = null)
         {
+            _events.Add(Build(type, depth, amount, source, relic, relicSlot, enemyCrit, another, foe));
+        }
+
+        /// <summary>
+        /// Builds an event without recording it, for the handful of log lines that must appear
+        /// after the event they modify rather than before it.
+        /// </summary>
+        private CombatEvent Build(CombatEventType type, int depth, int? amount = null, string source = null,
+            RelicId relic = RelicId.None, int? relicSlot = null, bool? enemyCrit = null,
+            bool? another = null, bool? foe = null)
+        {
             var counters = new CombatCounters(
                 strikes: _strikeCount,
                 pain: _painCount,
@@ -802,8 +967,14 @@ namespace RelicRun.Core.Combat
                 heroMods: DynamicMods(),
                 counters: counters);
 
-            _events.Add(new CombatEvent(type, depth, state, amount, source,
-                relic, relicSlot, enemyCrit, another, foe));
+            // Events carry the exact copy that fired, when one did.
+            if (!relicSlot.HasValue && _fireSlot >= 0)
+            {
+                relicSlot = _fireSlot;
+            }
+
+            return new CombatEvent(type, depth, state, amount, source,
+                relic, relicSlot, enemyCrit, another, foe);
         }
     }
 }

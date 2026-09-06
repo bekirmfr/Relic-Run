@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using RelicRun.Core.Content;
 using RelicRun.Core.Determinism;
 using RelicRun.Core.Stats;
@@ -56,9 +57,25 @@ namespace RelicRun.Core.Combat
                 return;
             }
 
-            int dealt = Defense.Apply(amount, _cur.Armor, _hero.DefenseModel);
+            // An awakened Whetstone cuts straight through armor — but only on the hero's own
+            // strikes, not on anything a relic throws.
+            bool sunders = IsAwake(RelicId.Whetstone) && CountItem(RelicId.Whetstone) > 0 && source == "you";
+            int dealt = Defense.Apply(amount, sunders ? 0 : _cur.Armor, _hero.DefenseModel);
             _enemyHp -= dealt;
             Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
+
+            // Ember Cask shakes gold loose from relic damage - the BLOOD to GOLD arc.
+            if (relic != RelicId.None && relic != RelicId.EmberCask &&
+                EffectiveCount(RelicId.EmberCask) > 0)
+            {
+                double caskScale = chain.Scale(RelicId.EmberCask);
+                int coins = JsMath.RoundToInt(EffectiveCount(RelicId.EmberCask) * caskScale);
+                if (coins > 0)
+                {
+                    GainGold(coins, RelicCatalog.KeyOf(RelicId.EmberCask), depth + 1, RelicId.EmberCask, chain);
+                    FireEmitter(RelicId.EmberCask, depth, chain, caskScale);
+                }
+            }
 
             if (_enemyHp <= 0)
             {
@@ -97,6 +114,26 @@ namespace RelicRun.Core.Combat
                 return;
             }
 
+            // Modifiers adjust the amount now but log AFTER the heal, so the log reads
+            // parent-then-children rather than announcing a bonus before what it modified.
+            // They are queued as descriptions, not built events: an event captures the whole
+            // fight state at the moment it is recorded, so building one early would freeze the
+            // hero's HP at its pre-heal value.
+            var after = new List<PendingLine>();
+
+            int martyr = EffectiveCount(RelicId.MartyrsKnot);
+            if (relic != RelicId.None && relic != RelicId.MartyrsKnot && martyr > 0)
+            {
+                amount += martyr;
+                after.Add(new PendingLine(depth + 1, RelicId.MartyrsKnot,
+                    RelicCatalog.KeyOf(RelicId.MartyrsKnot) + " +" + martyr));
+            }
+
+            if (SetCount(RelicKind.Flesh) >= 5) amount += 1;
+
+            // The Famine Bell starves every table, the hero's included.
+            if (!IsAwake(RelicId.FamineBell)) amount -= EffectiveCount(RelicId.FamineBell);
+
             if (amount <= 0)
             {
                 if (relic != RelicId.None)
@@ -107,17 +144,41 @@ namespace RelicRun.Core.Combat
                 return;
             }
 
+            // Quenched Blade tempers on every third heal, whatever caused it.
+            int quenched = EffectiveCount(RelicId.QuenchedBlade);
+            if (quenched > 0)
+            {
+                _carry.QuenchCount++;
+                if (IsAwake(RelicId.QuenchedBlade) || _carry.QuenchCount % 3 == 0)
+                {
+                    _quenchBonus += quenched;
+                    after.Add(new PendingLine(depth + 1, RelicId.QuenchedBlade,
+                        RelicCatalog.KeyOf(RelicId.QuenchedBlade) + " +" + quenched + " ATK"));
+                }
+            }
+
             int real = Math.Min(amount, _hero.Pmax - _hero.Php);
+
+            // An awakened Vampire Tooth drains the foe's ceiling, not its pool.
+            if (relic == RelicId.VampireTooth && IsAwake(RelicId.VampireTooth) && EnemyMax > 2)
+            {
+                _cur.MaxHp = Math.Max(2, EnemyMax - 1);
+                if (_enemyHp > _cur.MaxHp) _enemyHp = _cur.MaxHp;
+                Snap(CombatEventType.First, depth + 1, relic: RelicId.VampireTooth,
+                    source: RelicCatalog.KeyOf(RelicId.VampireTooth) + " takes 1 max HP");
+            }
 
             // Healing a full pool is not nothing — it is a wasted activation, and the log says so.
             if (real <= 0)
             {
                 Snap(CombatEventType.HealFull, depth, source: source, relic: relic);
+                FlushPending(after);
                 return;
             }
 
             _hero.Php += real;
             Snap(CombatEventType.Heal, depth, amount: real, source: source, relic: relic);
+            FlushPending(after);
 
             // Blood Altar turns mercy into violence. It never answers its own heal, which is
             // what stops it looping with the Vial forever.
@@ -131,7 +192,15 @@ namespace RelicRun.Core.Combat
                 {
                     DealDamage(JsMath.RoundToInt(2 * altar * scale),
                         RelicCatalog.KeyOf(RelicId.BloodAltar), depth + 1, RelicId.BloodAltar, chain);
+
+                    // Awakened, the Altar takes its own tithe back out of the wound.
+                    if (IsAwake(RelicId.BloodAltar))
+                    {
+                        Heal(1, RelicCatalog.KeyOf(RelicId.BloodAltar), depth + 2, RelicId.BloodAltar, chain);
+                    }
                 }
+
+                FireEmitter(RelicId.BloodAltar, depth, chain, scale);
             }
         }
 
@@ -186,9 +255,28 @@ namespace RelicRun.Core.Combat
                 double scale = chain.Scale(RelicId.AlchemistsVial);
                 Heal(JsMath.RoundToInt(vial * scale),
                     RelicCatalog.KeyOf(RelicId.AlchemistsVial), depth + 1, RelicId.AlchemistsVial, chain);
+                FireEmitter(RelicId.AlchemistsVial, depth, chain, scale);
+            }
+
+            // Coin Singer turns gold into luck - the GOLD to GRACE arc of the wheel.
+            if (relic != RelicId.CoinSinger && EffectiveCount(RelicId.CoinSinger) > 0 &&
+                (relic != RelicId.None || IsAwake(RelicId.CoinSinger)))
+            {
+                double singerScale = chain.Scale(RelicId.CoinSinger);
+                if (JsMath.RoundToInt(singerScale) > 0)
+                {
+                    EmitLuck(RelicCatalog.KeyOf(RelicId.CoinSinger), depth + 1, RelicId.CoinSinger, chain);
+                    FireEmitter(RelicId.CoinSinger, depth, chain, singerScale);
+                }
             }
 
             _goldCount++;
+
+            // Socketed gold triggers fire on every third gain, counted across the floor.
+            if (_goldCount % 3 == 0)
+            {
+                FireTrigger(SocketTrigger.Gold, depth, RelicId.AlchemistsVial, relic, chain);
+            }
         }
 
         /// <summary>
@@ -210,6 +298,36 @@ namespace RelicRun.Core.Combat
             {
                 Snap(CombatEventType.Luck, depth, source: source, relic: relic);
             }
+
+            RabbitReact(depth, relic, chain);
+
+            // Hex Thread sharpens fortune to a point - the GRACE to BLOOD arc.
+            if (relic != RelicId.HexThread && EffectiveCount(RelicId.HexThread) > 0 && _enemyHp > 0)
+            {
+                double threadScale = chain.Scale(RelicId.HexThread);
+                int lash = JsMath.RoundToInt(EffectiveCount(RelicId.HexThread) * threadScale);
+                if (lash > 0)
+                {
+                    DealDamage(lash, RelicCatalog.KeyOf(RelicId.HexThread), depth + 1, RelicId.HexThread, chain);
+                }
+            }
+
+            if (relic != RelicId.FortunesEdge && EffectiveCount(RelicId.FortunesEdge) > 0 && !_bladeCharged)
+            {
+                _bladeCharged = true;
+                Snap(CombatEventType.First, depth + 1, relic: RelicId.FortunesEdge,
+                    source: RelicCatalog.KeyOf(RelicId.FortunesEdge) + " charges the blade");
+            }
+
+            int pulse = EffectiveCount(RelicId.QuickenedPulse);
+            if (relic != RelicId.QuickenedPulse && pulse > 0)
+            {
+                _galeBonus += pulse;
+                Snap(CombatEventType.First, depth + 1, relic: RelicId.QuickenedPulse,
+                    source: RelicCatalog.KeyOf(RelicId.QuickenedPulse) + " +" + pulse + " SPD");
+            }
+
+            FireTrigger(SocketTrigger.Luck, depth, RelicId.RabbitsFoot, relic, chain);
         }
 
         private void OnKill(int depth)
@@ -241,13 +359,15 @@ namespace RelicRun.Core.Combat
                 double scale = chain.Scale(RelicId.TollkeepersRing);
                 GainGold(Math.Max(1, JsMath.RoundToInt(5 * toll * scale)),
                     RelicCatalog.KeyOf(RelicId.TollkeepersRing), 1, RelicId.TollkeepersRing, chain);
+                FireEmitter(RelicId.TollkeepersRing, 0, chain, scale);
             }
 
             if (magnet > 0)
             {
-                // Counts as an activation even though its emitter is not wired until sockets land.
-                chain.Scale(RelicId.CoinMagnet);
+                FireEmitter(RelicId.CoinMagnet, 0, chain, chain.Scale(RelicId.CoinMagnet));
             }
+
+            FireTrigger(SocketTrigger.Kill, 0, RelicId.CoinMagnet, RelicId.None, chain);
         }
     }
 }
