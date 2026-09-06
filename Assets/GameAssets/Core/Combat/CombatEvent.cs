@@ -133,6 +133,12 @@ namespace RelicRun.Core.Combat
         /// <summary>Permanent ATK banked from Adrenaline.</summary>
         public readonly int HeroAdrenaline;
 
+        /// <summary>
+        /// Attack the hero has gained this round. Reported only by the duel engine, where a
+        /// round-scoped bonus is worth surfacing on its own; a delve leaves it at zero.
+        /// </summary>
+        public readonly int HeroFury;
+
         /// <summary>The enemy's relics, or null when this foe has no relic list at all.</summary>
         public readonly IReadOnlyList<RelicId> EnemyRelics;
 
@@ -145,8 +151,9 @@ namespace RelicRun.Core.Combat
             int enemyAtk, EnemyRank enemyRank, int enemyArmor, int enemySpd, int enemyLck,
             int enemyVariant, int enemyIndex, int heroAdrenaline,
             IReadOnlyList<RelicId> enemyRelics, IReadOnlyList<StatModifier> heroMods,
-            CombatCounters counters)
+            CombatCounters counters, int heroFury = 0)
         {
+            HeroFury = heroFury;
             Tick = tick;
             HeroHp = heroHp;
             EnemyHp = enemyHp;

@@ -63,6 +63,11 @@ were only found this way — the stat ledger's bloodied boundary, and the chain 
 exercising decay at all until loadouts were added that make one relic fire twice in a single
 chain.
 
+One Phase 6 rule is unobservable: the duel keys chain decay per SIDE as well as per relic,
+but a chain object only ever belongs to one side — every cross-side reaction opens a fresh one
+— so the prefix never prevents a collision. Removing it still passes. Kept as written, since a
+future change that shared a chain would need it.
+
 One Phase 4 rule is also unobservable: the per-beat guard that lets a genuine event wake each
 socketed copy only once. Removing it entirely still passes, because reaching the same socket
 twice inside one beat needs two kills or two qualifying strikes in a single turn, which the
@@ -111,3 +116,4 @@ node Tools/extract/validate.mjs
 | Phase 4b — sockets | `mixed.json` | passing, 120 fights with duplicates, sockets and awakenings |
 | Phase 5a — enemy packs | `packs.json` | passing, 360 packs regenerate exactly |
 | Phase 5b — progression | `corpus/progression.json` | passing, levels, perks and the reward table |
+| Phase 6 — versus | `duel.json` | passing, 72 duels replay event-for-event |

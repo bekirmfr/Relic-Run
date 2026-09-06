@@ -377,6 +377,28 @@ for (let unlocked = 1; unlocked <= 10; unlocked++) {
 }
 api.setUnlocked(1);
 
+/* Deep-chain duels. The random duel tier never gets past depth 3, so the duel's chain cap of
+   4 — which is what most sharply separates it from the delve engine's 40 — is never actually
+   reached. These loadouts wire a full gold-to-heal-to-damage-to-gold loop on both sides, which
+   is the only way to run a chain past the cap and see it fizzle. Appended after every other
+   consumer of `master`, so the earlier corpus files stay byte-identical. */
+const LOOP = ["alchemist", "altar", "embercask", "coinsinger", "hexthread", "cutpurse"];
+for (let i = 0; i < 12; i++) {
+  const mk = () => LOOP.slice(0, 3 + (i % 4)).concat(i % 2 ? ["clover"] : []);
+  const sock = (items) => {
+    const s = {};
+    for (let k = 0; k < items.length; k++) if (master() < 0.5) s[k] = pick(EMITTERS);
+    return s;
+  };
+  const itemsA = mk(), itemsB = mk();
+  cases.push(duelCase(`duel/deep/${i}`, {
+    itemsA, itemsB, socketsA: sock(itemsA), socketsB: sock(itemsB),
+    awakeA: i % 3 === 0 ? { alchemist: 1 } : {},
+    awakeB: i % 3 === 1 ? { altar: 1 } : {},
+    hp: 70 + int(80),
+  }));
+}
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });

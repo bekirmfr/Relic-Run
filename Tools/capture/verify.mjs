@@ -72,8 +72,15 @@ console.log(`  ${load("packs.json").length} packs`);
 
 /* ---------- fights ---------- */
 
+/* Fight tiers are the corpus files holding an ARRAY of replayable cases. Detect that by
+   shape rather than by maintaining a list of exclusions - a new non-fight corpus file used to
+   crash this script, and adding its name here would only defer the next one. */
 const tiers = readdirSync(DIR)
-  .filter((f) => f.endsWith(".json") && !["manifest.json", "packs.json", "rng.json", "defense.json", "statledger.json"].includes(f))
+  .filter((f) => f.endsWith(".json") && f !== "manifest.json")
+  .filter((f) => {
+    const data = load(f);
+    return Array.isArray(data) && data.length > 0 && data[0] && data[0].events !== undefined;
+  })
   .map((f) => f.replace(/\.json$/, ""));
 
 for (const tier of tiers) {

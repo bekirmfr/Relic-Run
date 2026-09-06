@@ -133,7 +133,7 @@ namespace RelicRun.Tests.Support
             };
         }
 
-        private static SocketTrigger ParseTrigger(string key)
+        internal static SocketTrigger ParseTrigger(string key)
         {
             switch (key)
             {
@@ -149,7 +149,7 @@ namespace RelicRun.Tests.Support
             }
         }
 
-        private static SocketEmitter ParseEmitter(string key)
+        internal static SocketEmitter ParseEmitter(string key)
         {
             switch (key)
             {
@@ -282,6 +282,7 @@ namespace RelicRun.Tests.Support
                 Int(prefix, want, "evar", got.State.EnemyVariant) ??
                 Int(prefix, want, "eidx", got.State.EnemyIndex) ??
                 Int(prefix, want, "padr", got.State.HeroAdrenaline) ??
+                Int(prefix, want, "pfury", got.State.HeroFury) ??
                 OptionalInt(prefix, want, "amt", got.Amount) ??
                 OptionalString(prefix, want, "src", got.Source) ??
                 Rank(prefix, want, got) ??
