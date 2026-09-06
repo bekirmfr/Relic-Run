@@ -55,6 +55,14 @@ JSON goes through Newtonsoft on both sides — Unity supplies it as
 `com.unity.nuget.newtonsoft-json`, the csproj references the identical NuGet package — so no
 conditional compilation is needed anywhere.
 
+## Single-sourcing
+
+The relic layer and the shared bus primitives exist once and are used by both modes, with
+their differences held as data in `CombatRules`. The check that this is real rather than
+cosmetic is a mutation: changing one line in `CombatPrimitives` (the Alchemist's Vial heal)
+turns all four fight gates red — solo, primitives, mixed and duels. If a future change makes
+that mutation break only one mode, the layer has quietly forked again.
+
 ## Mutation testing
 
 A gate that has never gone red is not evidence of anything. Every phase so far has been

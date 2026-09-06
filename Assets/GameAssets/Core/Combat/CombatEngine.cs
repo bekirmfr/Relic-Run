@@ -163,11 +163,17 @@ namespace RelicRun.Core.Combat
                 _engine = engine;
             }
 
-            public int Php { get { return _engine._hero.Php; } }
+            public int Php
+            {
+                get { return _engine._hero.Php; }
+                set { _engine._hero.Php = value; }
+            }
 
             public int Pmax { get { return _engine._hero.Pmax; } }
 
             public int Effective(RelicId id) { return _engine.EffectiveCount(id); }
+
+            public int CountRaw(RelicId id) { return _engine.CountItem(id); }
 
             public bool IsAwake(RelicId id) { return _engine.IsAwake(id); }
 
@@ -208,6 +214,46 @@ namespace RelicRun.Core.Combat
                 get { return _engine._bladeCharged; }
                 set { _engine._bladeCharged = value; }
             }
+
+            public int Gold
+            {
+                get { return _engine._hero.Gold; }
+                set { _engine._hero.Gold = value; }
+            }
+
+            public int QuenchBonus
+            {
+                get { return _engine._quenchBonus; }
+                set { _engine._quenchBonus = value; }
+            }
+
+            public int QuenchCount
+            {
+                get { return _engine._carry.QuenchCount; }
+                set { _engine._carry.QuenchCount = value; }
+            }
+
+            public int RabbitCount
+            {
+                // The delve declares a Rabbit counter but never reads it back, so it is not
+                // stored anywhere; the cadence rule that would use it is duel-only.
+                get { return 0; }
+                set { }
+            }
+
+            public int GoldCount
+            {
+                get { return _engine._goldCount; }
+                set { _engine._goldCount = value; }
+            }
+
+            public int DebtLeft
+            {
+                get { return _engine._hero.DebtLeft; }
+                set { _engine._hero.DebtLeft = value; }
+            }
+
+            public int SetCount(RelicKind kind) { return _engine.SetCount(kind); }
         }
 
         private HeroActor _actor;
@@ -240,6 +286,101 @@ namespace RelicRun.Core.Combat
         }
 
         bool ICombatBus.HasTarget(ICombatActor actor) { return _enemyHp > 0; }
+
+        /// <summary>
+        /// A delve foe is a stat block, not a relic-bearing side. It carries no relics the
+        /// shared rules read, so an empty stand-in keeps those rules from having to special-case
+        /// the asymmetry.
+        /// </summary>
+        ICombatActor ICombatBus.Opponent(ICombatActor actor) { return EmptyActor.Instance; }
+
+        void ICombatBus.ReportFizzle(int depth) { Snap(CombatEventType.Fizzle, depth); }
+
+        void ICombatBus.ReportHeal(ICombatActor actor, int amount, string source, int depth, RelicId relic)
+        {
+            Snap(CombatEventType.Heal, depth, amount: amount, source: source, relic: relic);
+        }
+
+        void ICombatBus.ReportHealFull(ICombatActor actor, string source, int depth, RelicId relic)
+        {
+            Snap(CombatEventType.HealFull, depth, source: source, relic: relic);
+        }
+
+        void ICombatBus.ReportGold(ICombatActor actor, int amount, string source, int depth, RelicId relic)
+        {
+            Snap(CombatEventType.Gold, depth, amount: amount, source: source, relic: relic);
+        }
+
+        void ICombatBus.ReportLuck(ICombatActor actor, string source, int depth, RelicId relic)
+        {
+            Snap(CombatEventType.Luck, depth, source: source, relic: relic);
+        }
+
+        /// <summary>An awakened Vampire Tooth drains the foe's HP ceiling.</summary>
+        void ICombatBus.ReduceOpponentCeiling(ICombatActor actor, int depth)
+        {
+            if (_cur == null || EnemyMax <= 2) return;
+
+            _cur.MaxHp = Math.Max(2, EnemyMax - 1);
+            if (_enemyHp > _cur.MaxHp) _enemyHp = _cur.MaxHp;
+            Snap(CombatEventType.First, depth, relic: RelicId.VampireTooth,
+                source: RelicCatalog.KeyOf(RelicId.VampireTooth) + " takes 1 max HP");
+        }
+
+        void ICombatBus.FireEmitter(ICombatActor actor, RelicId id, int depth, IChain chain, double scale)
+        {
+            FireEmitter(id, depth, (ChainContext)chain, scale);
+        }
+
+        void ICombatBus.FireTrigger(ICombatActor actor, SocketTrigger trigger, int depth,
+            RelicId exclude, RelicId cause, IChain chain)
+        {
+            FireTrigger(trigger, depth, exclude, cause, (ChainContext)chain);
+        }
+
+        /// <summary>A side that holds nothing, for rules that ask about an opponent's relics.</summary>
+        private sealed class EmptyActor : ICombatActor
+        {
+            public static readonly EmptyActor Instance = new EmptyActor();
+
+            public int Php { get; set; }
+
+            public int Pmax { get { return 0; } }
+
+            public int Effective(RelicId id) { return 0; }
+
+            public int CountRaw(RelicId id) { return 0; }
+
+            public bool IsAwake(RelicId id) { return false; }
+
+            public string Label(RelicId id) { return RelicCatalog.KeyOf(id); }
+
+            public int Fury { get; set; }
+
+            public int Stone { get; set; }
+
+            public int Gale { get; set; }
+
+            public int LuckGain { get; set; }
+
+            public int Sentinel { get; set; }
+
+            public bool BladeCharged { get; set; }
+
+            public int Gold { get; set; }
+
+            public int QuenchBonus { get; set; }
+
+            public int QuenchCount { get; set; }
+
+            public int RabbitCount { get; set; }
+
+            public int GoldCount { get; set; }
+
+            public int DebtLeft { get; set; }
+
+            public int SetCount(RelicKind kind) { return 0; }
+        }
 
         void IAdrenalineReporter.ReportAdrenaline(ICombatActor actor, int amount, int depth, string name)
         {

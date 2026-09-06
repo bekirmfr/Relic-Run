@@ -36,7 +36,7 @@ namespace RelicRun.Core.Combat
 
         public int Php { get; set; } = 60;
         public int Pmax { get; set; } = 60;
-        public int Gold;
+        public int Gold { get; set; }
         public int Kills;
 
         /// <summary>The purse this side pays out when it loses the round.</summary>
@@ -65,8 +65,8 @@ namespace RelicRun.Core.Combat
         public int LuckGain { get; set; }
         public int Momentum;
         public int MomentumCount;
-        public int QuenchBonus;
-        public int QuenchCount;
+        public int QuenchBonus { get; set; }
+        public int QuenchCount { get; set; }
 
         /// <summary>Defence rung up by Sentinel Bell. Capped at 3, or 5 when awakened.</summary>
         public int Sentinel { get; set; }
@@ -74,9 +74,9 @@ namespace RelicRun.Core.Combat
         public int Strikes;
         public int StrikeCount;
         public int PainCount;
-        public int GoldCount;
+        public int GoldCount { get; set; }
         public int StoneCount;
-        public int RabbitCount;
+        public int RabbitCount { get; set; }
         public int StrikeTotal;
 
         public bool BladeCharged { get; set; }
@@ -100,7 +100,7 @@ namespace RelicRun.Core.Combat
         public bool Staggered;
 
         public int AnvilBonus;
-        public int DebtLeft;
+        public int DebtLeft { get; set; }
 
         /// <summary>Per-slot guard, cleared each beat, so a genuine event wakes a copy once.</summary>
         public bool[] FiredThisBeat;
@@ -121,6 +121,12 @@ namespace RelicRun.Core.Combat
             return Awakened.Contains(id);
         }
 
+        /// <summary>Copies held, ignoring awakening.</summary>
+        public int CountRaw(RelicId id)
+        {
+            return CountRelic(id);
+        }
+
         /// <summary>Copies held, plus one for an awakened copy.</summary>
         public int Effective(RelicId id)
         {
@@ -131,7 +137,7 @@ namespace RelicRun.Core.Combat
         /// Relics of a kind. Whether Hollow Idol counts itself toward every set is a rules
         /// difference between the modes, so the caller supplies it.
         /// </summary>
-        public int SetCount(RelicKind kind, bool hollowIdolCounts = false)
+        public int SetCount(RelicKind kind, bool hollowIdolCounts)
         {
             int n = 0;
             for (int i = 0; i < Items.Count; i++)
@@ -140,6 +146,12 @@ namespace RelicRun.Core.Combat
             }
 
             return n + (hollowIdolCounts ? CountRelic(RelicId.HollowIdol) : 0);
+        }
+
+        /// <summary>A duel never lets Hollow Idol count itself toward a set.</summary>
+        public int SetCount(RelicKind kind)
+        {
+            return SetCount(kind, false);
         }
 
         /// <summary>The relic label as the log shows it. A rival's relics are named as theirs.</summary>

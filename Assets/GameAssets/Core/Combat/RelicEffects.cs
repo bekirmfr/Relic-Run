@@ -21,11 +21,14 @@ namespace RelicRun.Core.Combat
     /// </summary>
     public interface ICombatActor
     {
-        int Php { get; }
+        int Php { get; set; }
         int Pmax { get; }
 
         /// <summary>Copies held, plus one for an awakened copy.</summary>
         int Effective(RelicId id);
+
+        /// <summary>Copies held, ignoring awakening.</summary>
+        int CountRaw(RelicId id);
 
         bool IsAwake(RelicId id);
 
@@ -49,6 +52,26 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Whether Fortune's Edge has charged the next strike.</summary>
         bool BladeCharged { get; set; }
+
+        int Gold { get; set; }
+
+        /// <summary>Attack tempered by Quenched Blade.</summary>
+        int QuenchBonus { get; set; }
+
+        /// <summary>Heals counted toward Quenched Blade's every-third cadence.</summary>
+        int QuenchCount { get; set; }
+
+        /// <summary>Luck signals counted toward Rabbit's Foot.</summary>
+        int RabbitCount { get; set; }
+
+        /// <summary>Gold gains counted toward the socketed gold trigger.</summary>
+        int GoldCount { get; set; }
+
+        /// <summary>Outstanding debt that incoming gold pays down first.</summary>
+        int DebtLeft { get; set; }
+
+        /// <summary>Relics of a kind, with the mode's Hollow Idol rule already applied.</summary>
+        int SetCount(RelicKind kind);
     }
 
     /// <summary>The primitives a relic effect can reach for.</summary>
@@ -64,6 +87,23 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Whether this side still has something to hit.</summary>
         bool HasTarget(ICombatActor actor);
+
+        /// <summary>The other side.</summary>
+        ICombatActor Opponent(ICombatActor actor);
+
+        void ReportFizzle(int depth);
+        void ReportHeal(ICombatActor actor, int amount, string source, int depth, RelicId relic);
+        void ReportHealFull(ICombatActor actor, string source, int depth, RelicId relic);
+        void ReportGold(ICombatActor actor, int amount, string source, int depth, RelicId relic);
+        void ReportLuck(ICombatActor actor, string source, int depth, RelicId relic);
+
+        /// <summary>An awakened Vampire Tooth eating one point off the opponent's ceiling.</summary>
+        void ReduceOpponentCeiling(ICombatActor actor, int depth);
+
+        void FireEmitter(ICombatActor actor, RelicId id, int depth, IChain chain, double scale);
+
+        void FireTrigger(ICombatActor actor, SocketTrigger trigger, int depth,
+            RelicId exclude, RelicId cause, IChain chain);
     }
 
     /// <summary>

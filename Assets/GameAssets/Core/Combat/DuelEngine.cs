@@ -243,8 +243,6 @@ namespace RelicRun.Core.Combat
                 double decay = chain >= 7 ? 0.75 : chain >= 3 ? 0.6 : 0.5;
                 return Math.Pow(decay, seen - 1);
             }
-
-            public bool DeepHealDone;
         }
 
         private DuelChain NewChain()
@@ -515,233 +513,13 @@ namespace RelicRun.Core.Combat
             }
         }
 
-        private void Heal(DuelSide side, int amount, string source, int depth, RelicId relic, DuelChain chain)
-        {
-            chain = chain ?? NewChain();
 
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
 
-            DuelSide foe = Other(side);
-            var after = new List<Action>();
-
-            if (amount > 0)
-            {
-                int martyr = side.Effective(RelicId.MartyrsKnot);
-                if (relic != RelicId.None && relic != RelicId.MartyrsKnot && martyr > 0)
-                {
-                    amount += martyr;
-                    int d = depth + 1;
-                    after.Add(() => Line(side, RelicId.MartyrsKnot,
-                        side.Label(RelicId.MartyrsKnot) + " +" + martyr, d));
-                }
-
-                if (side.SetCount(RelicKind.Flesh, _rules.HollowIdolCountsTowardSets) >= 5) amount += 1;
-
-                // The opponent's bell starves you outright; your own only taxes you unless awakened.
-                amount -= (_rules.FamineBellStarvesOpponent ? foe.Effective(RelicId.FamineBell) : 0) +
-                          (side.IsAwake(RelicId.FamineBell) ? 0 : side.Effective(RelicId.FamineBell));
-            }
-
-            if (amount <= 0)
-            {
-                if (relic != RelicId.None) Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            int quenched = side.Effective(RelicId.QuenchedBlade);
-            if (quenched > 0)
-            {
-                side.QuenchCount++;
-                if (side.IsAwake(RelicId.QuenchedBlade) || side.QuenchCount % 3 == 0)
-                {
-                    side.QuenchBonus += quenched;
-                    int d = depth + 1;
-                    after.Add(() => Line(side, RelicId.QuenchedBlade,
-                        side.Label(RelicId.QuenchedBlade) + " +" + quenched + " ATK", d));
-                }
-            }
-
-            int real = Math.Min(amount, side.Pmax - side.Php);
-
-            // An awakened Vampire Tooth eats the opponent's ceiling.
-            if (relic == RelicId.VampireTooth && side.IsAwake(RelicId.VampireTooth) && foe.Pmax > 12)
-            {
-                foe.Pmax -= 1;
-                if (foe.Php > foe.Pmax) foe.Php = foe.Pmax;
-                Line(side, RelicId.VampireTooth, side.Label(RelicId.VampireTooth) + " takes 1 max HP", depth + 1);
-            }
-
-            if (real <= 0)
-            {
-                if (side.IsHero) Snap(CombatEventType.HealFull, depth, source: source, relic: relic);
-                foreach (Action line in after) line();
-                return;
-            }
-
-            side.Php += real;
-            if (side.IsHero)
-            {
-                Snap(CombatEventType.Heal, depth, amount: real, source: source, relic: relic);
-            }
-            else
-            {
-                Snap(CombatEventType.EnemyHeal, depth, amount: real,
-                    relic: relic != RelicId.None ? relic : RelicId.VampireTooth, foe: true);
-            }
-
-            foreach (Action line in after) line();
-
-            int altar = side.Effective(RelicId.BloodAltar);
-            if (altar > 0 && relic != RelicId.BloodAltar)
-            {
-                double scale = chain.Scale(side, RelicId.BloodAltar);
-                DealDamage(side, JsMath.RoundToInt(2 * altar * scale),
-                    side.Label(RelicId.BloodAltar), depth + 1, RelicId.BloodAltar, chain);
-                if (side.IsAwake(RelicId.BloodAltar))
-                {
-                    Heal(side, 1, side.Label(RelicId.BloodAltar), depth + 2, RelicId.BloodAltar, chain);
-                }
-
-                FireEmitter(side, RelicId.BloodAltar, depth, chain, scale);
-            }
-        }
-
-        private void GainGold(DuelSide side, int amount, string source, int depth, RelicId relic, DuelChain chain)
-        {
-            chain = chain ?? NewChain();
-
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            if (amount <= 0)
-            {
-                if (relic != RelicId.None) Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            double real = amount;
-            if (side.SetCount(RelicKind.Greed, _rules.HollowIdolCountsTowardSets) >= 3) real = JsMath.Round(real * 1.15);
-            if (side.Effective(RelicId.FortunesDebt) > 0 && !side.IsAwake(RelicId.FortunesDebt))
-            {
-                real = JsMath.Round(real * 0.9);
-            }
-
-            int gained = Math.Max(1, (int)real);
-            if (side.DebtLeft > 0) side.DebtLeft = Math.Max(0, side.DebtLeft - gained);
-            side.Gold += gained;
-
-            if (side.IsHero)
-            {
-                Snap(CombatEventType.Gold, depth, amount: gained, source: source, relic: relic);
-            }
-            else
-            {
-                Line(side, relic != RelicId.None ? relic : RelicId.MidasBlade,
-                    source + " +" + gained + "g", depth);
-            }
-
-            int vial = side.Effective(RelicId.AlchemistsVial);
-            if (vial > 0)
-            {
-                double scale = chain.Scale(side, RelicId.AlchemistsVial);
-                Heal(side, JsMath.RoundToInt(vial * scale), side.Label(RelicId.AlchemistsVial),
-                    depth + 1, RelicId.AlchemistsVial, chain);
-                FireEmitter(side, RelicId.AlchemistsVial, depth, chain, scale);
-            }
-
-            if (relic != RelicId.CoinSinger && side.Effective(RelicId.CoinSinger) > 0 &&
-                (relic != RelicId.None || side.IsAwake(RelicId.CoinSinger)))
-            {
-                double scale = chain.Scale(side, RelicId.CoinSinger);
-                if (JsMath.RoundToInt(scale) > 0)
-                {
-                    EmitLuck(side, side.Label(RelicId.CoinSinger), depth + 1, RelicId.CoinSinger, chain);
-                    FireEmitter(side, RelicId.CoinSinger, depth, chain, scale);
-                }
-            }
-
-            side.GoldCount++;
-            if (side.GoldCount % 3 == 0)
-            {
-                FireTrigger(side, SocketTrigger.Gold, depth, RelicId.AlchemistsVial, relic, chain);
-            }
-        }
-
-        private void EmitLuck(DuelSide side, string source, int depth, RelicId relic, DuelChain chain, bool quiet = false)
-        {
-            chain = chain ?? NewChain();
-
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            // Only the hero's luck is worth a line of its own; the rival's is inferred.
-            if (!quiet && side.IsHero)
-            {
-                Snap(CombatEventType.Luck, depth, source: source, relic: relic);
-            }
-
-            RabbitReact(side, depth, relic, chain);
-
-            if (relic != RelicId.HexThread && side.Effective(RelicId.HexThread) > 0 && Other(side).Php > 0)
-            {
-                double scale = chain.Scale(side, RelicId.HexThread);
-                int lash = JsMath.RoundToInt(side.Effective(RelicId.HexThread) * scale);
-                if (lash > 0)
-                {
-                    DealDamage(side, lash, side.Label(RelicId.HexThread), depth + 1, RelicId.HexThread, chain);
-                }
-            }
-
-            if (relic != RelicId.FortunesEdge && side.Effective(RelicId.FortunesEdge) > 0 && !side.BladeCharged)
-            {
-                side.BladeCharged = true;
-                Line(side, RelicId.FortunesEdge, side.Label(RelicId.FortunesEdge) + " charges the blade", depth + 1);
-            }
-
-            int pulse = side.Effective(RelicId.QuickenedPulse);
-            if (relic != RelicId.QuickenedPulse && pulse > 0)
-            {
-                side.Gale += pulse;
-                Line(side, RelicId.QuickenedPulse,
-                    side.Label(RelicId.QuickenedPulse) + " +" + pulse + " SPD", depth + 1);
-            }
-
-            FireTrigger(side, SocketTrigger.Luck, depth, RelicId.RabbitsFoot, relic, chain);
-        }
 
         /// <summary>
         /// Rabbit's Foot answers only every third luck signal here. Duels run long enough that
         /// answering every one would snowball luck out of control.
         /// </summary>
-        private void RabbitReact(DuelSide side, int depth, RelicId cause, DuelChain chain)
-        {
-            int rabbits = side.Effective(RelicId.RabbitsFoot);
-            if (rabbits <= 0 || cause == RelicId.RabbitsFoot) return;
-
-            side.RabbitCount++;
-            if (!side.IsAwake(RelicId.RabbitsFoot) && side.RabbitCount % _rules.RabbitSignalCadence != 0) return;
-
-            chain = chain ?? NewChain();
-            double scale = chain.Scale(side, RelicId.RabbitsFoot);
-            int bonus = JsMath.RoundToInt(rabbits * scale);
-            if (bonus > 0)
-            {
-                side.LuckGain += bonus;
-                Line(side, RelicId.RabbitsFoot, side.Label(RelicId.RabbitsFoot) + " +" + bonus + " LUCK", depth + 1);
-            }
-
-            FireEmitter(side, RelicId.RabbitsFoot, depth, chain, scale);
-        }
 
         private void OnDodge(DuelSide side)
         {
@@ -921,7 +699,76 @@ namespace RelicRun.Core.Combat
             }
         }
 
+        // ---------- the shared primitives ----------
+
+        private void Heal(DuelSide side, int amount, string source, int depth, RelicId relic, DuelChain chain)
+        {
+            CombatPrimitives.Heal(side, this, _rules, amount, source, depth, relic, chain ?? NewChain());
+        }
+
+        private void GainGold(DuelSide side, int amount, string source, int depth, RelicId relic, DuelChain chain)
+        {
+            CombatPrimitives.GainGold(side, this, _rules, amount, source, depth, relic, chain ?? NewChain());
+        }
+
+        private void EmitLuck(DuelSide side, string source, int depth, RelicId relic, DuelChain chain, bool quiet = false)
+        {
+            CombatPrimitives.EmitLuck(side, this, _rules, source, depth, relic, chain ?? NewChain(), quiet);
+        }
+
         // ---------- ICombatBus ----------
+
+        ICombatActor ICombatBus.Opponent(ICombatActor actor) { return Other((DuelSide)actor); }
+
+        void ICombatBus.ReportFizzle(int depth) { Snap(CombatEventType.Fizzle, depth); }
+
+        void ICombatBus.ReportHeal(ICombatActor actor, int amount, string source, int depth, RelicId relic)
+        {
+            var side = (DuelSide)actor;
+            if (side.IsHero) Snap(CombatEventType.Heal, depth, amount: amount, source: source, relic: relic);
+            else Snap(CombatEventType.EnemyHeal, depth, amount: amount,
+                relic: relic != RelicId.None ? relic : RelicId.VampireTooth, foe: true);
+        }
+
+        /// <summary>Only the hero's wasted heal is worth a line; the rival's is inferred.</summary>
+        void ICombatBus.ReportHealFull(ICombatActor actor, string source, int depth, RelicId relic)
+        {
+            if (((DuelSide)actor).IsHero) Snap(CombatEventType.HealFull, depth, source: source, relic: relic);
+        }
+
+        void ICombatBus.ReportGold(ICombatActor actor, int amount, string source, int depth, RelicId relic)
+        {
+            var side = (DuelSide)actor;
+            if (side.IsHero) Snap(CombatEventType.Gold, depth, amount: amount, source: source, relic: relic);
+            else Line(side, relic != RelicId.None ? relic : RelicId.MidasBlade, source + " +" + amount + "g", depth);
+        }
+
+        void ICombatBus.ReportLuck(ICombatActor actor, string source, int depth, RelicId relic)
+        {
+            if (((DuelSide)actor).IsHero) Snap(CombatEventType.Luck, depth, source: source, relic: relic);
+        }
+
+        void ICombatBus.ReduceOpponentCeiling(ICombatActor actor, int depth)
+        {
+            var side = (DuelSide)actor;
+            DuelSide foe = Other(side);
+            if (foe.Pmax <= 12) return;
+
+            foe.Pmax -= 1;
+            if (foe.Php > foe.Pmax) foe.Php = foe.Pmax;
+            Line(side, RelicId.VampireTooth, side.Label(RelicId.VampireTooth) + " takes 1 max HP", depth);
+        }
+
+        void ICombatBus.FireEmitter(ICombatActor actor, RelicId id, int depth, IChain chain, double scale)
+        {
+            FireEmitter((DuelSide)actor, id, depth, (DuelChain)chain, scale);
+        }
+
+        void ICombatBus.FireTrigger(ICombatActor actor, SocketTrigger trigger, int depth,
+            RelicId exclude, RelicId cause, IChain chain)
+        {
+            FireTrigger((DuelSide)actor, trigger, depth, exclude, cause, (DuelChain)chain);
+        }
 
         void ICombatBus.DealDamage(ICombatActor from, int amount, string source, int depth, RelicId relic, IChain chain)
         {

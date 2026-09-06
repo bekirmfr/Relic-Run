@@ -30,6 +30,19 @@ namespace RelicRun.Core.Combat
         public bool FamineBellStarvesOpponent;
 
         /// <summary>
+        /// Whether Blood Altar still answers a heal when there is nothing left to strike. A
+        /// delve stops; a duel lets an awakened Altar take its tithe regardless.
+        /// </summary>
+        public bool AltarAnswersWithoutATarget;
+
+        /// <summary>
+        /// Whether an awakened copy counts as an extra copy when Blood Altar and Rabbit's Foot
+        /// answer an event. Everywhere else both modes count awakened copies; these two are
+        /// counted raw in a delve and effective in a duel.
+        /// </summary>
+        public bool ReactionsCountAwakenedCopy;
+
+        /// <summary>
         /// Whether a speed gain is logged before it lands. Every event carries a full state
         /// snapshot, so this decides whether that line reports the old speed or the new one.
         /// </summary>
@@ -63,6 +76,8 @@ namespace RelicRun.Core.Combat
                 FamineBellStarvesOpponent = true,
                 GreedRelicsHaveActivation = false,
                 LogSpeedGainBeforeApplying = false,
+                ReactionsCountAwakenedCopy = true,
+                AltarAnswersWithoutATarget = true,
             };
         }
     }
