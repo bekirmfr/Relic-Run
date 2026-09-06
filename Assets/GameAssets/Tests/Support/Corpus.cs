@@ -79,6 +79,22 @@ namespace RelicRun.Tests.Support
             return JArray.Parse(ReadText(fileName));
         }
 
+        /// <summary>
+        /// A generated content file from <c>Tools/out/</c> — relics, dungeons, events and the
+        /// rest, extracted from the source game rather than recorded from a run.
+        /// </summary>
+        public static JArray ArrayFromContent(string fileName)
+        {
+            string path = Path.Combine(Path.GetDirectoryName(Root), "out", fileName);
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "Content file missing: " + path + ". Generate it with: node Tools/extract/extract.mjs");
+            }
+
+            return JArray.Parse(File.ReadAllText(path));
+        }
+
         /// <summary>A corpus file parsed as a JSON object.</summary>
         public static JObject Object(string fileName)
         {

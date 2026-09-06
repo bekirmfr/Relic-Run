@@ -104,3 +104,4 @@ node Tools/extract/validate.mjs
 | Phase 3 — chain bus | `primitives.json` | passing, 86 fights; decay, depth and wasted heals covered |
 | Phase 4a — relic effects | `solo.json` | passing, all 50 relics alone across 150 fights |
 | Phase 4b — sockets | `mixed.json` | passing, 120 fights with duplicates, sockets and awakenings |
+| Phase 5a — enemy packs | `packs.json` | passing, 360 packs regenerate exactly |
