@@ -69,7 +69,7 @@ namespace RelicRun.Core.Combat
 
             foreach (DuelSide side in Both())
             {
-                if (side.SetCount(RelicKind.Flesh, _rules.HollowIdolCountsTowardSets) >= 3 && !side.FleshSetApplied)
+                if (side.SetCount(RelicKind.Flesh) >= 3 && !side.FleshSetApplied)
                 {
                     side.FleshSetApplied = true;
                     side.Pmax += 3;
@@ -91,8 +91,8 @@ namespace RelicRun.Core.Combat
             int gaugeA = (dashA && !dashB) ? 0 : Gauge;
             int gaugeB = (dashB && !dashA) ? 0 : Gauge;
 
-            if (gaugeA > 0 && _a.SetCount(RelicKind.Pace, _rules.HollowIdolCountsTowardSets) >= 5) gaugeA = Math.Max(0, gaugeA - 25);
-            if (gaugeB > 0 && _b.SetCount(RelicKind.Pace, _rules.HollowIdolCountsTowardSets) >= 5) gaugeB = Math.Max(0, gaugeB - 25);
+            if (gaugeA > 0 && _a.SetCount(RelicKind.Pace) >= 5) gaugeA = Math.Max(0, gaugeA - 25);
+            if (gaugeB > 0 && _b.SetCount(RelicKind.Pace) >= 5) gaugeB = Math.Max(0, gaugeB - 25);
 
             if (dashA && dashB)
             {
@@ -239,7 +239,7 @@ namespace RelicRun.Core.Combat
                 seen++;
                 _visits[key] = seen;
 
-                int chain = side.SetCount(RelicKind.Chain, _rules.HollowIdolCountsTowardSets);
+                int chain = side.SetCount(RelicKind.Chain, false);
                 double decay = chain >= 7 ? 0.75 : chain >= 3 ? 0.6 : 0.5;
                 return Math.Pow(decay, seen - 1);
             }
@@ -323,7 +323,7 @@ namespace RelicRun.Core.Combat
             }
 
             // The Guard set turns the first blow of the duel aside.
-            if (depth == 0 && target.SetCount(RelicKind.Guard, _rules.HollowIdolCountsTowardSets) >= 7 && !target.Blocked)
+            if (depth == 0 && target.SetCount(RelicKind.Guard) >= 7 && !target.Blocked)
             {
                 target.Blocked = true;
                 Line(target, RelicId.None, Prefix(target) + "Guard set — the first blow glances off", 0);
@@ -434,7 +434,7 @@ namespace RelicRun.Core.Combat
             // The death-defiance ladder, available to both sides.
             if (target.Php <= 0)
             {
-                if (target.SetCount(RelicKind.Flesh, _rules.HollowIdolCountsTowardSets) >= 7 && !target.FleshSetUsed)
+                if (target.SetCount(RelicKind.Flesh) >= 7 && !target.FleshSetUsed)
                 {
                     target.FleshSetUsed = true;
                     target.Php = 1;
@@ -464,7 +464,7 @@ namespace RelicRun.Core.Combat
                     DuelChain thornChain = NewChain();
                     double scale = thornChain.Scale(target, RelicId.ThornVest);
                     DealDamage(target,
-                        JsMath.RoundToInt(2 * thorns * scale) + (target.SetCount(RelicKind.Guard, _rules.HollowIdolCountsTowardSets) >= 5 ? 1 : 0),
+                        JsMath.RoundToInt(2 * thorns * scale) + (target.SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
                         target.Label(RelicId.ThornVest), 1, RelicId.ThornVest, thornChain);
                     FireEmitter(target, RelicId.ThornVest, 0, thornChain, scale);
                 }
@@ -560,7 +560,7 @@ namespace RelicRun.Core.Combat
                     side.Label(RelicId.CatsWhisker), 1, RelicId.CatsWhisker, chain);
             }
 
-            if (side.SetCount(RelicKind.Luck, _rules.HollowIdolCountsTowardSets) >= 7)
+            if (side.SetCount(RelicKind.Luck) >= 7)
             {
                 DealDamage(side, 2, "Luck set", 1, RelicId.LuckyClover, chain);
             }
@@ -852,7 +852,7 @@ namespace RelicRun.Core.Combat
                     side.IsHero ? side.Label(RelicId.WeightedDice) : null, 0,
                     side.IsHero ? RelicId.WeightedDice : RelicId.None, critChain);
 
-                if (side.SetCount(RelicKind.Luck, _rules.HollowIdolCountsTowardSets) >= 5)
+                if (side.SetCount(RelicKind.Luck) >= 5)
                 {
                     EmitLuck(side, "Luck set", 1, RelicId.None, critChain);
                 }
@@ -865,7 +865,7 @@ namespace RelicRun.Core.Combat
             else
             {
                 int amount = side.StatOf(Stat.Atk);
-                if (side.SetCount(RelicKind.Edge, _rules.HollowIdolCountsTowardSets) >= 5 && side.Strikes % 4 == 0)
+                if (side.SetCount(RelicKind.Edge) >= 5 && side.Strikes % 4 == 0)
                 {
                     amount = JsMath.RoundToInt(amount * 1.5);
                 }
@@ -898,7 +898,7 @@ namespace RelicRun.Core.Combat
 
             if (TryExecute(side, target) && target.Php <= 0) return;
 
-            if (side.SetCount(RelicKind.Pace, _rules.HollowIdolCountsTowardSets) >= 7 && side.Strikes % 5 == 0 &&
+            if (side.SetCount(RelicKind.Pace) >= 7 && side.Strikes % 5 == 0 &&
                 target.Php > 0 && side.Php > 0)
             {
                 Line(side, RelicId.None, "Pace set — a second strike!", 0);
@@ -920,7 +920,7 @@ namespace RelicRun.Core.Combat
 
                     double scale = hook > 0 ? chain.Scale(side, RelicId.CutpurseHook) : 1.0;
                     int coins = 1 + (hook > 0 ? JsMath.RoundToInt(hook * scale) : 0) +
-                                (side.SetCount(RelicKind.Greed, _rules.HollowIdolCountsTowardSets) >= 5 ? 1 : 0);
+                                (side.SetCount(RelicKind.Greed) >= 5 ? 1 : 0);
 
                     GainGold(side, coins, hook > 0 ? side.Label(RelicId.CutpurseHook) : "loose coins", 1,
                         hook > 0 ? RelicId.CutpurseHook : RelicId.None, chain);

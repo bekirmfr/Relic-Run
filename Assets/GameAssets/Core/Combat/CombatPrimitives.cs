@@ -55,7 +55,7 @@ namespace RelicRun.Core.Combat
 
                 // Your own bell taxes you unless awakened. In a duel the opponent's starves you too.
                 int bell = actor.IsAwake(RelicId.FamineBell) ? 0 : actor.Effective(RelicId.FamineBell);
-                if (rules.FamineBellStarvesOpponent)
+                if (RelicTuning.For(RelicId.FamineBell, rules.Mode).AffectsOpponent)
                 {
                     bell += bus.Opponent(actor).Effective(RelicId.FamineBell);
                 }
@@ -103,13 +103,14 @@ namespace RelicRun.Core.Combat
 
             // Blood Altar turns mercy into violence. It never answers its own heal, which is
             // what stops it looping with the Vial forever.
-            int altar = ReactionCount(actor, rules, RelicId.BloodAltar);
+            RelicTuning altarTuning = RelicTuning.For(RelicId.BloodAltar, rules.Mode);
+            int altar = ReactionCount(actor, altarTuning, RelicId.BloodAltar);
             if (altar > 0 && relic != RelicId.BloodAltar)
             {
                 // Scaled before the target check: the activation counts even when there is
                 // nothing left to hit, so a later pass in the same chain is already weaker.
                 double scale = chain.Scale(actor, RelicId.BloodAltar);
-                if (rules.AltarAnswersWithoutATarget || bus.HasTarget(actor))
+                if (altarTuning.AnswersWithoutTarget || bus.HasTarget(actor))
                 {
                     // The damage call guards itself against a dead target; the tithe does not,
                     // which is why the delve gates the whole block and the duel does not.
@@ -147,7 +148,8 @@ namespace RelicRun.Core.Combat
             double real = amount;
 
             // The Greedy Curse pays double, but only where it has an activation at all.
-            if (rules.GreedRelicsHaveActivation && actor.Effective(RelicId.GreedyCurse) > 0)
+            if (RelicTuning.For(RelicId.GreedyCurse, rules.Mode).HasActivation &&
+                actor.Effective(RelicId.GreedyCurse) > 0)
             {
                 real *= 2;
             }
@@ -256,12 +258,13 @@ namespace RelicRun.Core.Combat
         public static void RabbitReact(ICombatActor actor, ICombatBus bus, CombatRules rules,
             int depth, RelicId cause, IChain chain)
         {
-            int rabbits = ReactionCount(actor, rules, RelicId.RabbitsFoot);
+            RelicTuning rabbitTuning = RelicTuning.For(RelicId.RabbitsFoot, rules.Mode);
+            int rabbits = ReactionCount(actor, rabbitTuning, RelicId.RabbitsFoot);
             if (rabbits <= 0 || cause == RelicId.RabbitsFoot) return;
 
             actor.RabbitCount++;
-            if (rules.RabbitSignalCadence > 1 && !actor.IsAwake(RelicId.RabbitsFoot) &&
-                actor.RabbitCount % rules.RabbitSignalCadence != 0)
+            if (rabbitTuning.SignalCadence > 1 && !actor.IsAwake(RelicId.RabbitsFoot) &&
+                actor.RabbitCount % rabbitTuning.SignalCadence != 0)
             {
                 return;
             }
@@ -282,9 +285,9 @@ namespace RelicRun.Core.Combat
         /// How many copies answer an event, for the two relics whose reaction strength counts
         /// awakened copies differently between the modes.
         /// </summary>
-        private static int ReactionCount(ICombatActor actor, CombatRules rules, RelicId id)
+        private static int ReactionCount(ICombatActor actor, RelicTuning tuning, RelicId id)
         {
-            return rules.ReactionsCountAwakenedCopy ? actor.Effective(id) : actor.CountRaw(id);
+            return tuning.ReactionCountsAwakened ? actor.Effective(id) : actor.CountRaw(id);
         }
 
         private static void Flush(ICombatBus bus, ICombatActor actor, List<PendingLine> lines)

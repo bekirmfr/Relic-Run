@@ -1060,7 +1060,9 @@ namespace RelicRun.Core.Combat
             // two disagree in the source, and both are reproduced as written rather than
             // reconciled, because "fixing" it here would silently change which set bonuses a
             // real loadout reaches.
-            _hollowIdols = _rules.HollowIdolCountsTowardSets ? EffectiveCount(RelicId.HollowIdol) : 0;
+            _hollowIdols = RelicTuning.For(RelicId.HollowIdol, _rules.Mode).CountsTowardEverySet
+                ? EffectiveCount(RelicId.HollowIdol)
+                : 0;
 
             _chainDecay = ChainContext.DecayFor(SetCount(RelicKind.Chain));
         }

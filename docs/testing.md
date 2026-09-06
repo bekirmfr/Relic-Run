@@ -55,6 +55,19 @@ JSON goes through Newtonsoft on both sides — Unity supplies it as
 `com.unity.nuget.newtonsoft-json`, the csproj references the identical NuGet package — so no
 conditional compilation is needed anywhere.
 
+## Where a mode difference lives
+
+A relic that behaves differently in versus is tuned at the relic, in
+`Core/Content/RelicTuning.cs`, not in the engine. That table is where to look to answer "what
+does Rabbit's Foot do in versus?", and it means the relic layer never branches on the mode.
+
+It is per-mode DATA on one relic, not a second relic. A separate `altar_versus` id would have
+to fork the card name, the icon cell, both localisation keys and the relic's draft-pool
+membership — and the corpus records provenance by id, so 36 loadout entries and 203 events in
+the duel corpus alone say `altar`. Changing pool membership would also change which relics the
+draft samples, moving the RNG stream and invalidating the recordings the port is verified
+against.
+
 ## Single-sourcing
 
 The relic layer and the shared bus primitives exist once and are used by both modes, with

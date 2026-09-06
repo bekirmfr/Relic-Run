@@ -1,83 +1,45 @@
 namespace RelicRun.Core.Combat
 {
     /// <summary>
-    /// The parameters that differ between a delve and a duel.
+    /// What differs between a delve and a duel at the level of the ENGINE.
     /// </summary>
     /// <remarks>
-    /// Every field here is a balance dial, not a change of behaviour: a cap, a cadence, a
-    /// threshold, or which side a relic reads. They are collected in one place precisely so
-    /// that the relic layer stays single-sourced — architecture invariant 3 exists because a
-    /// relic rule fixed in one engine and missed in the other is this game's most common bug.
+    /// This is deliberately small. Most of what separates the two modes turned out to be
+    /// relic behaviour rather than engine behaviour, and lives with the relic in
+    /// <see cref="Content.RelicTuning"/> — that is where a designer would look for it, and it
+    /// keeps the engine from branching on the mode at all.
+    ///
+    /// What is left here genuinely belongs to the fight itself rather than to any one relic.
     /// </remarks>
     public sealed class CombatRules
     {
-        /// <summary>Chain depth past which effects fizzle.</summary>
+        public Content.CombatMode Mode = Content.CombatMode.Delve;
+
+        /// <summary>
+        /// Chain depth past which effects fizzle. A duel caps hard at 4: it runs long enough
+        /// that a forty-deep loop would decide the match on its own.
+        /// </summary>
         public int ChainCap = 40;
-
-        /// <summary>Whether Hollow Idol counts itself toward every set.</summary>
-        public bool HollowIdolCountsTowardSets = true;
-
-        /// <summary>Rabbit's Foot answers every Nth luck signal. Duels throttle it.</summary>
-        public int RabbitSignalCadence = 1;
-
-        /// <summary>Ceiling on Sentinel Bell's defence, before awakening.</summary>
-        public int SentinelCap = 3;
-
-        /// <summary>Ceiling on Sentinel Bell's defence once awakened.</summary>
-        public int SentinelCapAwakened = 3;
-
-        /// <summary>Whether an opponent's Famine Bell starves you as well as your own.</summary>
-        public bool FamineBellStarvesOpponent;
-
-        /// <summary>
-        /// Whether Blood Altar still answers a heal when there is nothing left to strike. A
-        /// delve stops; a duel lets an awakened Altar take its tithe regardless.
-        /// </summary>
-        public bool AltarAnswersWithoutATarget;
-
-        /// <summary>
-        /// Whether an awakened copy counts as an extra copy when Blood Altar and Rabbit's Foot
-        /// answer an event. Everywhere else both modes count awakened copies; these two are
-        /// counted raw in a delve and effective in a duel.
-        /// </summary>
-        public bool ReactionsCountAwakenedCopy;
 
         /// <summary>
         /// Whether a speed gain is logged before it lands. Every event carries a full state
         /// snapshot, so this decides whether that line reports the old speed or the new one.
+        /// An inconsistency in the source rather than a design choice, reproduced as written.
         /// </summary>
         public bool LogSpeedGainBeforeApplying = true;
 
-        /// <summary>
-        /// Relics whose activation effect exists only in this mode. The delve grants Greedy
-        /// Curse, Piggy Bank and Coin Magnet an activation; the duel does not.
-        /// </summary>
-        public bool GreedRelicsHaveActivation = true;
-
-        /// <summary>The delve's rules, as the source runs them.</summary>
         public static CombatRules Delve()
         {
             return new CombatRules();
         }
 
-        /// <summary>
-        /// The duel's rules. Chains are capped hard because a duel runs long enough that a
-        /// forty-deep loop would decide the match on its own.
-        /// </summary>
         public static CombatRules Duel()
         {
             return new CombatRules
             {
+                Mode = Content.CombatMode.Versus,
                 ChainCap = 4,
-                HollowIdolCountsTowardSets = false,
-                RabbitSignalCadence = 3,
-                SentinelCap = 3,
-                SentinelCapAwakened = 5,
-                FamineBellStarvesOpponent = true,
-                GreedRelicsHaveActivation = false,
                 LogSpeedGainBeforeApplying = false,
-                ReactionsCountAwakenedCopy = true,
-                AltarAnswersWithoutATarget = true,
             };
         }
     }

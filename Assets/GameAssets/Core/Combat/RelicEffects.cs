@@ -132,6 +132,7 @@ namespace RelicRun.Core.Combat
         {
             if (depth > rules.ChainCap) return;
 
+            RelicTuning tuning = RelicTuning.For(id, rules.Mode);
             int copies = viaTrigger ? 1 : Math.Max(1, actor.Effective(id));
             string name = actor.Label(id) + (viaTrigger ? " ⚡" : string.Empty);
 
@@ -154,7 +155,7 @@ namespace RelicRun.Core.Combat
                 case RelicId.GreedyCurse:
                 case RelicId.PiggyBank:
                 case RelicId.CoinMagnet:
-                    if (rules.GreedRelicsHaveActivation)
+                    if (tuning.HasActivation)
                     {
                         bus.GainGold(actor, Scaled(id == RelicId.PiggyBank ? 1 : 2), name, depth + 1, id, chain);
                     }
@@ -261,7 +262,7 @@ namespace RelicRun.Core.Combat
                 case RelicId.SentinelBell:
                 {
                     int bonus = Scaled(1);
-                    int cap = actor.IsAwake(RelicId.SentinelBell) ? rules.SentinelCapAwakened : rules.SentinelCap;
+                    int cap = actor.IsAwake(RelicId.SentinelBell) ? tuning.CapAwakened : tuning.Cap;
                     if (bonus > 0 && actor.Sentinel < cap)
                     {
                         actor.Sentinel = Math.Min(cap, actor.Sentinel + bonus);
