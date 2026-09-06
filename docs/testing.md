@@ -81,3 +81,4 @@ node Tools/extract/validate.mjs
 | Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 raw draws bit-exact |
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
 | Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |
+| Phase 2 — combat engine | `bare.json` | passing, 48 fights replay event-for-event |
