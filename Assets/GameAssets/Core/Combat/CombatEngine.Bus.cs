@@ -220,6 +220,13 @@ namespace RelicRun.Core.Combat
             // The kill is one genuine event, so everything it sets off shares a single chain.
             ChainContext chain = NewChain();
 
+            // The Edge set sharpens permanently with every kill this floor.
+            if (SetCount(RelicKind.Edge) >= 7)
+            {
+                _headsmanBonus += 1;
+                Snap(CombatEventType.First, 1, source: "Edge set — +1 ATK");
+            }
+
             // Coin Magnet does not pay out on its own — it swells the loot the corpse already
             // drops, so it adds no node of its own to the chain.
             int magnet = EffectiveCount(RelicId.CoinMagnet);
@@ -227,9 +234,18 @@ namespace RelicRun.Core.Combat
 
             GainGold(loot, "killLoot", 0, RelicId.None, chain);
 
+            // Tollkeeper's Ring collects at the gate on every death.
+            int toll = EffectiveCount(RelicId.TollkeepersRing);
+            if (toll > 0)
+            {
+                double scale = chain.Scale(RelicId.TollkeepersRing);
+                GainGold(Math.Max(1, JsMath.RoundToInt(5 * toll * scale)),
+                    RelicCatalog.KeyOf(RelicId.TollkeepersRing), 1, RelicId.TollkeepersRing, chain);
+            }
+
             if (magnet > 0)
             {
-                // Counts as an activation even though its emitter is not wired until Phase 4.
+                // Counts as an activation even though its emitter is not wired until sockets land.
                 chain.Scale(RelicId.CoinMagnet);
             }
         }

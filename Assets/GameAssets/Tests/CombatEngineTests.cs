@@ -88,6 +88,51 @@ namespace RelicRun.Tests
         }
 
         /// <summary>
+        /// Phase 4 gate, part one. Every relic alone, three floors each, so a failure names
+        /// exactly one relic instead of an interaction.
+        /// </summary>
+        [Test]
+        public void SoloRelicFightsReplayExactly()
+        {
+            List<CorpusFight.Case> cases = CorpusFight.Load("solo.json");
+            Assert.That(cases.Count, Is.GreaterThan(0), "solo corpus is empty");
+
+            var brokenRelics = new SortedDictionary<string, string>();
+            foreach (CorpusFight.Case c in cases)
+            {
+                string diff = CorpusFight.Replay(c);
+                if (diff == null) continue;
+                string relic = c.Id.Split('/')[1];
+                if (!brokenRelics.ContainsKey(relic)) brokenRelics[relic] = diff;
+            }
+
+            var lines = new List<string>();
+            foreach (var kv in brokenRelics) lines.Add(kv.Key + " -- " + kv.Value);
+
+            Assert.That(brokenRelics.Count, Is.EqualTo(0),
+                brokenRelics.Count + " relics diverge:\n  " + string.Join("\n  ", lines));
+        }
+
+        /// <summary>Phase 4 gate, part two: duplicates, sockets and awakenings together.</summary>
+        [Test]
+        public void MixedLoadoutFightsReplayExactly()
+        {
+            List<CorpusFight.Case> cases = CorpusFight.Load("mixed.json");
+            Assert.That(cases.Count, Is.GreaterThan(0), "mixed corpus is empty");
+
+            var failures = new List<string>();
+            foreach (CorpusFight.Case c in cases)
+            {
+                string diff = CorpusFight.Replay(c);
+                if (diff != null) failures.Add(diff);
+            }
+
+            Assert.That(failures, Is.Empty,
+                failures.Count + " of " + cases.Count + " mixed fights diverge:\n  " +
+                string.Join("\n  ", failures.GetRange(0, System.Math.Min(6, failures.Count))));
+        }
+
+        /// <summary>
         /// The corpus spans four dungeons, and bosses from Dungeon 2 onward carry relic kits, so
         /// these cases exercise the enemy-relic paths — enrage, crit, lifesteal, thorns — even
         /// though the hero carries nothing.

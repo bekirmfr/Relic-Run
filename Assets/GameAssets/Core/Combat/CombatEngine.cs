@@ -64,6 +64,33 @@ namespace RelicRun.Core.Combat
         private int _hollowIdols;
         private double _chainDecay;
 
+        // In-fight stat boosts. These are what DynamicMods surfaces to the ledger; nothing
+        // reads them directly, so every stat still resolves through one formula.
+        private int _furyBonus;      // Adrenaline / Fury emitters, this floor
+        private int _quenchBonus;    // Quenched Blade, this floor
+        private int _headsmanBonus;  // Edge set (7), this floor
+        private int _stoneBonus;     // Stone / Iron emitters, this fight
+        private int _galeBonus;      // Gale emitters, this floor
+        private int _momentumBonus;  // Momentum Bead - persists across the whole floor
+        private int _luckBonus;      // Rabbit / Gambler, this floor
+
+        private int _momentumCount;
+
+        // Once-per-floor flags. Adrenaline resets per fight only when awakened.
+        private bool _adrenalineUsed;
+        private int _hideLearned;
+
+        // Once-per-fight flags.
+        private bool _blockedFight;
+        private bool _whiskerUsed;
+        private bool _ironGlanced;
+
+        /// <summary>Set by an awakened Stutterstep: the foe's next swing hits itself.</summary>
+        private bool _staggered;
+
+        /// <summary>Set by Hare's Drum: the hero's gauge empties again immediately.</summary>
+        private bool _instantRiposte;
+
         /// <summary>Runs every foe in the pack, in order, until they are dead or the hero is.</summary>
         public CombatResult ResolveFloor(HeroState hero, IReadOnlyList<EnemyState> pack, Mulberry32 rng)
         {
@@ -82,6 +109,25 @@ namespace RelicRun.Core.Combat
             _strikeCount = _carry.StrikeCount;
             _painCount = _carry.PainCount;
             _goldCount = _carry.GoldCount;
+            _furyBonus = _carry.FuryBonus;
+            _quenchBonus = _carry.QuenchBonus;
+            _headsmanBonus = _carry.HeadsmanBonus;
+            _stoneBonus = _carry.StoneBonus;
+            _galeBonus = _carry.GaleBonus;
+            _luckBonus = _carry.LuckBonus;
+            _momentumBonus = 0;
+            _momentumCount = 0;
+            _adrenalineUsed = false;
+            _hideLearned = 0;
+
+            // The Flesh set thickens the hero once per run, not once per floor.
+            if (SetCount(RelicKind.Flesh) >= 3 && !_hero.FleshSetApplied)
+            {
+                _hero.FleshSetApplied = true;
+                _hero.Pmax += 3;
+                _hero.Php = Math.Min(_hero.Pmax, _hero.Php + 3);
+                Snap(CombatEventType.First, 0, source: "Flesh set — +3 max HP");
+            }
 
             int guard = 0;
 
@@ -93,6 +139,14 @@ namespace RelicRun.Core.Combat
                 _hitCount = 0;
                 _fightStrikes = 0;
                 _foeFury = false;
+                _blockedFight = false;
+                _stoneBonus = 0;
+                _whiskerUsed = false;
+                _ironGlanced = false;
+                _instantRiposte = false;
+
+                // Momentum deliberately survives between fights on the same floor.
+                if (IsAwake(RelicId.AdrenalineGland)) _adrenalineUsed = false;
 
                 // Sentinel Bell's stacks are per fight, but the carried value is whatever the
                 // last fight left, which is what a revive resumes from.
@@ -128,6 +182,21 @@ namespace RelicRun.Core.Combat
                         EnemyHits();
                         if (_hero.Php <= 0) break;
                         enemyGauge += Gauge;
+
+                        // Hare's Drum: a dodge lets the hero answer immediately.
+                        if (_instantRiposte)
+                        {
+                            _instantRiposte = false;
+                            heroGauge = 0;
+                            if (IsAwake(RelicId.HaresDrum) && _enemyHp > 0)
+                            {
+                                DealDamage(2, RelicCatalog.KeyOf(RelicId.HaresDrum), 1,
+                                    RelicId.HaresDrum, NewChain());
+                            }
+
+                            Snap(CombatEventType.First, 0, relic: RelicId.HaresDrum,
+                                source: RelicCatalog.KeyOf(RelicId.HaresDrum) + " — instant riposte!");
+                        }
                     }
                     else if (heroGauge <= 0 && enemyGauge > 0)
                     {
@@ -168,6 +237,12 @@ namespace RelicRun.Core.Combat
             _carry.StrikeCount = _strikeCount;
             _carry.PainCount = _painCount;
             _carry.GoldCount = _goldCount;
+            _carry.FuryBonus = _furyBonus;
+            _carry.QuenchBonus = _quenchBonus;
+            _carry.HeadsmanBonus = _headsmanBonus;
+            _carry.StoneBonus = _stoneBonus;
+            _carry.GaleBonus = _galeBonus;
+            _carry.LuckBonus = _luckBonus;
 
             return new CombatResult(_events, _carry);
         }
@@ -179,10 +254,83 @@ namespace RelicRun.Core.Combat
             // The enemy's action is one genuine event: everything it provokes shares this chain.
             ChainContext chain = NewChain();
 
+            // Evasion lives entirely in the Lucky Clover. Without one the hero cannot dodge at
+            // all, and no draw is taken — which is what keeps the RNG stream aligned.
+            if (CountItem(RelicId.LuckyClover) > 0 && _rng.Next() < HeroStat(Stat.Lck) / 100.0)
+            {
+                Dodge(chain);
+                return;
+            }
+
+            // The Guard set turns the opening blow of each fight aside entirely.
+            if (SetCount(RelicKind.Guard) >= 7 && !_blockedFight)
+            {
+                _blockedFight = true;
+                Snap(CombatEventType.First, 0, source: "Guard set — the first blow glances off");
+                return;
+            }
+
             int defense = HeroStat(Stat.Def);
-            int damage = Defense.Apply(_cur.Atk + (_foeFury ? 2 : 0), defense, _hero.DefenseModel);
+
+            // An awakened Stutterstep leaves the foe swinging into its own blade.
+            if (_staggered)
+            {
+                _staggered = false;
+                Snap(CombatEventType.First, 0, relic: RelicId.Stutterstep,
+                    source: RelicCatalog.KeyOf(RelicId.Stutterstep) + " — the foe trips into its own blade");
+                if (_enemyHp > 0)
+                {
+                    DealDamage(Math.Max(1, _cur.Atk), RelicCatalog.KeyOf(RelicId.Stutterstep), 1,
+                        RelicId.Stutterstep, NewChain());
+                }
+
+                return;
+            }
+
+            // The Greedy Curse makes every blow bite one deeper — unless awakened, when it pays
+            // out instead. The coin goes through GainGold so it feeds the Vial like any other.
+            bool greedy = CountItem(RelicId.GreedyCurse) > 0;
+            bool greedAwake = IsAwake(RelicId.GreedyCurse);
+            if (greedy && greedAwake)
+            {
+                GainGold(2, RelicCatalog.KeyOf(RelicId.GreedyCurse), 1, RelicId.GreedyCurse, NewChain());
+            }
+
+            int damage = Defense.Apply(
+                _cur.Atk + (_foeFury ? 2 : 0) + (greedy && !greedAwake ? 1 : 0),
+                defense, _hero.DefenseModel);
+
+            // Awakened Iron Skin shrugs off one blow per fight outright.
+            if (IsAwake(RelicId.IronSkin) && EffectiveCount(RelicId.IronSkin) > 0 && !_ironGlanced)
+            {
+                _ironGlanced = true;
+                Snap(CombatEventType.First, 0, relic: RelicId.IronSkin,
+                    source: RelicCatalog.KeyOf(RelicId.IronSkin) + " — the blow glances off");
+                return;
+            }
 
             _hitCount++;
+
+            int hide = EffectiveCount(RelicId.PaddedHide);
+            if (IsAwake(RelicId.PaddedHide) && hide > 0 && _hitCount > 1 && _hideLearned > 0)
+            {
+                damage = Math.Max(1, JsMath.RoundToInt(damage * 0.5));
+                Snap(CombatEventType.First, 1, relic: RelicId.PaddedHide,
+                    source: RelicCatalog.KeyOf(RelicId.PaddedHide) + " has learned this blow");
+            }
+
+            // Padded Hide softens only the first blow of each fight.
+            if (_hitCount <= 1)
+            {
+                if (IsAwake(RelicId.PaddedHide) && hide > 0) _hideLearned = 1;
+                if (hide > 0)
+                {
+                    damage -= 2 * hide;
+                    Snap(CombatEventType.First, 1, relic: RelicId.PaddedHide,
+                        source: RelicCatalog.KeyOf(RelicId.PaddedHide) + " softens the blow: -" + (2 * hide));
+                }
+            }
+
             damage = Math.Max(1, damage);
 
             // Weighted Dice on the foe: a LCK% chance to land half again as hard.
@@ -196,13 +344,39 @@ namespace RelicRun.Core.Combat
             _hero.Php -= damage;
             Snap(CombatEventType.PlayerDamage, 0, amount: damage, enemyCrit: crit);
 
-            // Vampire Tooth on the foe: it drinks back what it just took.
+            RefuseDeath();
+
+            // Troll Marrow knits the hero back together while they are bloodied.
+            int marrow = EffectiveCount(RelicId.TrollMarrow);
+            if (_hero.Php > 0 && _hero.Php < _hero.Pmax / 2.0 && marrow > 0)
+            {
+                Heal(2 * marrow, RelicCatalog.KeyOf(RelicId.TrollMarrow), 1, RelicId.TrollMarrow, chain);
+                if (IsAwake(RelicId.TrollMarrow) && _enemyHp > 0)
+                {
+                    DealDamage(2 * marrow, RelicCatalog.KeyOf(RelicId.TrollMarrow), 2,
+                        RelicId.TrollMarrow, chain);
+                }
+            }
+
+            // Vampire Tooth on the foe: it drinks back what it just took. The Famine Bell
+            // silences it.
             int tooth = _cur.CountRelic(RelicId.VampireTooth);
-            if (tooth > 0 && _enemyHp > 0 && _enemyHp < EnemyMax)
+            if (tooth > 0 && _enemyHp > 0 && _enemyHp < EnemyMax &&
+                EffectiveCount(RelicId.FamineBell) == 0)
             {
                 int healed = Math.Min(tooth, EnemyMax - _enemyHp);
                 _enemyHp += healed;
                 Snap(CombatEventType.EnemyHeal, 1, amount: healed, relic: RelicId.VampireTooth, foe: true);
+            }
+
+            // The Adrenaline Gland banks permanent attack the first time the hero is hurt.
+            int adrenaline = CountItem(RelicId.AdrenalineGland);
+            if (adrenaline > 0 && _hero.Php > 0 && !_adrenalineUsed)
+            {
+                _adrenalineUsed = true;
+                chain.Scale(RelicId.AdrenalineGland);
+                _hero.Adrenaline += adrenaline;
+                Snap(CombatEventType.Adrenaline, 1, amount: adrenaline, relic: RelicId.AdrenalineGland);
             }
 
             // Thorn Vest answers the blow that landed, not the one the hero threw.
@@ -222,12 +396,201 @@ namespace RelicRun.Core.Combat
             }
         }
 
+        /// <summary>The hero slipped the blow. Everything that keys off a dodge fires here.</summary>
+        private void Dodge(ChainContext chain)
+        {
+            Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
+
+            chain.Scale(RelicId.LuckyClover);
+            EmitLuck(RelicCatalog.KeyOf(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
+
+            if (EffectiveCount(RelicId.LoadedHorseshoe) > 0)
+            {
+                EmitLuck(RelicCatalog.KeyOf(RelicId.LoadedHorseshoe), 1, RelicId.LoadedHorseshoe, chain);
+            }
+
+            if (EffectiveCount(RelicId.LuckyClover) > 0 && IsAwake(RelicId.LuckyClover))
+            {
+                EmitLuck(RelicCatalog.KeyOf(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
+            }
+
+            int sentinel = EffectiveCount(RelicId.SentinelBell);
+            if (sentinel > 0)
+            {
+                _carry.SentinelBonus += sentinel;
+                Snap(CombatEventType.First, 1, relic: RelicId.SentinelBell,
+                    source: RelicCatalog.KeyOf(RelicId.SentinelBell) + " +" + sentinel + " DEF");
+                if (IsAwake(RelicId.SentinelBell) && _enemyHp > 0)
+                {
+                    DealDamage(1, RelicCatalog.KeyOf(RelicId.SentinelBell), 1, RelicId.SentinelBell, chain);
+                }
+            }
+
+            if (EffectiveCount(RelicId.CatsWhisker) > 0 &&
+                (IsAwake(RelicId.CatsWhisker) || !_whiskerUsed) && _enemyHp > 0)
+            {
+                _whiskerUsed = true;
+                DealDamage(Math.Max(1, JsMath.RoundToInt(HeroStat(Stat.Atk) / 2.0)),
+                    RelicCatalog.KeyOf(RelicId.CatsWhisker), 1, RelicId.CatsWhisker, chain);
+            }
+
+            // The Luck set turns every dodge into a counter.
+            if (SetCount(RelicKind.Luck) >= 7 && _enemyHp > 0)
+            {
+                DealDamage(2, "Luck set", 1, RelicId.LuckyClover, chain);
+            }
+
+            int stutter = EffectiveCount(RelicId.Stutterstep);
+            if (stutter > 0)
+            {
+                _cur.Spd = Math.Max(10, _cur.Spd - stutter);
+                Snap(CombatEventType.EnemySlow, 1, amount: stutter, relic: RelicId.Stutterstep);
+                if (IsAwake(RelicId.Stutterstep)) _staggered = true;
+            }
+
+            if (EffectiveCount(RelicId.HaresDrum) > 0)
+            {
+                _instantRiposte = true;
+            }
+        }
+
+        /// <summary>
+        /// The death-defiance ladder, in the order the source tries it: the Flesh set once per
+        /// floor, then Gravekeeper's Soil once per run.
+        /// </summary>
+        private void RefuseDeath()
+        {
+            if (_hero.Php > 0) return;
+
+            if (SetCount(RelicKind.Flesh) >= 7 && !_carry.FleshSetUsed)
+            {
+                _carry.FleshSetUsed = true;
+                _hero.Php = 1;
+                Snap(CombatEventType.First, 0, source: "Flesh set — you refuse to fall");
+            }
+
+            if (_hero.Php <= 0 && EffectiveCount(RelicId.GravekeepersSoil) > 0 && !_hero.SoilUsed)
+            {
+                _hero.SoilUsed = true;
+                _hero.Php = Math.Max(1, JsMath.RoundToInt(
+                    _hero.Pmax * (IsAwake(RelicId.GravekeepersSoil) ? 0.5 : 0.25)));
+                Snap(CombatEventType.First, 0, relic: RelicId.GravekeepersSoil,
+                    source: RelicCatalog.KeyOf(RelicId.GravekeepersSoil) + " — the ground gives you back");
+            }
+        }
+
+        /// <summary>
+        /// Executioner's Coin finishes a foe already below a fifth of its health. It fires at
+        /// most once per floor, and the flag lives in carry state so a revive cannot hand the
+        /// hero a second execution.
+        /// </summary>
+        private bool TryExecute()
+        {
+            if (EffectiveCount(RelicId.ExecutionersCoin) == 0 || _carry.ExecutionerUsed ||
+                _enemyHp <= 0 ||
+                _enemyHp > EnemyMax * (IsAwake(RelicId.ExecutionersCoin) ? 0.3 : 0.2))
+            {
+                return false;
+            }
+
+            _carry.ExecutionerUsed = true;
+            Snap(CombatEventType.First, 0, relic: RelicId.ExecutionersCoin,
+                source: RelicCatalog.KeyOf(RelicId.ExecutionersCoin) + " — the sentence is carried out");
+
+            // Armor is added back so the blow is lethal after reduction.
+            DealDamage(_enemyHp + _cur.Armor, RelicCatalog.KeyOf(RelicId.ExecutionersCoin), 1,
+                RelicId.ExecutionersCoin, NewChain());
+            return true;
+        }
+
         private void PlayerHits()
         {
             _fightStrikes++;
             _hero.StrikeTotal++;
 
-            DealDamage(HeroStat(Stat.Atk), "you", 0);
+            // Anvil Heart hardens a notch every ten strikes across the whole run.
+            if (EffectiveCount(RelicId.AnvilHeart) > 0 && _hero.StrikeTotal % 10 == 0 &&
+                _hero.AnvilBonus < (IsAwake(RelicId.AnvilHeart) ? 12 : 10))
+            {
+                _hero.AnvilBonus++;
+                _hero.DefBonus++;
+                Snap(CombatEventType.First, 1, relic: RelicId.AnvilHeart,
+                    source: RelicCatalog.KeyOf(RelicId.AnvilHeart) + " hardens: +1 DEF");
+            }
+
+            bool worthyBlood = _cur.Rank == EnemyRank.Boss || _cur.Rank == EnemyRank.King ||
+                               _cur.Rank == EnemyRank.Elite;
+
+            int duelist = EffectiveCount(RelicId.DuelistsOath);
+            if (_fightStrikes == 1 && worthyBlood && duelist > 0)
+            {
+                Snap(CombatEventType.First, 1, relic: RelicId.DuelistsOath,
+                    source: RelicCatalog.KeyOf(RelicId.DuelistsOath) + " — worthy blood: +" +
+                            (4 * duelist) + " ATK");
+            }
+
+            if (TryExecute() && _enemyHp <= 0)
+            {
+                return;
+            }
+
+            // Weighted Dice: a LCK% crit that also puts a luck signal on the bus.
+            if (CountItem(RelicId.WeightedDice) > 0 && _rng.Next() < HeroStat(Stat.Lck) / 100.0)
+            {
+                ChainContext critChain = NewChain();
+                critChain.Scale(RelicId.WeightedDice);
+                Snap(CombatEventType.Luck, 0, source: RelicCatalog.KeyOf(RelicId.WeightedDice),
+                    relic: RelicId.WeightedDice);
+                DealDamage(
+                    JsMath.RoundToInt(HeroStat(Stat.Atk) * (IsAwake(RelicId.WeightedDice) ? 2 : 1.5)),
+                    RelicCatalog.KeyOf(RelicId.WeightedDice), 0, RelicId.WeightedDice, critChain);
+
+                // The Luck set makes crits lucky breaks in their own right.
+                if (SetCount(RelicKind.Luck) >= 5)
+                {
+                    EmitLuck("Luck set", 1, RelicId.None, critChain);
+                }
+
+                // Quiet: the luck line above already reported it, but the signal still travels.
+                EmitLuck(RelicCatalog.KeyOf(RelicId.WeightedDice), 0, RelicId.WeightedDice, critChain, quiet: true);
+            }
+            else
+            {
+                int amount = HeroStat(Stat.Atk);
+
+                // The Edge set sharpens every fourth strike.
+                if (SetCount(RelicKind.Edge) >= 5 && _fightStrikes % 4 == 0)
+                {
+                    amount = JsMath.RoundToInt(amount * 1.5);
+                }
+
+                DealDamage(amount, "you", 0);
+            }
+
+            // Momentum Bead builds speed across the whole floor, not just this fight.
+            int momentum = EffectiveCount(RelicId.MomentumBead);
+            if (momentum > 0)
+            {
+                _momentumCount++;
+                if (_momentumCount % (IsAwake(RelicId.MomentumBead) ? 2 : 3) == 0)
+                {
+                    _momentumBonus += momentum;
+                    Snap(CombatEventType.Momentum, 1, amount: momentum, relic: RelicId.MomentumBead);
+                }
+            }
+
+            if (TryExecute() && _enemyHp <= 0)
+            {
+                return;
+            }
+
+            // The Pace set lands a second strike every fifth blow.
+            if (SetCount(RelicKind.Pace) >= 7 && _fightStrikes % 5 == 0 &&
+                _enemyHp > 0 && _hero.Php > 0)
+            {
+                Snap(CombatEventType.First, 0, source: "Pace set — a second strike!");
+                DealDamage(HeroStat(Stat.Atk), "you", 0);
+            }
 
             if (_enemyHp > 0)
             {
@@ -384,7 +747,22 @@ namespace RelicRun.Core.Combat
         /// </summary>
         private IReadOnlyList<StatModifier> DynamicMods()
         {
-            return System.Array.Empty<StatModifier>();
+            if (_furyBonus == 0 && _quenchBonus == 0 && _headsmanBonus == 0 && _stoneBonus == 0 &&
+                _carry.SentinelBonus == 0 && _galeBonus == 0 && _momentumBonus == 0 && _luckBonus == 0)
+            {
+                return System.Array.Empty<StatModifier>();
+            }
+
+            var mods = new List<StatModifier>(4);
+            if (_furyBonus != 0) mods.Add(new StatModifier(Stat.Atk, "Fury (this floor)", _furyBonus, "dyn"));
+            if (_quenchBonus != 0) mods.Add(new StatModifier(Stat.Atk, "Quenched Blade (this floor)", _quenchBonus, "dyn"));
+            if (_headsmanBonus != 0) mods.Add(new StatModifier(Stat.Atk, "Headsman's Notch (this floor)", _headsmanBonus, "dyn"));
+            if (_stoneBonus != 0) mods.Add(new StatModifier(Stat.Def, "Stone / Iron emitters (this fight)", _stoneBonus, "dyn"));
+            if (_carry.SentinelBonus != 0) mods.Add(new StatModifier(Stat.Def, "Sentinel Bell (this floor)", _carry.SentinelBonus, "dyn"));
+            if (_galeBonus != 0) mods.Add(new StatModifier(Stat.Spd, "Gale emitters (this floor)", _galeBonus, "dyn"));
+            if (_momentumBonus != 0) mods.Add(new StatModifier(Stat.Spd, "Momentum Bead (this fight)", _momentumBonus, "dyn"));
+            if (_luckBonus != 0) mods.Add(new StatModifier(Stat.Lck, "Rabbit / Gambler (this floor)", _luckBonus, "dyn"));
+            return mods;
         }
 
         private void Snap(CombatEventType type, int depth, int? amount = null, string source = null,
@@ -398,7 +776,10 @@ namespace RelicRun.Core.Combat
                 stoneCount: _carry.StoneCount,
                 fightStrikes: _fightStrikes,
                 quenchCount: _carry.QuenchCount,
-                momentumCount: 0,
+                momentumCount: _momentumCount,
+
+                // The source declares a Rabbit's Foot counter but never increments it, so this
+                // reports zero to match. Its actual effect goes straight to the luck bonus.
                 rabbitCount: 0,
                 strikeTotal: _hero.StrikeTotal,
                 sentinelBonus: _carry.SentinelBonus);

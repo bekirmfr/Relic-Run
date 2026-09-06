@@ -97,3 +97,5 @@ node Tools/extract/validate.mjs
 | Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |
 | Phase 2 — combat engine | `bare.json` | passing, 48 fights replay event-for-event |
 | Phase 3 — chain bus | `primitives.json` | passing, 86 fights; decay, depth and wasted heals covered |
+| Phase 4a — relic effects | `solo.json` | passing, all 50 relics alone across 150 fights |
+| Phase 4b — sockets | `mixed.json` | not yet ported |
