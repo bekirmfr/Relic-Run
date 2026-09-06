@@ -31,6 +31,146 @@ namespace RelicRun.Core.Combat
     /// </remarks>
     public sealed class DuelEngine : ICombatBus, IAdrenalineReporter
     {
+        private void DealDamage(DuelSide side, int amount, string source, int depth,
+            RelicId relic, DuelChain chain)
+        {
+            CombatDamage.Deal(side, this, _rules, amount, source, depth, relic, chain ?? NewChain());
+        }
+
+        /// <summary>Either side can already be down by the time a chain gets back around.</summary>
+        bool ICombatBus.CanDeal(ICombatActor attacker)
+        {
+            var side = (DuelSide)attacker;
+            return Other(side).Php > 0 && side.Php > 0;
+        }
+
+        /// <summary>Evasion lives entirely in the Lucky Clover, on either side.</summary>
+        bool ICombatBus.TargetEvades(ICombatActor attacker, string source, int depth, IChain chain)
+        {
+            var side = (DuelSide)attacker;
+            DuelSide target = Other(side);
+
+            if (target.Effective(RelicId.LuckyClover) == 0) return false;
+            if (_rng.Next() >= target.StatOf(Stat.Lck) / 100.0) return false;
+
+            if (side.IsHero) Snap(CombatEventType.EnemyMiss, 0, foe: true);
+            else Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
+
+            OnDodge(target);
+            return true;
+        }
+
+        /// <summary>
+        /// A duellist meets a full defender: a Guard set that turns the opening blow aside, a
+        /// stagger or a Martyr's Knot that sends it back, then armor and Padded Hide. Only a
+        /// genuine strike meets any of it — relic damage lands raw.
+        /// </summary>
+        int ICombatBus.Mitigate(ICombatActor attacker, int amount, string source, int depth)
+        {
+            var side = (DuelSide)attacker;
+            DuelSide target = Other(side);
+
+            if (depth != 0) return Math.Max(1, amount);
+
+            if (target.SetCount(RelicKind.Guard) >= 7 && !target.Blocked)
+            {
+                target.Blocked = true;
+                Line(target, RelicId.None, Prefix(target) + "Guard set — the first blow glances off", 0);
+                return CombatDamage.TurnedAside;
+            }
+
+            // An awakened Stutterstep leaves the staggered side swinging into itself.
+            if (target.Staggered)
+            {
+                target.Staggered = false;
+                Line(target, RelicId.Stutterstep,
+                    target.Label(RelicId.Stutterstep) + " — the foe trips into its own blade", 1);
+                if (side.Php > 0)
+                {
+                    DealDamage(target, Math.Max(1, amount), target.Label(RelicId.Stutterstep), 1,
+                        RelicId.Stutterstep, NewChain());
+                }
+
+                return CombatDamage.TurnedAside;
+            }
+
+            // An awakened Martyr's Knot puts every third blow back on the striker.
+            if (target.IsAwake(RelicId.MartyrsKnot) && target.Effective(RelicId.MartyrsKnot) > 0)
+            {
+                target.MartyrCount++;
+                if (target.MartyrCount % 3 == 0)
+                {
+                    Line(target, RelicId.MartyrsKnot,
+                        target.Label(RelicId.MartyrsKnot) + " bears it — the blow lands on the foe", 1);
+                    if (side.Php > 0)
+                    {
+                        DealDamage(target, Math.Max(1, amount), target.Label(RelicId.MartyrsKnot), 1,
+                            RelicId.MartyrsKnot, NewChain());
+                    }
+
+                    return CombatDamage.TurnedAside;
+                }
+            }
+
+            // An awakened Greedy Curse charges the purse instead of deepening the wound.
+            if (target.IsAwake(RelicId.GreedyCurse) && target.Effective(RelicId.GreedyCurse) > 0)
+            {
+                target.Gold += 2;
+                Line(target, RelicId.GreedyCurse, target.Label(RelicId.GreedyCurse) + " charges the purse: +2 gold", 1);
+            }
+
+            bool sunders = side.IsAwake(RelicId.Whetstone) && side.Effective(RelicId.Whetstone) > 0;
+            int real = Defense.Apply(amount, sunders ? 0 : target.StatOf(Stat.Def));
+
+            target.HitCount++;
+
+            int hide = target.Effective(RelicId.PaddedHide);
+            if (target.IsAwake(RelicId.PaddedHide) && hide > 0 && target.HitCount > 1 && target.HideLearned > 0)
+            {
+                real = Math.Max(1, JsMath.RoundToInt(real * 0.5));
+                Line(target, RelicId.PaddedHide, target.Label(RelicId.PaddedHide) + " has learned this blow", 1);
+            }
+
+            // Padded Hide softens the first blow of the duel, and learns it for the rest.
+            if (!target.HitTaken)
+            {
+                target.HitTaken = true;
+                if (target.IsAwake(RelicId.PaddedHide) && hide > 0) target.HideLearned = 1;
+                if (hide > 0)
+                {
+                    real -= 2 * hide;
+                    Line(target, RelicId.PaddedHide,
+                        target.Label(RelicId.PaddedHide) + " softens the blow: -" + (2 * hide), 1);
+                }
+            }
+
+            return Math.Max(1, real);
+        }
+
+        void ICombatBus.ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic)
+        {
+            var side = (DuelSide)attacker;
+            Other(side).Php -= dealt;
+
+            if (side.IsHero)
+            {
+                Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
+            }
+            else
+            {
+                Snap(CombatEventType.PlayerDamage, depth, amount: dealt, relic: relic,
+                    foe: relic != RelicId.None ? (bool?)true : false,
+                    enemyCrit: _critChain && depth == 0);
+            }
+        }
+
+        void ICombatBus.AfterDamage(ICombatActor attacker, int dealt, int depth, IChain chain)
+        {
+            if (depth != 0) return;
+            var side = (DuelSide)attacker;
+            CombatDamage.React(Other(side), side, dealt, _critChain, this, _rules);
+        }
+
         private void FireEmitter(DuelSide side, RelicId id, int depth, DuelChain chain, double scale)
         {
             SocketFiring.FireEmitter(side, this, _rules, id, depth, chain ?? NewChain(), scale);
@@ -281,158 +421,6 @@ namespace RelicRun.Core.Combat
 
         // ---------- primitives ----------
 
-        private void DealDamage(DuelSide side, int amount, string source, int depth,
-            RelicId relic, DuelChain chain)
-        {
-            chain = chain ?? NewChain();
-            DuelSide target = Other(side);
-
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            if (target.Php <= 0 || side.Php <= 0) return;
-
-            if (amount <= 0)
-            {
-                if (relic != RelicId.None) Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            // Evasion lives entirely in the Lucky Clover, on either side.
-            if (depth == 0 && target.Effective(RelicId.LuckyClover) > 0 &&
-                _rng.Next() < target.StatOf(Stat.Lck) / 100.0)
-            {
-                if (side.IsHero) Snap(CombatEventType.EnemyMiss, 0, foe: true);
-                else Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
-                OnDodge(target);
-                return;
-            }
-
-            // The Guard set turns the first blow of the duel aside.
-            if (depth == 0 && target.SetCount(RelicKind.Guard) >= 7 && !target.Blocked)
-            {
-                target.Blocked = true;
-                Line(target, RelicId.None, Prefix(target) + "Guard set — the first blow glances off", 0);
-                return;
-            }
-
-            int real = amount;
-
-            // An awakened Stutterstep leaves the staggered side swinging into itself.
-            if (depth == 0 && target.Staggered)
-            {
-                target.Staggered = false;
-                Line(target, RelicId.Stutterstep,
-                    target.Label(RelicId.Stutterstep) + " — the foe trips into its own blade", 1);
-                if (side.Php > 0)
-                {
-                    DealDamage(target, Math.Max(1, amount), target.Label(RelicId.Stutterstep), 1,
-                        RelicId.Stutterstep, NewChain());
-                }
-
-                return;
-            }
-
-            // An awakened Martyr's Knot puts every third blow back on the striker.
-            if (depth == 0 && target.IsAwake(RelicId.MartyrsKnot) && target.Effective(RelicId.MartyrsKnot) > 0)
-            {
-                target.MartyrCount++;
-                if (target.MartyrCount % 3 == 0)
-                {
-                    Line(target, RelicId.MartyrsKnot,
-                        target.Label(RelicId.MartyrsKnot) + " bears it — the blow lands on the foe", 1);
-                    if (side.Php > 0)
-                    {
-                        DealDamage(target, Math.Max(1, amount), target.Label(RelicId.MartyrsKnot), 1,
-                            RelicId.MartyrsKnot, NewChain());
-                    }
-
-                    return;
-                }
-            }
-
-            // An awakened Greedy Curse charges the purse instead of deepening the wound.
-            if (depth == 0 && target.IsAwake(RelicId.GreedyCurse) && target.Effective(RelicId.GreedyCurse) > 0)
-            {
-                target.Gold += 2;
-                Line(target, RelicId.GreedyCurse, target.Label(RelicId.GreedyCurse) + " charges the purse: +2 gold", 1);
-            }
-
-            if (depth == 0)
-            {
-                // Only genuine strikes meet armor and first-hit padding; relic damage lands raw.
-                bool sunders = side.IsAwake(RelicId.Whetstone) && side.Effective(RelicId.Whetstone) > 0;
-                real = Defense.Apply(real, sunders ? 0 : target.StatOf(Stat.Def));
-
-                target.HitCount++;
-
-                int hide = target.Effective(RelicId.PaddedHide);
-                if (target.IsAwake(RelicId.PaddedHide) && hide > 0 && target.HitCount > 1 && target.HideLearned > 0)
-                {
-                    real = Math.Max(1, JsMath.RoundToInt(real * 0.5));
-                    Line(target, RelicId.PaddedHide, target.Label(RelicId.PaddedHide) + " has learned this blow", 1);
-                }
-
-                if (!target.HitTaken)
-                {
-                    target.HitTaken = true;
-                    if (target.IsAwake(RelicId.PaddedHide) && hide > 0) target.HideLearned = 1;
-                    if (hide > 0)
-                    {
-                        real -= 2 * hide;
-                        Line(target, RelicId.PaddedHide,
-                            target.Label(RelicId.PaddedHide) + " softens the blow: -" + (2 * hide), 1);
-                    }
-                }
-
-                real = Math.Max(1, real);
-            }
-            else
-            {
-                real = Math.Max(1, real);
-            }
-
-            target.Php -= real;
-
-            if (side.IsHero)
-            {
-                Snap(CombatEventType.EnemyDamage, depth, amount: real, source: source, relic: relic);
-            }
-            else
-            {
-                Snap(CombatEventType.PlayerDamage, depth, amount: real, relic: relic,
-                    foe: relic != RelicId.None ? (bool?)true : false,
-                    enemyCrit: _critChain && depth == 0);
-            }
-
-            // Ember Cask shakes gold loose from relic damage.
-            if (relic != RelicId.None && relic != RelicId.EmberCask && side.Effective(RelicId.EmberCask) > 0)
-            {
-                double scale = chain.Scale(side, RelicId.EmberCask);
-                int coins = JsMath.RoundToInt(side.Effective(RelicId.EmberCask) * scale);
-                if (coins > 0)
-                {
-                    GainGold(side, coins, side.Label(RelicId.EmberCask), depth + 1, RelicId.EmberCask, chain);
-                    FireEmitter(side, RelicId.EmberCask, depth, chain, scale);
-                }
-            }
-
-            CombatDamage.RefuseDeath(target, this, _rules);
-
-            if (target.Php <= 0)
-            {
-                CombatDamage.OnKill(side, this, _rules, depth, chain);
-                return;
-            }
-
-            if (depth == 0)
-            {
-                CombatDamage.React(target, side, real, _critChain, this, _rules);
-            }
-        }
 
 
 

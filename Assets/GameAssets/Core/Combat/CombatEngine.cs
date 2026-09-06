@@ -381,6 +381,58 @@ namespace RelicRun.Core.Combat
 
         void ICombatBus.ReportFizzle(int depth) { Snap(CombatEventType.Fizzle, depth); }
 
+        /// <summary>A delve foe cannot be struck by a corpse it already made, so only it is asked.</summary>
+        bool ICombatBus.CanDeal(ICombatActor attacker) { return _enemyHp > 0; }
+
+        /// <summary>Foes evade only with a Lucky Clover of their own.</summary>
+        bool ICombatBus.TargetEvades(ICombatActor attacker, string source, int depth, IChain chain)
+        {
+            if (source != "you" || _cur.Relics == null) return false;
+            if (_cur.CountRelic(RelicId.LuckyClover) == 0) return false;
+            if (_rng.Next() >= _cur.Lck / 100.0) return false;
+
+            Snap(CombatEventType.EnemyMiss, 0, foe: true);
+            return true;
+        }
+
+        /// <summary>
+        /// A stat-block foe has nothing that turns a blow aside, so this is armor alone — and
+        /// armor meets every blow, unlike a duel, where only a genuine strike meets a defence.
+        /// An awakened Whetstone cuts straight through it, but only on the hero's own strikes.
+        /// </summary>
+        int ICombatBus.Mitigate(ICombatActor attacker, int amount, string source, int depth)
+        {
+            bool sunders = IsAwake(RelicId.Whetstone) && CountItem(RelicId.Whetstone) > 0 && source == "you";
+            return Defense.Apply(amount, sunders ? 0 : _cur.Armor, _hero.DefenseModel);
+        }
+
+        void ICombatBus.ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic)
+        {
+            _enemyHp -= dealt;
+            Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
+        }
+
+        /// <summary>
+        /// A foe answers with the two things a stat block can carry: a Thorn Vest that bites
+        /// whoever struck it, and a Berserker Charm that enrages once it is bloodied.
+        /// </summary>
+        void ICombatBus.AfterDamage(ICombatActor attacker, int dealt, int depth, IChain chain)
+        {
+            int thorns = _cur.CountRelic(RelicId.ThornVest);
+            if (depth == 0 && thorns > 0 && _hero.Php > 0)
+            {
+                _hero.Php -= thorns;
+                Snap(CombatEventType.PlayerDamage, 1, amount: thorns, relic: RelicId.ThornVest, foe: true);
+                if (_hero.Php <= 0) return;
+            }
+
+            if (!_foeFury && _cur.CountRelic(RelicId.BerserkerCharm) > 0 && _enemyHp < EnemyMax / 2.0)
+            {
+                _foeFury = true;
+                Snap(CombatEventType.EnemyFury, 1, amount: 2, relic: RelicId.BerserkerCharm, foe: true);
+            }
+        }
+
         void ICombatBus.ReportHeal(ICombatActor actor, int amount, string source, int depth, RelicId relic)
         {
             Snap(CombatEventType.Heal, depth, amount: amount, source: source, relic: relic);

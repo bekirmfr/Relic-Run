@@ -104,6 +104,74 @@ namespace RelicRun.Core.Combat
             }
         }
 
+        /// <summary>Returned by <see cref="ICombatBus.Mitigate"/> when nothing lands.</summary>
+        public const int TurnedAside = -1;
+
+        /// <summary>
+        /// Landing a blow, from the checks that stop it to the answers that follow it.
+        /// </summary>
+        /// <remarks>
+        /// The frame is shared; the middle is not. How a blow is reduced differs between the
+        /// modes in shape rather than in degree — a delve foe is a stat block with no defences
+        /// of its own to run, while a duellist meets a full defender every time — so
+        /// <see cref="ICombatBus.Mitigate"/> stays with each engine and everything around it
+        /// lives here.
+        /// </remarks>
+        public static void Deal(ICombatActor attacker, ICombatBus bus, CombatRules rules,
+            int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            chain = chain ?? bus.NewChain();
+
+            if (depth > rules.ChainCap)
+            {
+                bus.ReportFizzle(depth);
+                return;
+            }
+
+            if (!bus.CanDeal(attacker)) return;
+
+            if (amount <= 0)
+            {
+                // A relic that decayed to nothing still reports; a plain miss does not.
+                if (relic != RelicId.None) bus.ReportFizzle(depth);
+                return;
+            }
+
+            // Evasion lives entirely in the Lucky Clover, and only a genuine strike can be
+            // slipped — relic damage always finds its mark.
+            if (depth == 0 && bus.TargetEvades(attacker, source, depth, chain)) return;
+
+            int dealt = bus.Mitigate(attacker, amount, source, depth);
+            if (dealt == TurnedAside) return;
+
+            bus.ApplyDamage(attacker, dealt, source, depth, relic);
+
+            // Ember Cask shakes gold loose from relic damage — the BLOOD to GOLD arc.
+            int cask = attacker.Effective(RelicId.EmberCask);
+            if (relic != RelicId.None && relic != RelicId.EmberCask && cask > 0)
+            {
+                double scale = chain.Scale(attacker, RelicId.EmberCask);
+                int coins = JsMath.RoundToInt(cask * scale);
+                if (coins > 0)
+                {
+                    CombatPrimitives.GainGold(attacker, bus, rules, coins,
+                        attacker.Label(RelicId.EmberCask), depth + 1, RelicId.EmberCask, chain);
+                    bus.FireEmitter(attacker, RelicId.EmberCask, depth, chain, scale);
+                }
+            }
+
+            // A stat-block foe has nothing to refuse death with, so this is a no-op there.
+            RefuseDeath(bus.Opponent(attacker), bus, rules);
+
+            if (!bus.HasTarget(attacker))
+            {
+                OnKill(attacker, bus, rules, depth, rules.KillSharesTheBlowsChain ? chain : null);
+                return;
+            }
+
+            bus.AfterDamage(attacker, dealt, depth, chain);
+        }
+
         /// <summary>
         /// A kill, and everything that answers one.
         /// </summary>

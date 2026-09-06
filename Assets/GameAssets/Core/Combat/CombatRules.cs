@@ -41,6 +41,13 @@ namespace RelicRun.Core.Combat
         /// </summary>
         public bool StoneEmitterFloorsBeforeFizzle = true;
 
+        /// <summary>
+        /// Whether a kill continues the chain of the blow that earned it. A delve treats loot
+        /// as a genuine event and opens a fresh chain; a duel lets its purse decay with what
+        /// preceded it.
+        /// </summary>
+        public bool KillSharesTheBlowsChain;
+
         /// <summary>Whether the Edge set sharpens permanently with every kill.</summary>
         public bool EdgeSetSharpensOnKill = true;
 
@@ -71,6 +78,7 @@ namespace RelicRun.Core.Combat
                 StoneEmitterFloorsBeforeFizzle = false,
                 EdgeSetSharpensOnKill = false,
                 KillFiresTrigger = false,
+                KillSharesTheBlowsChain = true,
             };
         }
     }

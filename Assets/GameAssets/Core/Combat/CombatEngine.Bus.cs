@@ -25,86 +25,9 @@ namespace RelicRun.Core.Combat
         private void DealDamage(int amount, string source, int depth,
             RelicId relic = RelicId.None, ChainContext chain = null)
         {
-            chain = chain ?? NewChain();
-
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            if (_enemyHp <= 0)
-            {
-                return;
-            }
-
-            if (amount <= 0)
-            {
-                // A relic that decayed to nothing still reports; a plain miss does not.
-                if (relic != RelicId.None)
-                {
-                    Snap(CombatEventType.Fizzle, depth);
-                }
-
-                return;
-            }
-
-            // Foes evade only with a Lucky Clover of their own.
-            if (depth == 0 && source == "you" && _cur.Relics != null &&
-                _cur.CountRelic(RelicId.LuckyClover) > 0 && _rng.Next() < _cur.Lck / 100.0)
-            {
-                Snap(CombatEventType.EnemyMiss, 0, foe: true);
-                return;
-            }
-
-            // An awakened Whetstone cuts straight through armor — but only on the hero's own
-            // strikes, not on anything a relic throws.
-            bool sunders = IsAwake(RelicId.Whetstone) && CountItem(RelicId.Whetstone) > 0 && source == "you";
-            int dealt = Defense.Apply(amount, sunders ? 0 : _cur.Armor, _hero.DefenseModel);
-            _enemyHp -= dealt;
-            Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
-
-            // Ember Cask shakes gold loose from relic damage - the BLOOD to GOLD arc.
-            if (relic != RelicId.None && relic != RelicId.EmberCask &&
-                EffectiveCount(RelicId.EmberCask) > 0)
-            {
-                double caskScale = chain.Scale(RelicId.EmberCask);
-                int coins = JsMath.RoundToInt(EffectiveCount(RelicId.EmberCask) * caskScale);
-                if (coins > 0)
-                {
-                    GainGold(coins, RelicCatalog.KeyOf(RelicId.EmberCask), depth + 1, RelicId.EmberCask, chain);
-                    FireEmitter(RelicId.EmberCask, depth, chain, caskScale);
-                }
-            }
-
-            if (_enemyHp <= 0)
-            {
-                // A delve's kill opens its OWN chain: the loot is a genuine event, not a
-                // continuation of the blow that earned it. A duel deliberately shares the
-                // blow's chain instead, so its purse decays with what preceded it.
-                CombatDamage.OnKill(_actor, this, _rules, depth, null);
-                return;
-            }
-
-            // Thorn Vest on the foe bites back at whoever struck it.
-            int thorns = _cur.CountRelic(RelicId.ThornVest);
-            if (depth == 0 && thorns > 0 && _hero.Php > 0)
-            {
-                _hero.Php -= thorns;
-                Snap(CombatEventType.PlayerDamage, 1, amount: thorns, relic: RelicId.ThornVest, foe: true);
-                if (_hero.Php <= 0)
-                {
-                    return;
-                }
-            }
-
-            // Berserker Charm on the foe: it enrages once, at half health.
-            if (!_foeFury && _cur.CountRelic(RelicId.BerserkerCharm) > 0 && _enemyHp < EnemyMax / 2.0)
-            {
-                _foeFury = true;
-                Snap(CombatEventType.EnemyFury, 1, amount: 2, relic: RelicId.BerserkerCharm, foe: true);
-            }
+            CombatDamage.Deal(_actor, this, _rules, amount, source, depth, relic, chain ?? NewChain());
         }
+
 
 
 

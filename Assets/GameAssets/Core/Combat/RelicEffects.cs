@@ -246,6 +246,34 @@ namespace RelicRun.Core.Combat
 
         /// <summary>The target's maximum health, which the execution window is a share of.</summary>
         int TargetMaxHealth(ICombatActor attacker);
+
+        // ---- the mode-specific half of landing a blow ----
+
+        /// <summary>
+        /// Whether a blow can be thrown at all. A delve asks only whether the foe is still
+        /// standing; a duel also asks whether the striker is, because either side can be dead
+        /// by the time a chain gets back around to them.
+        /// </summary>
+        bool CanDeal(ICombatActor attacker);
+
+        /// <summary>
+        /// Rolls the defender's evasion. Returning true means the blow was slipped and every
+        /// dodge reaction has already fired.
+        /// </summary>
+        bool TargetEvades(ICombatActor attacker, string source, int depth, IChain chain);
+
+        /// <summary>
+        /// Reduces a blow to what actually lands, and runs whatever can turn it aside first —
+        /// a Guard set, a stagger, a Martyr's Knot, an awakened Iron Skin. Returns
+        /// <see cref="TurnedAside"/> when nothing lands at all.
+        /// </summary>
+        int Mitigate(ICombatActor attacker, int amount, string source, int depth);
+
+        /// <summary>Subtracts the blow and reports it from the hero's point of view.</summary>
+        void ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic);
+
+        /// <summary>Whatever answers a blow that landed and did not kill.</summary>
+        void AfterDamage(ICombatActor attacker, int dealt, int depth, IChain chain);
     }
 
     /// <summary>
