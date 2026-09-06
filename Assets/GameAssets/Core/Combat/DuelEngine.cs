@@ -56,7 +56,7 @@ namespace RelicRun.Core.Combat
             if (side.IsHero) Snap(CombatEventType.EnemyMiss, 0, foe: true);
             else Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
 
-            OnDodge(target);
+            CombatDamage.OnDodge(target, this, _rules);
             return true;
         }
 
@@ -473,67 +473,6 @@ namespace RelicRun.Core.Combat
             return ((DuelSide)actor).Label(RelicId.GravekeepersSoil) + " — the ground gives back";
         }
 
-        private void OnDodge(DuelSide side)
-        {
-            DuelChain chain = NewChain();
-
-            if (side.Effective(RelicId.LuckyClover) > 0)
-            {
-                double scale = chain.Scale(side, RelicId.LuckyClover);
-                EmitLuck(side, side.Label(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
-                FireEmitter(side, RelicId.LuckyClover, 0, chain, scale);
-            }
-
-            if (side.Effective(RelicId.LoadedHorseshoe) > 0)
-            {
-                EmitLuck(side, side.Label(RelicId.LoadedHorseshoe), 1, RelicId.LoadedHorseshoe, chain);
-            }
-
-            if (side.Effective(RelicId.LuckyClover) > 0 && side.IsAwake(RelicId.LuckyClover))
-            {
-                EmitLuck(side, side.Label(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
-            }
-
-            int sentinel = side.Effective(RelicId.SentinelBell);
-            if (sentinel > 0)
-            {
-                side.Sentinel += sentinel;
-                Line(side, RelicId.SentinelBell, side.Label(RelicId.SentinelBell) + " +" + sentinel + " DEF", 1);
-                if (side.IsAwake(RelicId.SentinelBell) && Other(side).Php > 0)
-                {
-                    DealDamage(side, 1, side.Label(RelicId.SentinelBell), 1, RelicId.SentinelBell, chain);
-                }
-            }
-
-            if (side.Effective(RelicId.CatsWhisker) > 0 && (side.IsAwake(RelicId.CatsWhisker) || !side.WhiskerUsed))
-            {
-                side.WhiskerUsed = true;
-                DealDamage(side, Math.Max(1, JsMath.RoundToInt(side.StatOf(Stat.Atk) / 2.0)),
-                    side.Label(RelicId.CatsWhisker), 1, RelicId.CatsWhisker, chain);
-            }
-
-            if (side.SetCount(RelicKind.Luck) >= 7)
-            {
-                DealDamage(side, 2, "Luck set", 1, RelicId.LuckyClover, chain);
-            }
-
-            DuelSide foe = Other(side);
-            int stutter = side.Effective(RelicId.Stutterstep);
-            if (stutter > 0)
-            {
-                foe.BaseSpd = Math.Max(10, foe.BaseSpd - stutter);
-                if (side.IsAwake(RelicId.Stutterstep)) foe.Staggered = true;
-                Snap(CombatEventType.EnemySlow, 1, amount: stutter, relic: RelicId.Stutterstep,
-                    foe: side.IsHero ? (bool?)null : true);
-            }
-
-            if (side.Effective(RelicId.HaresDrum) > 0)
-            {
-                side.InstantRiposte = true;
-            }
-
-            FireTrigger(side, SocketTrigger.Dodge, 0, RelicId.LuckyClover, RelicId.None, chain);
-        }
 
 
         // ---------- sockets ----------
@@ -590,6 +529,16 @@ namespace RelicRun.Core.Combat
         void ICombatBus.ReportLuck(ICombatActor actor, string source, int depth, RelicId relic)
         {
             if (((DuelSide)actor).IsHero) Snap(CombatEventType.Luck, depth, source: source, relic: relic);
+        }
+
+        void ICombatBus.SlowOpponent(ICombatActor actor, int amount, bool stagger)
+        {
+            var side = (DuelSide)actor;
+            DuelSide foe = Other(side);
+            foe.BaseSpd = Math.Max(10, foe.BaseSpd - amount);
+            if (stagger) foe.Staggered = true;
+            Snap(CombatEventType.EnemySlow, 1, amount: amount, relic: RelicId.Stutterstep,
+                foe: side.IsHero ? (bool?)null : true);
         }
 
         void ICombatBus.ReduceOpponentCeiling(ICombatActor actor, int depth)

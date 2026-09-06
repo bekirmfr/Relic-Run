@@ -430,6 +430,58 @@ for (let i = 0; i < 24; i++) {
   }));
 }
 
+/* The dodge answers were thin: the corpus dodged, but never twice in one fight with an
+   unawakened Cat's Whisker (whose counter is spent once), never hard enough to drive a foe
+   into the speed floor, and never with a Sentinel Bell whose defence then had to meet a blow.
+
+   These stack Clovers for luck so dodges are frequent, on deep floors so the fight runs long
+   enough for the second one. */
+for (const floor of [10, 11, 12, 13]) {
+  for (const level of [12, 20]) {
+    cases.push(delveCase(`edge/dodge/whisker/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover", "catwhisker", "horseshoe"],
+    }));
+    cases.push(delveCase(`edge/dodge/whisker-awake/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover", "catwhisker", "horseshoe"],
+      awake: { catwhisker: 1 },
+    }));
+    cases.push(delveCase(`edge/dodge/floor/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover",
+              "stutter", "stutter", "stutter", "stutter", "stutter", "stutter"],
+    }));
+    cases.push(delveCase(`edge/dodge/sentinel/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover", "sentinel", "sentinel", "sentinel"],
+    }));
+    cases.push(delveCase(`edge/dodge/sentinel-awake/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover", "sentinel", "sentinel", "sentinel"],
+      awake: { sentinel: 1 },
+    }));
+    cases.push(delveCase(`edge/dodge/drum/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover", "haredrum", "catwhisker", "sentinel"],
+    }));
+  }
+}
+
+for (let i = 0; i < 12; i++) {
+  const shared = ["clover", "clover", "clover", "clover"];
+  cases.push(duelCase(`duel/dodge/${i}`, {
+    itemsA: shared.concat([["catwhisker"], ["sentinel", "sentinel"],
+                           ["stutter", "stutter", "stutter", "stutter", "stutter", "stutter"],
+                           ["haredrum", "catwhisker"]][i % 4]),
+    itemsB: shared.concat([["sentinel"], ["catwhisker"],
+                           ["horseshoe", "stutter"], ["stutter", "stutter", "stutter"]][i % 4]),
+    awakeA: i % 3 === 0 ? {} : { catwhisker: 1, sentinel: 1, stutter: 1 },
+    awakeB: i % 2 === 0 ? {} : { stutter: 1 },
+    hp: [60, 90, 140][i % 3],
+  }));
+}
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });

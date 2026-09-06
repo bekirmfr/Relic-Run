@@ -104,6 +104,75 @@ namespace RelicRun.Core.Combat
             }
         }
 
+        /// <summary>
+        /// Everything a slipped blow sets off. The caller has already reported the miss.
+        /// </summary>
+        /// <remarks>
+        /// A dodge is one genuine event, so it opens its own chain and every relic that answers
+        /// decays inside it.
+        /// </remarks>
+        public static void OnDodge(ICombatActor dodger, ICombatBus bus, CombatRules rules)
+        {
+            IChain chain = bus.NewChain();
+
+            // Without a Clover there is no dodge in the first place, so this always fires.
+            double cloverScale = chain.Scale(dodger, RelicId.LuckyClover);
+            CombatPrimitives.EmitLuck(dodger, bus, rules, dodger.Label(RelicId.LuckyClover), 1,
+                RelicId.LuckyClover, chain, false);
+            bus.FireEmitter(dodger, RelicId.LuckyClover, 0, chain, cloverScale);
+
+            if (dodger.Effective(RelicId.LoadedHorseshoe) > 0)
+            {
+                CombatPrimitives.EmitLuck(dodger, bus, rules, dodger.Label(RelicId.LoadedHorseshoe), 1,
+                    RelicId.LoadedHorseshoe, chain, false);
+            }
+
+            if (dodger.IsAwake(RelicId.LuckyClover) && dodger.Effective(RelicId.LuckyClover) > 0)
+            {
+                CombatPrimitives.EmitLuck(dodger, bus, rules, dodger.Label(RelicId.LuckyClover), 1,
+                    RelicId.LuckyClover, chain, false);
+            }
+
+            // The Sentinel Bell rings defence, and once awakened rings a blow with it.
+            int sentinel = dodger.Effective(RelicId.SentinelBell);
+            if (sentinel > 0)
+            {
+                dodger.Sentinel += sentinel;
+                bus.Line(dodger, RelicId.SentinelBell,
+                    dodger.Label(RelicId.SentinelBell) + " +" + sentinel + " DEF", 1);
+                if (dodger.IsAwake(RelicId.SentinelBell))
+                {
+                    bus.DealDamage(dodger, 1, dodger.Label(RelicId.SentinelBell), 1,
+                        RelicId.SentinelBell, chain);
+                }
+            }
+
+            // The Cat's Whisker counters once, or every time once awakened.
+            if (dodger.Effective(RelicId.CatsWhisker) > 0 &&
+                (dodger.IsAwake(RelicId.CatsWhisker) || !dodger.WhiskerUsed))
+            {
+                dodger.WhiskerUsed = true;
+                bus.DealDamage(dodger, Math.Max(1, JsMath.RoundToInt(dodger.StatValue(Stat.Atk) / 2.0)),
+                    dodger.Label(RelicId.CatsWhisker), 1, RelicId.CatsWhisker, chain);
+            }
+
+            // The Luck set turns every dodge into a counter.
+            if (dodger.SetCount(RelicKind.Luck) >= 7)
+            {
+                bus.DealDamage(dodger, 2, "Luck set", 1, RelicId.LuckyClover, chain);
+            }
+
+            int stutter = dodger.Effective(RelicId.Stutterstep);
+            if (stutter > 0)
+            {
+                bus.SlowOpponent(dodger, stutter, dodger.IsAwake(RelicId.Stutterstep));
+            }
+
+            if (dodger.Effective(RelicId.HaresDrum) > 0) dodger.InstantRiposte = true;
+
+            bus.FireTrigger(dodger, SocketTrigger.Dodge, 0, RelicId.LuckyClover, RelicId.None, chain);
+        }
+
         /// <summary>Returned by <see cref="ICombatBus.Mitigate"/> when nothing lands.</summary>
         public const int TurnedAside = -1;
 

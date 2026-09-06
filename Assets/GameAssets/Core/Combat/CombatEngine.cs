@@ -322,6 +322,18 @@ namespace RelicRun.Core.Combat
                 set { _engine._headsmanBonus = value; }
             }
 
+            public bool WhiskerUsed
+            {
+                get { return _engine._whiskerUsed; }
+                set { _engine._whiskerUsed = value; }
+            }
+
+            public bool InstantRiposte
+            {
+                get { return _engine._instantRiposte; }
+                set { _engine._instantRiposte = value; }
+            }
+
             public int Kills
             {
                 get { return _engine._hero.Kills; }
@@ -454,6 +466,13 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>An awakened Vampire Tooth drains the foe's HP ceiling.</summary>
+        void ICombatBus.SlowOpponent(ICombatActor actor, int amount, bool stagger)
+        {
+            _cur.Spd = Math.Max(10, _cur.Spd - amount);
+            Snap(CombatEventType.EnemySlow, 1, amount: amount, relic: RelicId.Stutterstep);
+            if (stagger) _staggered = true;
+        }
+
         void ICombatBus.ReduceOpponentCeiling(ICombatActor actor, int depth)
         {
             if (_cur == null || EnemyMax <= 2) return;
@@ -545,6 +564,10 @@ namespace RelicRun.Core.Combat
             public int StoneCount { get; set; }
 
             public int HeadsmanBonus { get; set; }
+
+            public bool WhiskerUsed { get; set; }
+
+            public bool InstantRiposte { get; set; }
 
             public int Kills { get; set; }
 
@@ -861,7 +884,8 @@ namespace RelicRun.Core.Combat
             // all, and no draw is taken — which is what keeps the RNG stream aligned.
             if (CountItem(RelicId.LuckyClover) > 0 && _rng.Next() < HeroStat(Stat.Lck) / 100.0)
             {
-                Dodge(chain);
+                Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
+                CombatDamage.OnDodge(_actor, this, _rules);
                 return;
             }
 
@@ -971,65 +995,6 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>The hero slipped the blow. Everything that keys off a dodge fires here.</summary>
-        private void Dodge(ChainContext chain)
-        {
-            Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
-
-            double cloverScale = chain.Scale(RelicId.LuckyClover);
-            EmitLuck(RelicCatalog.KeyOf(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
-            FireEmitter(RelicId.LuckyClover, 0, chain, cloverScale);
-
-            if (EffectiveCount(RelicId.LoadedHorseshoe) > 0)
-            {
-                EmitLuck(RelicCatalog.KeyOf(RelicId.LoadedHorseshoe), 1, RelicId.LoadedHorseshoe, chain);
-            }
-
-            if (EffectiveCount(RelicId.LuckyClover) > 0 && IsAwake(RelicId.LuckyClover))
-            {
-                EmitLuck(RelicCatalog.KeyOf(RelicId.LuckyClover), 1, RelicId.LuckyClover, chain);
-            }
-
-            int sentinel = EffectiveCount(RelicId.SentinelBell);
-            if (sentinel > 0)
-            {
-                _carry.SentinelBonus += sentinel;
-                Snap(CombatEventType.First, 1, relic: RelicId.SentinelBell,
-                    source: RelicCatalog.KeyOf(RelicId.SentinelBell) + " +" + sentinel + " DEF");
-                if (IsAwake(RelicId.SentinelBell) && _enemyHp > 0)
-                {
-                    DealDamage(1, RelicCatalog.KeyOf(RelicId.SentinelBell), 1, RelicId.SentinelBell, chain);
-                }
-            }
-
-            if (EffectiveCount(RelicId.CatsWhisker) > 0 &&
-                (IsAwake(RelicId.CatsWhisker) || !_whiskerUsed) && _enemyHp > 0)
-            {
-                _whiskerUsed = true;
-                DealDamage(Math.Max(1, JsMath.RoundToInt(HeroStat(Stat.Atk) / 2.0)),
-                    RelicCatalog.KeyOf(RelicId.CatsWhisker), 1, RelicId.CatsWhisker, chain);
-            }
-
-            // The Luck set turns every dodge into a counter.
-            if (SetCount(RelicKind.Luck) >= 7 && _enemyHp > 0)
-            {
-                DealDamage(2, "Luck set", 1, RelicId.LuckyClover, chain);
-            }
-
-            int stutter = EffectiveCount(RelicId.Stutterstep);
-            if (stutter > 0)
-            {
-                _cur.Spd = Math.Max(10, _cur.Spd - stutter);
-                Snap(CombatEventType.EnemySlow, 1, amount: stutter, relic: RelicId.Stutterstep);
-                if (IsAwake(RelicId.Stutterstep)) _staggered = true;
-            }
-
-            if (EffectiveCount(RelicId.HaresDrum) > 0)
-            {
-                _instantRiposte = true;
-            }
-
-            FireTrigger(SocketTrigger.Dodge, 0, RelicId.LuckyClover, RelicId.None, chain);
-        }
 
         /// <summary>
         /// <summary>

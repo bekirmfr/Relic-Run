@@ -111,6 +111,12 @@ namespace RelicRun.Core.Combat
 
         int Kills { get; set; }
 
+        /// <summary>Whether the Cat's Whisker has already spent its one free counter.</summary>
+        bool WhiskerUsed { get; set; }
+
+        /// <summary>The Hare's Drum handing back the next action.</summary>
+        bool InstantRiposte { get; set; }
+
         // ---- inventory, walked by slot because a socket belongs to one copy ----
 
         int ItemCount { get; }
@@ -151,6 +157,13 @@ namespace RelicRun.Core.Combat
 
         /// <summary>An awakened Vampire Tooth eating one point off the opponent's ceiling.</summary>
         void ReduceOpponentCeiling(ICombatActor actor, int depth);
+
+        /// <summary>
+        /// Stutterstep dragging the opponent's speed down, and — once awakened — leaving them
+        /// staggered. Which field holds either is the one thing a stat-block foe and a full
+        /// duellist do not share.
+        /// </summary>
+        void SlowOpponent(ICombatActor actor, int amount, bool stagger);
 
         void FireEmitter(ICombatActor actor, RelicId id, int depth, IChain chain, double scale);
 

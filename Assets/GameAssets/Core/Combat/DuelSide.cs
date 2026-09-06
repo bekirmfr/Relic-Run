@@ -102,9 +102,9 @@ namespace RelicRun.Core.Combat
         public bool Blocked;
         public bool HitTaken;
         public bool AdrenalineUsed;
-        public bool WhiskerUsed;
+        public bool WhiskerUsed { get; set; }
         public bool ExecutionerUsed;
-        public bool InstantRiposte;
+        public bool InstantRiposte { get; set; }
         public bool FleshSetUsed;
         public bool SoilUsed;
         public bool GlassBroken;
