@@ -68,6 +68,7 @@ Content JSON is separate, and has its own gate:
 
 ```bash
 node Tools/extract/extract.mjs
+node Tools/extract/gen-csharp.mjs   # regenerate Core/Content/*.cs
 node Tools/extract/validate.mjs
 ```
 
@@ -79,4 +80,4 @@ node Tools/extract/validate.mjs
 | Phase 0 — corpus | `Tools/corpus/` | passing, 783 cases replay exactly |
 | Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 raw draws bit-exact |
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
-| Phase 1 — stat ledger | `pl` field on every event | not yet ported |
+| Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |

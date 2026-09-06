@@ -34,7 +34,7 @@ export function buildEngine() {
     "  t(key) { return key; }",
     ...METHODS.map(liftMethod),
     "}",
-    "globalThis.__api = { Engine, mulberry32, packFor, packGold, heroStatOf, heroCtxOf,",
+    "globalThis.__api = { Engine, mulberry32, packFor, packGold, heroStatOf, heroStatRows, heroCtxOf,",
     "  applyDef, count, ITEMS, POOL, DUNGEONS, TRIGGERS, EMITTERS, MAX_FLOOR, SHOP_FLOOR, poolFor, liveFor };",
   ];
 

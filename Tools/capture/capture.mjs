@@ -189,6 +189,106 @@ const rngCases = [1, 2, 12345, 0x5E1F00D, 20260906].map((s) => {
   return { seed: s, raw: Array.from({ length: 1000 }, () => r() * 4294967296) };
 });
 
+/* stat ledger — the Phase 1 gate for heroStatRows / heroStatOf.
+   The `pl` field on combat events only carries the engine's DYNAMIC in-fight mods, so it
+   does not exercise the ledger's own rows. This does: randomized loadouts crossed with the
+   conditions the rows actually branch on — health fraction, gold, foe rank, mode, awakenings
+   and set thresholds. Rows are recorded with their source labels, so a wrong label is caught
+   as readily as a wrong number. Placed after every other consumer of `master`, so appending
+   it leaves the earlier corpus files byte-identical. */
+const STATS = ["atk", "def", "spd", "lck"];
+const ledger = [];
+for (let i = 0; i < 400; i++) {
+  const n = int(9);
+  const items = Array.from({ length: n }, () => pick(DELVE_POOL));
+  const awake = {};
+  for (const id of new Set(items)) if (master() < 0.35) awake[id] = 1;
+  const pmax = 60 + int(160);
+  const ctx = {
+    items, awake,
+    mode: master() < 0.3 ? "versus" : "delve",
+    base: { atk: 5 + int(6), def: int(6), spd: 25 + int(6), lck: 10 + int(6) },
+    run: {
+      adrenaline: int(8), midasBonus: int(6), atkB: int(5),
+      defB: int(5), spdB: int(5), luckB: int(12),
+    },
+    php: 1 + int(pmax), pmax,
+    gold: int(400), floor: 1 + int(13),
+    foeRank: pick(["guard", "elite", "boss", "king", null]),
+    debtLeft: 0, glassBroken: false,
+    mods: master() < 0.4
+      ? [{ stat: pick(STATS), src: "Fury (this floor)", amt: 1 + int(6) },
+         { stat: pick(STATS), src: "Sentinel Bell (this floor)", amt: 1 + int(3) }]
+      : [],
+  };
+  ledger.push({
+    id: `ledger/${i}`,
+    ctx,
+    rows: Object.fromEntries(STATS.map((s) => [s, api.heroStatRows(ctx, s)])),
+    totals: Object.fromEntries(STATS.map((s) => [s, api.heroStatOf(ctx, s)])),
+  });
+}
+
+/* Random loadouts never reach some rows: GREED has only six relics in the pool, so its
+   tier-7 bonus is unreachable without deliberate duplicates. These targeted cases walk the
+   set thresholds and the conditional boundaries directly, so every row in the ledger is
+   exercised and the off-by-one cases (>= vs >) are pinned. */
+const byKind = {};
+for (const id of DELVE_POOL) {
+  const k = api.ITEMS[id].kind;
+  (byKind[k] ||= []).push(id);
+}
+const ledgerCase = (id, over) => {
+  const ctx = {
+    items: [], awake: {}, mode: "delve",
+    base: { atk: 5, def: 0, spd: 25, lck: 10 },
+    run: { adrenaline: 0, midasBonus: 0, atkB: 0, defB: 0, spdB: 0, luckB: 0 },
+    php: 100, pmax: 100, gold: 0, floor: 1, foeRank: null,
+    debtLeft: 0, glassBroken: false, mods: [],
+    ...over,
+  };
+  ledger.push({
+    id, ctx,
+    rows: Object.fromEntries(STATS.map((s) => [s, api.heroStatRows(ctx, s)])),
+    totals: Object.fromEntries(STATS.map((s) => [s, api.heroStatOf(ctx, s)])),
+  });
+};
+
+/* set thresholds: one under, exactly on, and one over, for every kind and tier */
+for (const kind of Object.keys(byKind)) {
+  const stack = byKind[kind][0];
+  for (const n of [2, 3, 4, 5, 6, 7, 8]) {
+    ledgerCase(`ledger/set/${kind}/${n}`, { items: Array(n).fill(stack), gold: 250 });
+    ledgerCase(`ledger/set/${kind}/${n}+idol`, {
+      items: Array(n).fill(stack).concat("hollowidol"), gold: 250,
+    });
+  }
+}
+
+/* gold thresholds: Greed set (7) reads gold/100, Gilded Plate reads gold/50 or /25 */
+for (const gold of [0, 49, 50, 99, 100, 149, 199, 200, 999]) {
+  ledgerCase(`ledger/gold/greed/${gold}`, { items: Array(7).fill(byKind.GREED[0]), gold });
+  ledgerCase(`ledger/gold/plate/${gold}`, { items: ["auricskin"], gold });
+  ledgerCase(`ledger/gold/plate-awake/${gold}`, { items: ["auricskin"], awake: { auricskin: 1 }, gold });
+  ledgerCase(`ledger/gold/midas/${gold}`, { items: ["midas"], awake: { midas: 1 }, gold, run: { adrenaline: 0, midasBonus: 2, atkB: 0, defB: 0, spdB: 0, luckB: 0 } });
+}
+
+/* the bloodied boundary is php < pmax/2, so exactly half must NOT count as bloodied */
+for (const php of [49, 50, 51]) {
+  ledgerCase(`ledger/bloodied/${php}`, { items: ["berserk"], php, pmax: 100 });
+  ledgerCase(`ledger/bloodied-awake/${php}`, { items: ["berserk", "boots"], awake: { berserk: 1 }, php, pmax: 100 });
+}
+
+/* Duelist's Oath keys off rank, and off versus regardless of rank */
+for (const rank of ["guard", "elite", "boss", "king", null]) {
+  ledgerCase(`ledger/rank/${rank}`, { items: ["duelist"], foeRank: rank });
+  ledgerCase(`ledger/rank/${rank}/versus`, { items: ["duelist"], foeRank: rank, mode: "versus" });
+}
+
+/* floors: SPD and ATK floors bite only when modifiers go deeply negative */
+ledgerCase("ledger/floor/spd", { items: Array(4).fill("millstone"), base: { atk: 5, def: 0, spd: 25, lck: 10 } });
+ledgerCase("ledger/floor/spd-versus", { items: Array(4).fill("millstone"), mode: "versus" });
+
 /* defence — the Phase 1 gate for applyDef. A fixed grid, so it consumes no master
    draws and appending it leaves every other corpus file byte-identical. */
 const defense = [];
@@ -217,6 +317,7 @@ for (const [tier, list] of Object.entries(byTier)) write(`${tier}.json`, list);
 write("packs.json", packs);
 write("rng.json", rngCases);
 write("defense.json", defense);
+write("statledger.json", ledger);
 
 const totalEvents = cases.reduce((n, c) => n + c.events.length, 0);
 const manifest = {
@@ -241,7 +342,7 @@ const manifest = {
       "Packs are recorded verbatim and fights use a separate seed, so the combat engine and " +
       "EnemyPackGenerator fail independently.",
     gates: {
-      "phase 1": "rng.json + defense.json",
+      "phase 1": "rng.json + defense.json + statledger.json",
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
