@@ -1,0 +1,208 @@
+using System;
+using RelicRun.Core.Content;
+using RelicRun.Core.Determinism;
+using RelicRun.Core.Stats;
+
+namespace RelicRun.Core.Combat
+{
+    /// <summary>What a defender does about a blow that landed on them.</summary>
+    public enum DefenderReaction
+    {
+        /// <summary>Mirror Scale throwing a critical hit straight back.</summary>
+        MirrorScale,
+
+        /// <summary>Troll Marrow knitting a bloodied defender together.</summary>
+        Marrow,
+
+        /// <summary>The attacker's Vampire Tooth drinking from the wound it just opened.</summary>
+        AttackerLifesteal,
+
+        /// <summary>The Adrenaline Gland banking permanent attack from the first hurt.</summary>
+        Adrenaline,
+
+        /// <summary>Thorn Vest biting whoever struck it.</summary>
+        Thorns,
+
+        /// <summary>The Greedy Curse's socketed emitter, and the pain cadence.</summary>
+        PainCadence,
+    }
+
+    /// <summary>
+    /// The defender's half of a landed blow: refusing to fall, then answering.
+    /// </summary>
+    /// <remarks>
+    /// Both modes run the same reactions; they run them in a different ORDER, which is why the
+    /// sequence is data rather than code. A delve answers with Mirror Scale first and Thorn Vest
+    /// last; a duel does the reverse. Nothing here reads the mode — it walks the list it is
+    /// handed.
+    ///
+    /// Applying the blow itself is still each engine's own, because a delve foe is a stat block
+    /// whose crit multiplies AFTER mitigation while a full side's multiplies before. That is a
+    /// difference in the shape of the calculation, not a number, and folding it in would mean
+    /// changing what a crit means rather than where it is written.
+    /// </remarks>
+    public static class CombatDamage
+    {
+        /// <summary>The order a delve answers in.</summary>
+        public static readonly DefenderReaction[] DelveOrder =
+        {
+            DefenderReaction.MirrorScale,
+            DefenderReaction.Marrow,
+            DefenderReaction.AttackerLifesteal,
+            DefenderReaction.Adrenaline,
+            DefenderReaction.Thorns,
+            DefenderReaction.PainCadence,
+        };
+
+        /// <summary>The order a duel answers in.</summary>
+        public static readonly DefenderReaction[] DuelOrder =
+        {
+            DefenderReaction.Thorns,
+            DefenderReaction.Adrenaline,
+            DefenderReaction.Marrow,
+            DefenderReaction.MirrorScale,
+            DefenderReaction.PainCadence,
+        };
+
+        /// <summary>
+        /// The death-defiance ladder, in the order it is tried: the Flesh set once per floor,
+        /// then Gravekeeper's Soil once per run, then the Curse set going out in a blast.
+        /// </summary>
+        public static void RefuseDeath(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        {
+            if (defender.Php > 0) return;
+
+            if (defender.SetCount(RelicKind.Flesh) >= 7 && !bus.FleshSetSpent(defender))
+            {
+                bus.SpendFleshSet(defender);
+                defender.Php = 1;
+                bus.Line(defender, RelicId.None, bus.RefusesToFallLabel(defender), 0);
+            }
+
+            if (defender.Php <= 0 && defender.Effective(RelicId.GravekeepersSoil) > 0 &&
+                !bus.SoilSpent(defender))
+            {
+                bus.SpendSoil(defender);
+
+                RelicTuning soil = RelicTuning.For(RelicId.GravekeepersSoil, rules.Mode);
+                double fraction = defender.IsAwake(RelicId.GravekeepersSoil)
+                    ? soil.ReviveFractionAwakened
+                    : soil.ReviveFraction;
+
+                defender.Php = Math.Max(1, JsMath.RoundToInt(defender.Pmax * fraction));
+                bus.Line(defender, RelicId.GravekeepersSoil, bus.SoilLabel(defender), 0);
+            }
+
+            // The Curse set goes out in a blast. Unreachable in the recorded corpus, which never
+            // rolls seven CURSE relics, so this path is ported but not verified.
+            if (defender.Php <= 0 && rules.CurseSetExplodes && defender.SetCount(RelicKind.Curse) >= 7 &&
+                !bus.CurseSetSpent(defender) && bus.HasTarget(defender))
+            {
+                bus.SpendCurseSet(defender);
+                bus.DealDamage(defender, defender.StatValue(Stat.Atk) * 3, "Curse set", 1,
+                    RelicId.None, bus.NewChain());
+            }
+        }
+
+        /// <summary>Runs the defender's answers in this mode's order.</summary>
+        public static void React(ICombatActor defender, ICombatActor attacker, int damageDealt,
+            bool wasCrit, ICombatBus bus, CombatRules rules)
+        {
+            DefenderReaction[] order = rules.ReactionOrder;
+            for (int i = 0; i < order.Length; i++)
+            {
+                switch (order[i])
+                {
+                    case DefenderReaction.MirrorScale: MirrorScale(defender, damageDealt, wasCrit, bus); break;
+                    case DefenderReaction.Marrow: Marrow(defender, bus, rules); break;
+                    case DefenderReaction.AttackerLifesteal: bus.AttackerLifesteal(attacker, defender); break;
+                    case DefenderReaction.Adrenaline: Adrenaline(defender, bus, rules); break;
+                    case DefenderReaction.Thorns: Thorns(defender, bus, rules); break;
+                    case DefenderReaction.PainCadence: PainCadence(defender, bus, rules); break;
+                }
+            }
+        }
+
+        /// <summary>Mirror Scale throws a critical hit back in full. Only a crit sets it off.</summary>
+        private static void MirrorScale(ICombatActor defender, int damageDealt, bool wasCrit, ICombatBus bus)
+        {
+            if (!wasCrit || defender.Effective(RelicId.MirrorScale) == 0) return;
+            if (defender.Php <= 0 || !bus.HasTarget(defender)) return;
+
+            bus.DealDamage(defender, damageDealt, defender.Label(RelicId.MirrorScale), 1,
+                RelicId.MirrorScale, bus.NewChain());
+        }
+
+        /// <summary>Troll Marrow knits a bloodied defender back together.</summary>
+        private static void Marrow(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        {
+            int marrow = defender.Effective(RelicId.TrollMarrow);
+            if (marrow == 0 || defender.Php <= 0 || defender.Php >= defender.Pmax / 2.0) return;
+
+            IChain chain = bus.NewChain();
+            CombatPrimitives.Heal(defender, bus, rules, 2 * marrow,
+                defender.Label(RelicId.TrollMarrow), 1, RelicId.TrollMarrow, chain);
+
+            // Awakened, it knits from the attacker's flesh rather than its own.
+            if (defender.IsAwake(RelicId.TrollMarrow) && bus.HasTarget(defender))
+            {
+                bus.DealDamage(defender, 2 * marrow, defender.Label(RelicId.TrollMarrow), 2,
+                    RelicId.TrollMarrow, chain);
+            }
+        }
+
+        /// <summary>The Adrenaline Gland banks permanent attack the first time it is hurt.</summary>
+        private static void Adrenaline(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        {
+            int adrenaline = CombatPrimitives.ReactionCount(
+                defender, RelicTuning.For(RelicId.AdrenalineGland, rules.Mode), RelicId.AdrenalineGland);
+
+            if (adrenaline <= 0 || defender.Php <= 0 || bus.AdrenalineSpent(defender)) return;
+
+            bus.SpendAdrenaline(defender);
+            IChain chain = bus.NewChain();
+            double scale = chain.Scale(defender, RelicId.AdrenalineGland);
+
+            defender.Adrenaline += adrenaline;
+            bus.ReportAdrenalineGain(defender, adrenaline);
+            bus.FireEmitter(defender, RelicId.AdrenalineGland, 0, chain, scale);
+        }
+
+        /// <summary>Thorn Vest answers the blow that landed, not the one it threw.</summary>
+        private static void Thorns(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        {
+            int thorns = defender.Effective(RelicId.ThornVest);
+            if (thorns <= 0 || defender.Php <= 0) return;
+
+            IChain chain = bus.NewChain();
+            double scale = chain.Scale(defender, RelicId.ThornVest);
+
+            bus.DealDamage(defender,
+                JsMath.RoundToInt(2 * thorns * scale) + (defender.SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
+                defender.Label(RelicId.ThornVest), 1, RelicId.ThornVest, chain);
+
+            bus.FireEmitter(defender, RelicId.ThornVest, 0, chain, scale);
+        }
+
+        /// <summary>Only a hit the defender survived counts toward the pain cadence.</summary>
+        private static void PainCadence(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        {
+            if (defender.Php <= 0) return;
+
+            if (rules.GreedEmitterFiresOnPain && defender.CountRaw(RelicId.GreedyCurse) > 0)
+            {
+                IChain chain = bus.NewChain();
+                bus.FireEmitter(defender, RelicId.GreedyCurse, 0, chain,
+                    chain.Scale(defender, RelicId.GreedyCurse));
+            }
+
+            defender.PainCount++;
+
+            // Socketed pain triggers fire on every third hit taken.
+            if (defender.PainCount % 3 == 0)
+            {
+                bus.FireTrigger(defender, SocketTrigger.Hit, 0, RelicId.None, RelicId.None, bus.NewChain());
+            }
+        }
+    }
+}

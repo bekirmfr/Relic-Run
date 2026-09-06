@@ -28,6 +28,18 @@ namespace RelicRun.Core.Combat
         /// </summary>
         public bool LogSpeedGainBeforeApplying = true;
 
+        /// <summary>
+        /// The order the defender answers a landed blow in. Both modes run the same reactions;
+        /// only the sequence differs, so it is data rather than a branch.
+        /// </summary>
+        public DefenderReaction[] ReactionOrder = CombatDamage.DelveOrder;
+
+        /// <summary>Whether the Curse set detonates as its bearer falls.</summary>
+        public bool CurseSetExplodes = true;
+
+        /// <summary>Whether the Greedy Curse's emitter fires as its bearer takes a hit.</summary>
+        public bool GreedEmitterFiresOnPain = true;
+
         public static CombatRules Delve()
         {
             return new CombatRules();
@@ -40,6 +52,9 @@ namespace RelicRun.Core.Combat
                 Mode = Content.CombatMode.Versus,
                 ChainCap = 4,
                 LogSpeedGainBeforeApplying = false,
+                ReactionOrder = CombatDamage.DuelOrder,
+                CurseSetExplodes = false,
+                GreedEmitterFiresOnPain = false,
             };
         }
     }

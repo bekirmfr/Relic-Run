@@ -84,6 +84,12 @@ were only found this way — the stat ledger's bloodied boundary, and the chain 
 exercising decay at all until loadouts were added that make one relic fire twice in a single
 chain.
 
+The defender's reaction ORDER is also unobservable. Both modes run the same answers to a
+landed blow — Mirror Scale, Troll Marrow, the Adrenaline Gland, Thorn Vest — but in different
+sequences, and running the delve in the duel's order still passes. Order can only matter when
+one answer kills the target and denies a later one, which the corpus never produces. The
+sequences are preserved as written, in `CombatDamage.DelveOrder` and `DuelOrder`.
+
 One Phase 6 rule is unobservable: the duel keys chain decay per SIDE as well as per relic,
 but a chain object only ever belongs to one side — every cross-side reaction opens a fresh one
 — so the prefix never prevents a collision. Removing it still passes. Kept as written, since a

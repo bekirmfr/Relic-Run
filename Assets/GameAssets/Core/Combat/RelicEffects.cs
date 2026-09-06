@@ -96,6 +96,12 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Speed built by Momentum Bead.</summary>
         int MomentumBonus { get; set; }
+
+        /// <summary>Permanent attack banked from the Adrenaline Gland.</summary>
+        int Adrenaline { get; set; }
+
+        /// <summary>Hits taken, counted toward the socketed pain trigger.</summary>
+        int PainCount { get; set; }
     }
 
     /// <summary>The primitives a relic effect can reach for.</summary>
@@ -164,6 +170,33 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Extra coins a spill picks up, beyond the Hook and the Greed set.</summary>
         int SpillBonus(ICombatActor attacker);
+
+        // ---- the defender's answer to a landed blow ----
+
+        bool FleshSetSpent(ICombatActor actor);
+
+        void SpendFleshSet(ICombatActor actor);
+
+        bool SoilSpent(ICombatActor actor);
+
+        void SpendSoil(ICombatActor actor);
+
+        bool CurseSetSpent(ICombatActor actor);
+
+        void SpendCurseSet(ICombatActor actor);
+
+        bool AdrenalineSpent(ICombatActor actor);
+
+        void SpendAdrenaline(ICombatActor actor);
+
+        void ReportAdrenalineGain(ICombatActor actor, int amount);
+
+        /// <summary>The attacker's Vampire Tooth drinking from the wound it opened.</summary>
+        void AttackerLifesteal(ICombatActor attacker, ICombatActor defender);
+
+        string RefusesToFallLabel(ICombatActor actor);
+
+        string SoilLabel(ICombatActor actor);
     }
 
     /// <summary>

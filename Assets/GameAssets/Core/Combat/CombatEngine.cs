@@ -89,6 +89,9 @@ namespace RelicRun.Core.Combat
         /// <summary>Set by Hare's Drum: the hero's gauge empties again immediately.</summary>
         private bool _instantRiposte;
 
+        /// <summary>Whether the Curse set has already detonated this floor.</summary>
+        private bool _curseSetSpent;
+
         /// <summary>Set by Fortune's Edge: the next strike lands charged.</summary>
         private bool _bladeCharged;
 
@@ -294,6 +297,18 @@ namespace RelicRun.Core.Combat
                 get { return _engine._momentumBonus; }
                 set { _engine._momentumBonus = value; }
             }
+
+            public int Adrenaline
+            {
+                get { return _engine._hero.Adrenaline; }
+                set { _engine._hero.Adrenaline = value; }
+            }
+
+            public int PainCount
+            {
+                get { return _engine._painCount; }
+                set { _engine._painCount = value; }
+            }
         }
 
         private HeroActor _actor;
@@ -436,6 +451,10 @@ namespace RelicRun.Core.Combat
             public int MomentumCount { get; set; }
 
             public int MomentumBonus { get; set; }
+
+            public int Adrenaline { get; set; }
+
+            public int PainCount { get; set; }
         }
 
         // ---------- what a turn asks of this mode ----------
@@ -658,6 +677,48 @@ namespace RelicRun.Core.Combat
             return true;
         }
 
+        // ---------- the defender's answer ----------
+
+        bool ICombatBus.FleshSetSpent(ICombatActor actor) { return _carry.FleshSetUsed; }
+
+        void ICombatBus.SpendFleshSet(ICombatActor actor) { _carry.FleshSetUsed = true; }
+
+        bool ICombatBus.SoilSpent(ICombatActor actor) { return _hero.SoilUsed; }
+
+        void ICombatBus.SpendSoil(ICombatActor actor) { _hero.SoilUsed = true; }
+
+        bool ICombatBus.CurseSetSpent(ICombatActor actor) { return _curseSetSpent; }
+
+        void ICombatBus.SpendCurseSet(ICombatActor actor) { _curseSetSpent = true; }
+
+        bool ICombatBus.AdrenalineSpent(ICombatActor actor) { return _adrenalineUsed; }
+
+        void ICombatBus.SpendAdrenaline(ICombatActor actor) { _adrenalineUsed = true; }
+
+        void ICombatBus.ReportAdrenalineGain(ICombatActor actor, int amount)
+        {
+            Snap(CombatEventType.Adrenaline, 1, amount: amount, relic: RelicId.AdrenalineGland);
+        }
+
+        /// <summary>A foe's Vampire Tooth drinks back what it just took. Famine Bell silences it.</summary>
+        void ICombatBus.AttackerLifesteal(ICombatActor attacker, ICombatActor defender)
+        {
+            int tooth = _cur != null ? _cur.CountRelic(RelicId.VampireTooth) : 0;
+            if (tooth <= 0 || _enemyHp <= 0 || _enemyHp >= EnemyMax) return;
+            if (EffectiveCount(RelicId.FamineBell) > 0) return;
+
+            int healed = Math.Min(tooth, EnemyMax - _enemyHp);
+            _enemyHp += healed;
+            Snap(CombatEventType.EnemyHeal, 1, amount: healed, relic: RelicId.VampireTooth, foe: true);
+        }
+
+        string ICombatBus.RefusesToFallLabel(ICombatActor actor) { return "Flesh set — you refuse to fall"; }
+
+        string ICombatBus.SoilLabel(ICombatActor actor)
+        {
+            return RelicCatalog.KeyOf(RelicId.GravekeepersSoil) + " — the ground gives you back";
+        }
+
         private void EnemyHits()
         {
             // The enemy's action is one genuine event: everything it provokes shares this chain,
@@ -774,76 +835,8 @@ namespace RelicRun.Core.Combat
             _hero.Php -= damage;
             Snap(CombatEventType.PlayerDamage, 0, amount: damage, enemyCrit: crit);
 
-            RefuseDeath();
-
-            // Mirror Scale throws a critical hit straight back, in full. It needs a foe that
-            // can crit at all, so only a Weighted Dice carrier ever sets it off.
-            if (crit && EffectiveCount(RelicId.MirrorScale) > 0 && _hero.Php > 0 && _enemyHp > 0)
-            {
-                DealDamage(damage, RelicCatalog.KeyOf(RelicId.MirrorScale), 1, RelicId.MirrorScale, chain);
-            }
-
-            // Troll Marrow knits the hero back together while they are bloodied.
-            int marrow = EffectiveCount(RelicId.TrollMarrow);
-            if (_hero.Php > 0 && _hero.Php < _hero.Pmax / 2.0 && marrow > 0)
-            {
-                Heal(2 * marrow, RelicCatalog.KeyOf(RelicId.TrollMarrow), 1, RelicId.TrollMarrow, chain);
-                if (IsAwake(RelicId.TrollMarrow) && _enemyHp > 0)
-                {
-                    DealDamage(2 * marrow, RelicCatalog.KeyOf(RelicId.TrollMarrow), 2,
-                        RelicId.TrollMarrow, chain);
-                }
-            }
-
-            // Vampire Tooth on the foe: it drinks back what it just took. The Famine Bell
-            // silences it.
-            int tooth = _cur.CountRelic(RelicId.VampireTooth);
-            if (tooth > 0 && _enemyHp > 0 && _enemyHp < EnemyMax &&
-                EffectiveCount(RelicId.FamineBell) == 0)
-            {
-                int healed = Math.Min(tooth, EnemyMax - _enemyHp);
-                _enemyHp += healed;
-                Snap(CombatEventType.EnemyHeal, 1, amount: healed, relic: RelicId.VampireTooth, foe: true);
-            }
-
-            // The Adrenaline Gland banks permanent attack the first time the hero is hurt.
-            int adrenaline = CountItem(RelicId.AdrenalineGland);
-            if (adrenaline > 0 && _hero.Php > 0 && !_adrenalineUsed)
-            {
-                _adrenalineUsed = true;
-                double adrenScale = chain.Scale(RelicId.AdrenalineGland);
-                _hero.Adrenaline += adrenaline;
-                Snap(CombatEventType.Adrenaline, 1, amount: adrenaline, relic: RelicId.AdrenalineGland);
-                FireEmitter(RelicId.AdrenalineGland, 0, chain, adrenScale);
-            }
-
-            // Thorn Vest answers the blow that landed, not the one the hero threw.
-            int thorns = EffectiveCount(RelicId.ThornVest);
-            if (thorns > 0 && _hero.Php > 0)
-            {
-                double scale = chain.Scale(RelicId.ThornVest);
-                DealDamage(
-                    JsMath.RoundToInt(2 * thorns * scale) + (SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
-                    RelicCatalog.KeyOf(RelicId.ThornVest), 1, RelicId.ThornVest, chain);
-                FireEmitter(RelicId.ThornVest, 0, chain, scale);
-            }
-
-            // Only a hit the hero survived counts toward the pain cadence.
-            if (_hero.Php > 0)
-            {
-                if (greedy)
-                {
-                    FireEmitter(RelicId.GreedyCurse, 0, chain, chain.Scale(RelicId.GreedyCurse));
-                }
-
-                _painCount++;
-
-                // Socketed pain triggers fire on every third hit taken.
-                if (_painCount % 3 == 0)
-                {
-                    FireTrigger(SocketTrigger.Hit, 0, RelicId.None, RelicId.None, chain);
-                }
-            }
+            CombatDamage.RefuseDeath(_actor, this, _rules);
+            CombatDamage.React(_actor, EmptyActor.Instance, damage, crit, this, _rules);
         }
 
         /// <summary>The hero slipped the blow. Everything that keys off a dodge fires here.</summary>
@@ -908,30 +901,6 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>
-        /// The death-defiance ladder, in the order the source tries it: the Flesh set once per
-        /// floor, then Gravekeeper's Soil once per run.
-        /// </summary>
-        private void RefuseDeath()
-        {
-            if (_hero.Php > 0) return;
-
-            if (SetCount(RelicKind.Flesh) >= 7 && !_carry.FleshSetUsed)
-            {
-                _carry.FleshSetUsed = true;
-                _hero.Php = 1;
-                Snap(CombatEventType.First, 0, source: "Flesh set — you refuse to fall");
-            }
-
-            if (_hero.Php <= 0 && EffectiveCount(RelicId.GravekeepersSoil) > 0 && !_hero.SoilUsed)
-            {
-                _hero.SoilUsed = true;
-                _hero.Php = Math.Max(1, JsMath.RoundToInt(
-                    _hero.Pmax * (IsAwake(RelicId.GravekeepersSoil) ? 0.5 : 0.25)));
-                Snap(CombatEventType.First, 0, relic: RelicId.GravekeepersSoil,
-                    source: RelicCatalog.KeyOf(RelicId.GravekeepersSoil) + " — the ground gives you back");
-            }
-        }
-
         /// <summary>
         /// Executioner's Coin finishes a foe already below a fifth of its health. It fires at
         /// most once per floor, and the flag lives in carry state so a revive cannot hand the

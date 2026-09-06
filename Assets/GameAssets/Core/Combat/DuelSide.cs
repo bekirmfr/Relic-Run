@@ -42,7 +42,7 @@ namespace RelicRun.Core.Combat
         /// <summary>The purse this side pays out when it loses the round.</summary>
         public int Drop;
 
-        public int Adrenaline;
+        public int Adrenaline { get; set; }
         public int MidasBonus;
         public int AtkBonus;
         public int DefBonus;
@@ -92,7 +92,7 @@ namespace RelicRun.Core.Combat
 
         public int Strikes { get; set; }
         public int StrikeCount { get; set; }
-        public int PainCount;
+        public int PainCount { get; set; }
         public int GoldCount { get; set; }
         public int StoneCount;
         public int RabbitCount { get; set; }

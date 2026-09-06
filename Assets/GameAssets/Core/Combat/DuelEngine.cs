@@ -409,24 +409,7 @@ namespace RelicRun.Core.Combat
                 }
             }
 
-            // The death-defiance ladder, available to both sides.
-            if (target.Php <= 0)
-            {
-                if (target.SetCount(RelicKind.Flesh) >= 7 && !target.FleshSetUsed)
-                {
-                    target.FleshSetUsed = true;
-                    target.Php = 1;
-                    Line(target, RelicId.None,
-                        "Flesh set — " + (target.IsHero ? "you refuse" : target.Name + " refuses") + " to fall", 0);
-                }
-                else if (target.Effective(RelicId.GravekeepersSoil) > 0 && !target.SoilUsed)
-                {
-                    target.SoilUsed = true;
-                    target.Php = Math.Max(1, JsMath.RoundToInt(target.Pmax * 0.25));
-                    Line(target, RelicId.GravekeepersSoil,
-                        target.Label(RelicId.GravekeepersSoil) + " — the ground gives back", 0);
-                }
-            }
+            CombatDamage.RefuseDeath(target, this, _rules);
 
             if (target.Php <= 0)
             {
@@ -436,58 +419,7 @@ namespace RelicRun.Core.Combat
 
             if (depth == 0)
             {
-                int thorns = target.Effective(RelicId.ThornVest);
-                if (thorns > 0)
-                {
-                    DuelChain thornChain = NewChain();
-                    double scale = thornChain.Scale(target, RelicId.ThornVest);
-                    DealDamage(target,
-                        JsMath.RoundToInt(2 * thorns * scale) + (target.SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
-                        target.Label(RelicId.ThornVest), 1, RelicId.ThornVest, thornChain);
-                    FireEmitter(target, RelicId.ThornVest, 0, thornChain, scale);
-                }
-
-                int adrenaline = target.Effective(RelicId.AdrenalineGland);
-                if (adrenaline > 0 && !target.AdrenalineUsed)
-                {
-                    target.AdrenalineUsed = true;
-                    DuelChain adrenChain = NewChain();
-                    double scale = adrenChain.Scale(target, RelicId.AdrenalineGland);
-                    target.Adrenaline += adrenaline;
-                    if (target.IsHero)
-                    {
-                        Snap(CombatEventType.Adrenaline, 1, amount: adrenaline, relic: RelicId.AdrenalineGland);
-                    }
-                    else
-                    {
-                        Line(target, RelicId.AdrenalineGland,
-                            target.Label(RelicId.AdrenalineGland) + " +" + adrenaline + " ATK", 1);
-                    }
-
-                    FireEmitter(target, RelicId.AdrenalineGland, 0, adrenChain, scale);
-                }
-
-                int marrow = target.Effective(RelicId.TrollMarrow);
-                if (target.Php < target.Pmax / 2.0 && marrow > 0)
-                {
-                    Heal(target, 2 * marrow, target.Label(RelicId.TrollMarrow), 1, RelicId.TrollMarrow, NewChain());
-                    if (target.IsAwake(RelicId.TrollMarrow) && Other(target).Php > 0)
-                    {
-                        DealDamage(target, 2 * marrow, target.Label(RelicId.TrollMarrow), 2,
-                            RelicId.TrollMarrow, NewChain());
-                    }
-                }
-
-                if (_critChain && target.Effective(RelicId.MirrorScale) > 0 && target.Php > 0 && side.Php > 0)
-                {
-                    DealDamage(target, real, target.Label(RelicId.MirrorScale), 1, RelicId.MirrorScale, NewChain());
-                }
-
-                target.PainCount++;
-                if (target.PainCount % 3 == 0)
-                {
-                    FireTrigger(target, SocketTrigger.Hit, 0, RelicId.None, RelicId.None, NewChain());
-                }
+                CombatDamage.React(target, side, real, _critChain, this, _rules);
             }
         }
 
@@ -498,6 +430,49 @@ namespace RelicRun.Core.Combat
         /// Rabbit's Foot answers only every third luck signal here. Duels run long enough that
         /// answering every one would snowball luck out of control.
         /// </summary>
+
+        // ---------- the defender's answer ----------
+
+        bool ICombatBus.FleshSetSpent(ICombatActor actor) { return ((DuelSide)actor).FleshSetUsed; }
+
+        void ICombatBus.SpendFleshSet(ICombatActor actor) { ((DuelSide)actor).FleshSetUsed = true; }
+
+        bool ICombatBus.SoilSpent(ICombatActor actor) { return ((DuelSide)actor).SoilUsed; }
+
+        void ICombatBus.SpendSoil(ICombatActor actor) { ((DuelSide)actor).SoilUsed = true; }
+
+        /// <summary>The Curse set does not detonate in a duel.</summary>
+        bool ICombatBus.CurseSetSpent(ICombatActor actor) { return true; }
+
+        void ICombatBus.SpendCurseSet(ICombatActor actor) { }
+
+        bool ICombatBus.AdrenalineSpent(ICombatActor actor) { return ((DuelSide)actor).AdrenalineUsed; }
+
+        void ICombatBus.SpendAdrenaline(ICombatActor actor) { ((DuelSide)actor).AdrenalineUsed = true; }
+
+        void ICombatBus.ReportAdrenalineGain(ICombatActor actor, int amount)
+        {
+            var side = (DuelSide)actor;
+            if (side.IsHero) Snap(CombatEventType.Adrenaline, 1, amount: amount, relic: RelicId.AdrenalineGland);
+            else Line(side, RelicId.AdrenalineGland, side.Label(RelicId.AdrenalineGland) + " +" + amount + " ATK", 1);
+        }
+
+        /// <summary>
+        /// A duellist drinks on their own turn rather than as the defender answers, so nothing
+        /// happens here.
+        /// </summary>
+        void ICombatBus.AttackerLifesteal(ICombatActor attacker, ICombatActor defender) { }
+
+        string ICombatBus.RefusesToFallLabel(ICombatActor actor)
+        {
+            var side = (DuelSide)actor;
+            return "Flesh set — " + (side.IsHero ? "you refuse" : side.Name + " refuses") + " to fall";
+        }
+
+        string ICombatBus.SoilLabel(ICombatActor actor)
+        {
+            return ((DuelSide)actor).Label(RelicId.GravekeepersSoil) + " — the ground gives back";
+        }
 
         private void OnDodge(DuelSide side)
         {

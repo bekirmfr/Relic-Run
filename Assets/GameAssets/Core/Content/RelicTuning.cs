@@ -51,6 +51,12 @@ namespace RelicRun.Core.Content
         /// <summary>Whether it counts itself toward every relic set.</summary>
         public bool CountsTowardEverySet;
 
+        /// <summary>Share of the maximum pool a revive restores.</summary>
+        public double ReviveFraction = 0.25;
+
+        /// <summary>Share restored once awakened. A duel grants no bonus for awakening it.</summary>
+        public double ReviveFractionAwakened = 0.25;
+
         private static readonly RelicTuning Default = new RelicTuning();
 
         /// <summary>
@@ -86,6 +92,22 @@ namespace RelicRun.Core.Content
                 },
                 {
                     RelicId.VampireTooth, Pair(
+                        delve: new RelicTuning { ReactionCountsAwakened = false },
+                        versus: new RelicTuning())
+                },
+
+                // Gravekeeper's Soil buys one refusal to die. Awakening it returns more of
+                // the pool in a delve; a duel gives awakening nothing here.
+                {
+                    RelicId.GravekeepersSoil, Pair(
+                        delve: new RelicTuning { ReviveFractionAwakened = 0.5 },
+                        versus: new RelicTuning())
+                },
+
+                // The Adrenaline Gland banks attack from the first hurt, counting an awakened
+                // copy in a duel and not in a delve.
+                {
+                    RelicId.AdrenalineGland, Pair(
                         delve: new RelicTuning { ReactionCountsAwakened = false },
                         versus: new RelicTuning())
                 },
