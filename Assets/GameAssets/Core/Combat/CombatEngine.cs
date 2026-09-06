@@ -22,11 +22,13 @@ namespace RelicRun.Core.Combat
     /// because RNG draws are order-coupled: moving a single <c>rng()</c> call changes outcomes
     /// for the same seed. Tidying comes after the corpus is green, not before.
     ///
-    /// Scope: this is the Phase 2 engine. Hero relics are not wired in yet — the chain bus
-    /// (Phase 3) and relic effects (Phase 4) land next. Enemy relics that this engine reads are
-    /// already handled, since bosses carry kits from Dungeon 2 onward.
+    /// Scope: the chain bus and the six chain primitives are wired (Phase 3). Individual relic
+    /// effects, sockets and emitters land in Phase 4, so <see cref="DynamicMods"/> is still
+    /// empty and the socket maps on <see cref="HeroState"/> are carried but unread. Enemy
+    /// relics that this engine reads are already handled, since bosses carry kits from
+    /// Dungeon 2 onward.
     /// </remarks>
-    public sealed class CombatEngine
+    public sealed partial class CombatEngine
     {
         /// <summary>Points a combatant must drain before acting.</summary>
         private const int Gauge = 100;
@@ -56,6 +58,12 @@ namespace RelicRun.Core.Combat
         private int _hitCount;
         private bool _foeFury;
 
+        // Loadout-derived values. The inventory cannot change mid-floor, so these are computed
+        // once per floor rather than per event.
+        private int[] _kindCounts;
+        private int _hollowIdols;
+        private double _chainDecay;
+
         /// <summary>Runs every foe in the pack, in order, until they are dead or the hero is.</summary>
         public CombatResult ResolveFloor(HeroState hero, IReadOnlyList<EnemyState> pack, Mulberry32 rng)
         {
@@ -68,6 +76,8 @@ namespace RelicRun.Core.Combat
             _events = new List<CombatEvent>();
             _carry = hero.Carry != null ? hero.Carry.Clone() : new CarryState();
             _tick = 0;
+
+            CacheLoadout();
 
             _strikeCount = _carry.StrikeCount;
             _painCount = _carry.PainCount;
@@ -166,6 +176,9 @@ namespace RelicRun.Core.Combat
 
         private void EnemyHits()
         {
+            // The enemy's action is one genuine event: everything it provokes shares this chain.
+            ChainContext chain = NewChain();
+
             int defense = HeroStat(Stat.Def);
             int damage = Defense.Apply(_cur.Atk + (_foeFury ? 2 : 0), defense, _hero.DefenseModel);
 
@@ -192,6 +205,17 @@ namespace RelicRun.Core.Combat
                 Snap(CombatEventType.EnemyHeal, 1, amount: healed, relic: RelicId.VampireTooth, foe: true);
             }
 
+            // Thorn Vest answers the blow that landed, not the one the hero threw.
+            int thorns = EffectiveCount(RelicId.ThornVest);
+            if (thorns > 0 && _hero.Php > 0)
+            {
+                double scale = chain.Scale(RelicId.ThornVest);
+                DealDamage(
+                    JsMath.RoundToInt(2 * thorns * scale) + (SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
+                    RelicCatalog.KeyOf(RelicId.ThornVest), 1, RelicId.ThornVest, chain);
+            }
+
+            // Only a hit the hero survived counts toward the pain cadence.
             if (_hero.Php > 0)
             {
                 _painCount++;
@@ -207,111 +231,52 @@ namespace RelicRun.Core.Combat
 
             if (_enemyHp > 0)
             {
-                // Loose coins: a LCK% spill on a landed strike. The draw happens whether or not
-                // the hero carries Cutpurse's Hook, so it must not be skipped when they do not.
-                if (_rng.Next() < HeroStat(Stat.Lck) / 100.0)
+                // The strike is one genuine event; the spill and the lifesteal share its chain.
+                ChainContext chain = NewChain();
+
+                int hook = CountItem(RelicId.CutpurseHook);
+
+                // Loose coins: a LCK% spill on a landed strike, which the Hook doubles. The draw
+                // happens whether or not the hero carries it, so it must not be skipped when
+                // they do not - every later draw in the fight depends on this one being taken.
+                bool spill = (hook > 0 && IsAwake(RelicId.CutpurseHook)) ||
+                             _rng.Next() < HeroStat(Stat.Lck) * (hook > 0 ? 2 : 1) / 100.0;
+
+                if (spill)
                 {
-                    GainGold(1, "looseCoins", 1);
+                    if (hook > 0)
+                    {
+                        Snap(CombatEventType.Luck, 0, source: "looseCoins", relic: RelicId.CutpurseHook);
+                    }
+
+                    double scale = hook > 0 ? chain.Scale(RelicId.CutpurseHook) : 1.0;
+                    int coins = 1
+                        + (hook > 0 ? JsMath.RoundToInt(hook * scale) : 0)
+                        + EffectiveCount(RelicId.CoinMagnet)
+                        + (SetCount(RelicKind.Greed) >= 5 ? 1 : 0);
+
+                    GainGold(coins, "looseCoins", 1,
+                        hook > 0 ? RelicId.CutpurseHook : RelicId.None, chain);
+
+                    if (hook > 0)
+                    {
+                        // Quiet: the luck line was already logged above, but the signal itself
+                        // still has to reach anything listening for it.
+                        EmitLuck("looseCoins", 0, RelicId.CutpurseHook, chain, quiet: true);
+                    }
+                }
+
+                // Vampire Tooth drinks on every landed strike.
+                int tooth = CountItem(RelicId.VampireTooth);
+                if (tooth > 0 && _enemyHp > 0)
+                {
+                    double scale = chain.Scale(RelicId.VampireTooth);
+                    Heal(JsMath.RoundToInt(tooth * scale),
+                        RelicCatalog.KeyOf(RelicId.VampireTooth), 1, RelicId.VampireTooth, chain);
                 }
 
                 _strikeCount++;
             }
-        }
-
-        // ---------- primitives ----------
-
-        private void DealDamage(int amount, string source, int depth, RelicId relic = RelicId.None)
-        {
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            if (_enemyHp <= 0)
-            {
-                return;
-            }
-
-            if (amount <= 0)
-            {
-                if (relic != RelicId.None)
-                {
-                    Snap(CombatEventType.Fizzle, depth);
-                }
-
-                return;
-            }
-
-            // Foes evade only with a Lucky Clover of their own.
-            if (depth == 0 && source == "you" && _cur.Relics != null &&
-                _cur.CountRelic(RelicId.LuckyClover) > 0 && _rng.Next() < _cur.Lck / 100.0)
-            {
-                Snap(CombatEventType.EnemyMiss, 0, foe: _cur.Relics != null);
-                return;
-            }
-
-            int dealt = Defense.Apply(amount, _cur.Armor, _hero.DefenseModel);
-            _enemyHp -= dealt;
-            Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
-
-            if (_enemyHp <= 0)
-            {
-                OnKill(depth);
-                return;
-            }
-
-            // Thorn Vest on the foe bites back at whoever struck it.
-            int thorns = _cur.CountRelic(RelicId.ThornVest);
-            if (depth == 0 && thorns > 0 && _hero.Php > 0)
-            {
-                _hero.Php -= thorns;
-                Snap(CombatEventType.PlayerDamage, 1, amount: thorns, relic: RelicId.ThornVest, foe: true);
-                if (_hero.Php <= 0)
-                {
-                    return;
-                }
-            }
-
-            // Berserker Charm on the foe: it enrages once, at half health.
-            if (!_foeFury && _cur.CountRelic(RelicId.BerserkerCharm) > 0 && _enemyHp < EnemyMax / 2.0)
-            {
-                _foeFury = true;
-                Snap(CombatEventType.EnemyFury, 1, amount: 2, relic: RelicId.BerserkerCharm, foe: true);
-            }
-        }
-
-        private void OnKill(int depth)
-        {
-            _hero.Kills++;
-            Snap(CombatEventType.Kill, depth);
-            GainGold(_cur.Drop, "killLoot", 0);
-        }
-
-        private void GainGold(int amount, string source, int depth, RelicId relic = RelicId.None)
-        {
-            if (depth > ChainCap)
-            {
-                Snap(CombatEventType.Fizzle, depth);
-                return;
-            }
-
-            if (amount <= 0)
-            {
-                if (relic != RelicId.None)
-                {
-                    Snap(CombatEventType.Fizzle, depth);
-                }
-
-                return;
-            }
-
-            int real = Math.Max(1, amount);
-            _hero.Gold += real;
-
-            Snap(CombatEventType.Gold, depth, amount: real, source: source, relic: relic);
-
-            _goldCount++;
         }
 
         // ---------- helpers ----------
@@ -324,6 +289,50 @@ namespace RelicRun.Core.Combat
         private static int CeilDiv(int numerator, int denominator)
         {
             return (numerator + denominator - 1) / denominator;
+        }
+
+        /// <summary>Counts relics by kind once per floor; set bonuses read these.</summary>
+        private void CacheLoadout()
+        {
+            _kindCounts = new int[8];
+            _hollowIdols = 0;
+
+            for (int i = 0; i < _hero.Items.Count; i++)
+            {
+                RelicId id = _hero.Items[i];
+                _kindCounts[(int)RelicCatalog.KindOf(id)]++;
+                if (id == RelicId.HollowIdol) _hollowIdols++;
+            }
+
+            _chainDecay = ChainContext.DecayFor(SetCount(RelicKind.Chain));
+        }
+
+        /// <summary>Relics of a kind. Hollow Idol counts itself toward every set.</summary>
+        private int SetCount(RelicKind kind)
+        {
+            return _kindCounts[(int)kind] + _hollowIdols;
+        }
+
+        private bool IsAwake(RelicId id)
+        {
+            foreach (RelicId awake in _hero.Awakened)
+            {
+                if (awake == id) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Copies held, plus one for an awakened copy.</summary>
+        private int EffectiveCount(RelicId id)
+        {
+            return CountItem(id) + (IsAwake(id) ? 1 : 0);
+        }
+
+        /// <summary>Opens a fresh chain. Every genuine event gets its own.</summary>
+        private ChainContext NewChain()
+        {
+            return new ChainContext(_chainDecay);
         }
 
         private int CountItem(RelicId id)

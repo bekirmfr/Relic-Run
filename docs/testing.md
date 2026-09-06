@@ -55,6 +55,20 @@ JSON goes through Newtonsoft on both sides — Unity supplies it as
 `com.unity.nuget.newtonsoft-json`, the csproj references the identical NuGet package — so no
 conditional compilation is needed anywhere.
 
+## Mutation testing
+
+A gate that has never gone red is not evidence of anything. Every phase so far has been
+mutation-tested: break the rule deliberately, confirm the suite fails, restore. Several holes
+were only found this way — the stat ledger's bloodied boundary, and the chain corpus not
+exercising decay at all until loadouts were added that make one relic fire twice in a single
+chain.
+
+Two Phase 3 rules remain unobservable and are knowingly untested: Blood Altar's guard against
+answering its own heal (it cannot cause a heal until awakened, in Phase 4), and whether a
+relic's activation is counted when there is nothing left to hit (it changes only a third visit,
+which these six relics cannot reach). Both are ported faithfully; neither has a red test behind
+it yet.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -82,3 +96,4 @@ node Tools/extract/validate.mjs
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
 | Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |
 | Phase 2 — combat engine | `bare.json` | passing, 48 fights replay event-for-event |
+| Phase 3 — chain bus | `primitives.json` | passing, 86 fights; decay, depth and wasted heals covered |

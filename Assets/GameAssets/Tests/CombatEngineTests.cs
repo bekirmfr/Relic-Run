@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using RelicRun.Tests.Support;
 
@@ -29,6 +30,61 @@ namespace RelicRun.Tests
             Assert.That(failures, Is.Empty,
                 failures.Count + " of " + cases.Count + " bare fights diverge:\n  " +
                 string.Join("\n  ", failures.GetRange(0, System.Math.Min(8, failures.Count))));
+        }
+
+        /// <summary>
+        /// Phase 3 gate. Chain primitives only - Alchemist's Vial, Blood Altar, Thorn Vest,
+        /// Vampire Tooth, Coin Magnet and Cutpurse's Hook - so a failure is in the bus itself
+        /// rather than in some relic's own rules.
+        /// </summary>
+        [Test]
+        public void PrimitiveChainFightsReplayExactly()
+        {
+            List<CorpusFight.Case> cases = CorpusFight.Load("primitives.json");
+            Assert.That(cases.Count, Is.GreaterThan(0), "primitives corpus is empty");
+
+            var failures = new List<string>();
+            foreach (CorpusFight.Case c in cases)
+            {
+                string diff = CorpusFight.Replay(c);
+                if (diff != null) failures.Add(diff);
+            }
+
+            Assert.That(failures, Is.Empty,
+                failures.Count + " of " + cases.Count + " primitive fights diverge:\n  " +
+                string.Join("\n  ", failures.GetRange(0, System.Math.Min(8, failures.Count))));
+        }
+
+        /// <summary>
+        /// Guards the gate itself: these fights must actually build chains, waste heals on a
+        /// full pool, and reach the softened CHAIN-set decay. Without that the test above could
+        /// pass on an engine that never chains at all.
+        /// </summary>
+        [Test]
+        public void PrimitiveCorpusActuallyExercisesChains()
+        {
+            JArray events = Corpus.Array("primitives.json");
+            int maxDepth = 0, heals = 0, healFull = 0, luck = 0;
+
+            foreach (JToken token in events)
+            {
+                foreach (JToken e in (JArray)token["events"])
+                {
+                    int depth = e["depth"] != null ? e["depth"].Value<int>() : 0;
+                    if (depth > maxDepth) maxDepth = depth;
+                    switch (e["t"].Value<string>())
+                    {
+                        case "heal": heals++; break;
+                        case "healfull": healFull++; break;
+                        case "luck": luck++; break;
+                    }
+                }
+            }
+
+            Assert.That(maxDepth, Is.GreaterThanOrEqualTo(3), "chains never deepen");
+            Assert.That(heals, Is.GreaterThan(0), "nothing ever heals");
+            Assert.That(healFull, Is.GreaterThan(0), "a heal is never wasted on a full pool");
+            Assert.That(luck, Is.GreaterThan(0), "no luck signal is ever emitted");
         }
 
         /// <summary>

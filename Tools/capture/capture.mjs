@@ -176,6 +176,39 @@ for (let d = 1; d <= 10; d++) {
   }
 }
 
+/* Targeted primitives. The random tier above never produces a fizzle or a wasted heal:
+   loadouts are 2-4 relics so chains stay shallow, and the hero has always been hit before
+   anything heals them. These force both — a hero fast enough to strike first heals at full
+   HP, and stacked copies push chains deep enough that a decayed amount rounds to nothing.
+   Appended after every other consumer of `master`, so earlier corpus files are unchanged. */
+for (const id of PRIMITIVES) {
+  for (const n of [1, 2, 3, 4]) {
+    cases.push(delveCase(`primitives/stack/${id}x${n}`, "primitives",
+      { floor: 8, items: Array(n).fill(id), level: 20 }));
+  }
+}
+for (const floor of [1, 2, 3, 5, 8, 10, 12, 13]) {
+  cases.push(delveCase(`primitives/loop/f${floor}`, "primitives",
+    { floor, items: PRIMITIVES.slice(), level: 20 }));
+  cases.push(delveCase(`primitives/loop2/f${floor}`, "primitives",
+    { floor, items: PRIMITIVES.concat(PRIMITIVES), level: 20 }));
+}
+
+/* Decay itself needs a relic to fire TWICE inside one chain, which nothing above achieves.
+   Blood Altar is the only primitive that can: a landed strike opens one chain and shares it
+   between the Cutpurse spill (gold -> Vial heal -> Altar) and the Vampire Tooth heal
+   (-> Altar again), so the second Altar pass is decayed. Three copies is the smallest stack
+   where the decayed amount differs between the base 0.5 falloff and the CHAIN-set 0.6 —
+   round(3.0) vs round(3.6) — so without these the softened decay is unobservable. */
+for (const altars of [3, 4]) {
+  for (const floor of [3, 8, 12]) {
+    cases.push(delveCase(`primitives/decay/altar${altars}/f${floor}`, "primitives", {
+      floor, level: 20,
+      items: Array(altars).fill("altar").concat(["alchemist", "tooth", "cutpurse"]),
+    }));
+  }
+}
+
 /* rng — the Phase 1 gate.
    Recorded as the generator's exact 32-bit output, NOT as decimal doubles. A draw is
    exactly n / 2^32, so n is lossless and every parser agrees on an integer. Doubles are
