@@ -14,6 +14,13 @@ namespace RelicRun.Tests
         /// Every draw of every recorded seed must match the JS generator exactly. A single
         /// diverging bit here would silently reshape every seeded run in the game.
         /// </summary>
+        /// <remarks>
+        /// Compares the generator's raw 32-bit output, never the double. An earlier version of
+        /// this test compared doubles parsed out of the corpus and failed under Unity while
+        /// passing under dotnet — not because the port was wrong, but because Unity's JSON
+        /// parser read 0.1853655439335853 back one ULP high. Integers remove the text
+        /// round-trip from the contract entirely.
+        /// </remarks>
         [Test]
         public void MatchesRecordedDrawsExactly()
         {
@@ -25,16 +32,14 @@ namespace RelicRun.Tests
             foreach (JToken token in cases)
             {
                 uint seed = token["seed"].Value<uint>();
-                JArray expected = (JArray)token["draws"];
+                JArray expected = (JArray)token["raw"];
                 Mulberry32 rng = new Mulberry32(seed);
 
                 for (int i = 0; i < expected.Count; i++)
                 {
-                    double want = expected[i].Value<double>();
-                    double got = rng.Next();
+                    uint want = expected[i].Value<uint>();
+                    uint got = rng.NextRaw();
 
-                    // Bit-exact, not approximate: the JS values round-trip through JSON as
-                    // exact doubles, so any tolerance here would hide a real divergence.
                     Assert.That(got, Is.EqualTo(want),
                         "seed " + seed + " diverges at draw " + i);
                     totalDraws++;
@@ -43,6 +48,23 @@ namespace RelicRun.Tests
 
             Assert.That(totalDraws, Is.GreaterThanOrEqualTo(5000),
                 "expected at least 5000 recorded draws, got " + totalDraws);
+        }
+
+        /// <summary>
+        /// A draw is exactly raw / 2^32. Dividing by a power of two is exact in IEEE 754, so
+        /// this holds on every runtime — no parsing involved, so it cannot be fooled the way
+        /// the corpus comparison was.
+        /// </summary>
+        [Test]
+        public void DoubleDrawIsExactlyTheRawValueOverTwoToThe32()
+        {
+            Mulberry32 a = new Mulberry32(2);
+            Mulberry32 b = new Mulberry32(2);
+            for (int i = 0; i < 2000; i++)
+            {
+                uint raw = a.NextRaw();
+                Assert.That(b.Next(), Is.EqualTo(raw / 4294967296.0));
+            }
         }
 
         [Test]

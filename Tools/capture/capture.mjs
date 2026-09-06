@@ -176,10 +176,17 @@ for (let d = 1; d <= 10; d++) {
   }
 }
 
-/* rng — the Phase 1 gate, raw draws from known seeds */
+/* rng — the Phase 1 gate.
+   Recorded as the generator's exact 32-bit output, NOT as decimal doubles. A draw is
+   exactly n / 2^32, so n is lossless and every parser agrees on an integer. Doubles are
+   not safe here: written as text and read back, a value can land one ULP away in a parser
+   that is not correctly rounded. Unity's does exactly that — it read 0.1853655439335853
+   back one ULP high — which failed this gate against a port that was bit-perfect. Every
+   other corpus file is already integers-only, so this keeps the whole corpus
+   parser-independent. */
 const rngCases = [1, 2, 12345, 0x5E1F00D, 20260906].map((s) => {
   const r = api.mulberry32(s);
-  return { seed: s, draws: Array.from({ length: 1000 }, () => r()) };
+  return { seed: s, raw: Array.from({ length: 1000 }, () => r() * 4294967296) };
 });
 
 /* defence — the Phase 1 gate for applyDef. A fixed grid, so it consumes no master

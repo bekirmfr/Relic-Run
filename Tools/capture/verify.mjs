@@ -48,12 +48,12 @@ function fail(msg) { failed++; if (failures.length < 10) failures.push(msg); }
 console.log("\nrng");
 for (const c of load("rng.json")) {
   const r = api.mulberry32(c.seed);
-  const got = Array.from({ length: c.draws.length }, () => r());
-  const bad = c.draws.findIndex((v, i) => v !== got[i]);
+  const got = Array.from({ length: c.raw.length }, () => r() * 4294967296);
+  const bad = c.raw.findIndex((v, i) => v !== got[i]);
   checked++;
   if (bad >= 0) fail(`rng seed ${c.seed}: draw ${bad} diverges`);
 }
-console.log(`  ${load("rng.json").length} seeds x 1000 draws`);
+console.log(`  ${load("rng.json").length} seeds x 1000 raw draws`);
 
 /* ---------- packs ---------- */
 

@@ -44,6 +44,13 @@ syntax, Unity would have too.
 runners, so it must not reference `UnityEngine`. Tests that genuinely need Unity belong in a
 separate assembly, added when the `Game` layer arrives.
 
+**Corpus values are integers.** Never record a float as the expected value of a gate. Unity's
+JSON parser is not correctly rounded: it read `0.1853655439335853` back one ULP high, failing the
+RNG gate against a port that was bit-perfect, while .NET 9's correctly-rounded parser passed and
+hid it. The generator is recorded as its raw 32-bit output instead — a draw is exactly
+`raw / 2^32`, so the integer is lossless and every parser agrees. All 446,999 numbers across the
+corpus are now integers; keep it that way when adding cases.
+
 JSON goes through Newtonsoft on both sides — Unity supplies it as
 `com.unity.nuget.newtonsoft-json`, the csproj references the identical NuGet package — so no
 conditional compilation is needed anywhere.
@@ -70,6 +77,6 @@ node Tools/extract/validate.mjs
 |---|---|---|
 | Phase 0 — content | `Tools/out/` | passing, 4 tracked content gaps |
 | Phase 0 — corpus | `Tools/corpus/` | passing, 783 cases replay exactly |
-| Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 draws bit-exact |
+| Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 raw draws bit-exact |
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
 | Phase 1 — stat ledger | `pl` field on every event | not yet ported |

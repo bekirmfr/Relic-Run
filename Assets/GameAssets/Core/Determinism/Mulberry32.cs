@@ -34,16 +34,35 @@ namespace RelicRun.Core.Determinism
             _state = seed;
         }
 
-        /// <summary>Next double in [0, 1), matching the JS generator draw for draw.</summary>
-        public double Next()
+        /// <summary>
+        /// The generator's raw 32-bit output — the exact numerator of the next draw.
+        /// </summary>
+        /// <remarks>
+        /// This, not <see cref="Next"/>, is the determinism contract. A draw is exactly
+        /// <c>raw / 2^32</c>, so the integer is lossless, whereas a double written to text and
+        /// read back can land one ULP away in a parser that is not correctly rounded — which is
+        /// what Unity's JSON parser does, and it would fail the gate on a port that is in fact
+        /// bit-perfect. Compare raw values.
+        /// </remarks>
+        public uint NextRaw()
         {
             unchecked
             {
                 _state += 0x6d2b79f5u;
                 uint x = (_state ^ (_state >> 15)) * (1u | _state);
                 x = (x + ((x ^ (x >> 7)) * (61u | x))) ^ x;
-                return (x ^ (x >> 14)) / 4294967296.0;
+                return x ^ (x >> 14);
             }
+        }
+
+        /// <summary>Next double in [0, 1), matching the JS generator draw for draw.</summary>
+        /// <remarks>
+        /// Dividing by 2^32 is exact in IEEE 754 — no rounding happens here, so this agrees
+        /// with the JS value bit for bit on every runtime.
+        /// </remarks>
+        public double Next()
+        {
+            return NextRaw() / 4294967296.0;
         }
 
         /// <summary>Integer in [0, exclusiveMax), matching <c>Math.floor(rng() * n)</c>.</summary>
