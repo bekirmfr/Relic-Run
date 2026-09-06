@@ -23,7 +23,7 @@ namespace RelicRun.Core.Combat
     /// The CHAIN set softens the falloff: three of a kind moves it from 0.5 to 0.6, seven to
     /// 0.75. Depth itself only drives log indentation and the cap that stops runaways.
     /// </remarks>
-    public sealed class ChainContext
+    public sealed class ChainContext : IChain
     {
         /// <summary>Falloff with no CHAIN set bonus: each revisit halves the effect.</summary>
         public const double BaseDecay = 0.5;
@@ -55,6 +55,15 @@ namespace RelicRun.Core.Combat
         /// Always call it when the relic activates, even if the effect is then skipped — the
         /// visit count is what makes the next pass weaker.
         /// </summary>
+        /// <summary>
+        /// The actor is ignored here: a delve chain belongs to the hero alone, so there is only
+        /// one side whose visits could collide.
+        /// </summary>
+        public double Scale(ICombatActor actor, RelicId relic)
+        {
+            return Scale(relic);
+        }
+
         public double Scale(RelicId relic)
         {
             _visits.TryGetValue(relic, out int seen);

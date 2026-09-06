@@ -13,7 +13,7 @@ namespace RelicRun.Core.Combat
     /// block: it has to run the same machinery the hero does or the simulation would lie about
     /// what their loadout actually does.
     /// </remarks>
-    public sealed class DuelSide
+    public sealed class DuelSide : ICombatActor
     {
         /// <summary>Display name. The rival's relics are announced with it.</summary>
         public string Name = "Rival";
@@ -34,8 +34,8 @@ namespace RelicRun.Core.Combat
         public int BaseSpd = 25;
         public int BaseLck = 10;
 
-        public int Php = 60;
-        public int Pmax = 60;
+        public int Php { get; set; } = 60;
+        public int Pmax { get; set; } = 60;
         public int Gold;
         public int Kills;
 
@@ -58,18 +58,18 @@ namespace RelicRun.Core.Combat
         // ---- transient, reset at the start of each duel ----
 
         /// <summary>Attack gained this round, from Fury emitters and the relics that grant it.</summary>
-        public int Fury;
+        public int Fury { get; set; }
 
-        public int Stone;
-        public int Gale;
-        public int LuckGain;
+        public int Stone { get; set; }
+        public int Gale { get; set; }
+        public int LuckGain { get; set; }
         public int Momentum;
         public int MomentumCount;
         public int QuenchBonus;
         public int QuenchCount;
 
         /// <summary>Defence rung up by Sentinel Bell. Capped at 3, or 5 when awakened.</summary>
-        public int Sentinel;
+        public int Sentinel { get; set; }
 
         public int Strikes;
         public int StrikeCount;
@@ -79,7 +79,7 @@ namespace RelicRun.Core.Combat
         public int RabbitCount;
         public int StrikeTotal;
 
-        public bool BladeCharged;
+        public bool BladeCharged { get; set; }
         public bool Blocked;
         public bool HitTaken;
         public bool AdrenalineUsed;
@@ -128,10 +128,10 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>
-        /// Relics of a kind. Unlike the delve engine, Hollow Idol does NOT count itself toward
-        /// sets here — the duel counts raw kinds only.
+        /// Relics of a kind. Whether Hollow Idol counts itself toward every set is a rules
+        /// difference between the modes, so the caller supplies it.
         /// </summary>
-        public int SetCount(RelicKind kind)
+        public int SetCount(RelicKind kind, bool hollowIdolCounts = false)
         {
             int n = 0;
             for (int i = 0; i < Items.Count; i++)
@@ -139,7 +139,7 @@ namespace RelicRun.Core.Combat
                 if (RelicCatalog.KindOf(Items[i]) == kind) n++;
             }
 
-            return n;
+            return n + (hollowIdolCounts ? CountRelic(RelicId.HollowIdol) : 0);
         }
 
         /// <summary>The relic label as the log shows it. A rival's relics are named as theirs.</summary>

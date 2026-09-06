@@ -135,7 +135,7 @@ namespace RelicRun.Core.Combat
                     chain = chain ?? NewChain();
                     double scale = chain.Scale(id);
                     _fireSlot = slot;
-                    NativeEffect(id, depth + 1, chain, scale, true);
+                    RelicEffects.Apply(_actor, this, _rules, id, depth + 1, chain, scale, true);
                     FireEmitterAt(slot, depth + 1, chain, scale);
                     _fireSlot = -1;
                 }
@@ -147,7 +147,7 @@ namespace RelicRun.Core.Combat
                     ChainContext fresh = NewChain();
                     double scale = fresh.Scale(id);
                     _fireSlot = slot;
-                    NativeEffect(id, 0, fresh, scale, true);
+                    RelicEffects.Apply(_actor, this, _rules, id, 0, fresh, scale, true);
                     FireEmitterAt(slot, 0, fresh, scale);
                     _fireSlot = -1;
                 }
@@ -162,152 +162,6 @@ namespace RelicRun.Core.Combat
         /// A trigger gives them an activation in their own theme, which is how a socket makes a
         /// relic gain verbs it never had.
         /// </remarks>
-        private void NativeEffect(RelicId id, int depth, ChainContext chain, double scale, bool viaTrigger)
-        {
-            if (depth > ChainCap)
-            {
-                return;
-            }
-
-            chain = chain ?? NewChain();
-
-            // A trigger speaks for one copy; a native activation speaks for every copy held.
-            int copies = viaTrigger ? 1 : Math.Max(1, CountItem(id));
-            string name = RelicCatalog.KeyOf(id) + (viaTrigger ? " ⚡" : string.Empty);
-
-            int Scaled(int amount)
-            {
-                return JsMath.RoundToInt(amount * copies * scale);
-            }
-
-            switch (id)
-            {
-                case RelicId.AlchemistsVial: Heal(Scaled(1), name, depth + 1, id, chain); break;
-                case RelicId.OxHeart: Heal(Scaled(2), name, depth + 1, id, chain); break;
-                case RelicId.VampireTooth: Heal(Scaled(1), name, depth + 1, id, chain); break;
-
-                case RelicId.MidasBlade: GainGold(Scaled(2), name, depth + 1, id, chain); break;
-                case RelicId.GreedyCurse: GainGold(Scaled(2), name, depth + 1, id, chain); break;
-                case RelicId.PiggyBank: GainGold(Scaled(1), name, depth + 1, id, chain); break;
-                case RelicId.CutpurseHook: GainGold(Scaled(1), name, depth + 1, id, chain); break;
-                case RelicId.CoinMagnet: GainGold(Scaled(2), name, depth + 1, id, chain); break;
-                case RelicId.EmberCask: GainGold(Scaled(1), name, depth + 1, id, chain); break;
-
-                case RelicId.WeightedDice:
-                    if (_enemyHp > 0) DealDamage(Scaled(2), name, depth + 1, id, chain);
-                    break;
-                case RelicId.BloodAltar:
-                    if (_enemyHp > 0) DealDamage(Scaled(2), name, depth + 1, id, chain);
-                    break;
-                case RelicId.ThornVest:
-                    if (_enemyHp > 0) DealDamage(Scaled(2), name, depth + 1, id, chain);
-                    break;
-                case RelicId.HexThread:
-                    if (_enemyHp > 0) DealDamage(Scaled(1), name, depth + 1, id, chain);
-                    break;
-
-                case RelicId.LuckyClover: EmitLuck(name, depth + 1, id, chain); break;
-                case RelicId.CoinSinger: EmitLuck(name, depth + 1, id, chain); break;
-
-                case RelicId.Whetstone:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0)
-                    {
-                        _furyBonus += bonus;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " ATK");
-                    }
-
-                    break;
-                }
-
-                case RelicId.IronSkin:
-                {
-                    int bonus = Scaled(2);
-                    if (bonus > 0)
-                    {
-                        _stoneBonus += bonus;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " DEF");
-                    }
-
-                    break;
-                }
-
-                case RelicId.BerserkerCharm:
-                {
-                    int bonus = Scaled(_hero.Php < _hero.Pmax / 2.0 ? 2 : 1);
-                    if (bonus > 0)
-                    {
-                        _furyBonus += bonus;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " ATK");
-                    }
-
-                    break;
-                }
-
-                case RelicId.RabbitsFoot:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0)
-                    {
-                        _luckBonus += bonus;
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " LUCK");
-                    }
-
-                    break;
-                }
-
-                case RelicId.SwiftBoots:
-                case RelicId.BattleDash:
-                {
-                    int bonus = Scaled(2);
-                    if (bonus > 0)
-                    {
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " SPD");
-                        _galeBonus += bonus;
-                    }
-
-                    break;
-                }
-
-                case RelicId.AdrenalineGland:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0)
-                    {
-                        _furyBonus += bonus;
-                        Snap(CombatEventType.Adrenaline, depth + 1, amount: bonus, relic: id);
-                    }
-
-                    break;
-                }
-
-                case RelicId.SentinelBell:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0 && _carry.SentinelBonus < 3)
-                    {
-                        _carry.SentinelBonus = Math.Min(3, _carry.SentinelBonus + bonus);
-                        Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " DEF");
-                    }
-
-                    break;
-                }
-
-                case RelicId.FortunesEdge:
-                    _bladeCharged = true;
-                    Snap(CombatEventType.First, depth + 1, relic: id, source: name + " charges the blade");
-                    break;
-
-                case RelicId.QuickenedPulse:
-                {
-                    int bonus = EffectiveCount(id);
-                    _galeBonus += bonus;
-                    Snap(CombatEventType.First, depth + 1, relic: id, source: name + " +" + bonus + " SPD");
-                    break;
-                }
-            }
-        }
 
         /// <summary>
         /// Rabbit's Foot answers every luck signal with luck of its own — but never its own,

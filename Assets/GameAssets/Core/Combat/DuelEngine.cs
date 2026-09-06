@@ -29,12 +29,14 @@ namespace RelicRun.Core.Combat
     /// the rival's is player damage, and most of the rival's own bookkeeping is logged as plain
     /// lines rather than typed events.
     /// </remarks>
-    public sealed class DuelEngine
+    public sealed class DuelEngine : ICombatBus, IAdrenalineReporter
     {
         private const int Gauge = 100;
 
         /// <summary>Chains die four levels deep here, against forty in a delve.</summary>
-        private const int ChainCap = 4;
+        private readonly CombatRules _rules = CombatRules.Duel();
+
+        private int ChainCap { get { return _rules.ChainCap; } }
 
         private const int MaxIterations = 600;
 
@@ -67,7 +69,7 @@ namespace RelicRun.Core.Combat
 
             foreach (DuelSide side in Both())
             {
-                if (side.SetCount(RelicKind.Flesh) >= 3 && !side.FleshSetApplied)
+                if (side.SetCount(RelicKind.Flesh, _rules.HollowIdolCountsTowardSets) >= 3 && !side.FleshSetApplied)
                 {
                     side.FleshSetApplied = true;
                     side.Pmax += 3;
@@ -89,8 +91,8 @@ namespace RelicRun.Core.Combat
             int gaugeA = (dashA && !dashB) ? 0 : Gauge;
             int gaugeB = (dashB && !dashA) ? 0 : Gauge;
 
-            if (gaugeA > 0 && _a.SetCount(RelicKind.Pace) >= 5) gaugeA = Math.Max(0, gaugeA - 25);
-            if (gaugeB > 0 && _b.SetCount(RelicKind.Pace) >= 5) gaugeB = Math.Max(0, gaugeB - 25);
+            if (gaugeA > 0 && _a.SetCount(RelicKind.Pace, _rules.HollowIdolCountsTowardSets) >= 5) gaugeA = Math.Max(0, gaugeA - 25);
+            if (gaugeB > 0 && _b.SetCount(RelicKind.Pace, _rules.HollowIdolCountsTowardSets) >= 5) gaugeB = Math.Max(0, gaugeB - 25);
 
             if (dashA && dashB)
             {
@@ -219,18 +221,25 @@ namespace RelicRun.Core.Combat
         /// A chain in a duel is keyed per side as well as per relic, so both duellists can draw
         /// on the same chain without their decay counters colliding.
         /// </summary>
-        private sealed class DuelChain
+        private sealed class DuelChain : IChain
         {
             private readonly Dictionary<string, int> _visits = new Dictionary<string, int>();
+            private readonly CombatRules _rules;
 
-            public double Scale(DuelSide side, RelicId relic)
+            public DuelChain(CombatRules rules)
             {
+                _rules = rules;
+            }
+
+            public double Scale(ICombatActor actor, RelicId relic)
+            {
+                var side = (DuelSide)actor;
                 string key = (side.IsHero ? "A" : "B") + (int)relic;
                 _visits.TryGetValue(key, out int seen);
                 seen++;
                 _visits[key] = seen;
 
-                int chain = side.SetCount(RelicKind.Chain);
+                int chain = side.SetCount(RelicKind.Chain, _rules.HollowIdolCountsTowardSets);
                 double decay = chain >= 7 ? 0.75 : chain >= 3 ? 0.6 : 0.5;
                 return Math.Pow(decay, seen - 1);
             }
@@ -238,9 +247,9 @@ namespace RelicRun.Core.Combat
             public bool DeepHealDone;
         }
 
-        private static DuelChain NewChain()
+        private DuelChain NewChain()
         {
-            return new DuelChain();
+            return new DuelChain(_rules);
         }
 
         // ---------- events ----------
@@ -316,7 +325,7 @@ namespace RelicRun.Core.Combat
             }
 
             // The Guard set turns the first blow of the duel aside.
-            if (depth == 0 && target.SetCount(RelicKind.Guard) >= 7 && !target.Blocked)
+            if (depth == 0 && target.SetCount(RelicKind.Guard, _rules.HollowIdolCountsTowardSets) >= 7 && !target.Blocked)
             {
                 target.Blocked = true;
                 Line(target, RelicId.None, Prefix(target) + "Guard set — the first blow glances off", 0);
@@ -427,7 +436,7 @@ namespace RelicRun.Core.Combat
             // The death-defiance ladder, available to both sides.
             if (target.Php <= 0)
             {
-                if (target.SetCount(RelicKind.Flesh) >= 7 && !target.FleshSetUsed)
+                if (target.SetCount(RelicKind.Flesh, _rules.HollowIdolCountsTowardSets) >= 7 && !target.FleshSetUsed)
                 {
                     target.FleshSetUsed = true;
                     target.Php = 1;
@@ -457,7 +466,7 @@ namespace RelicRun.Core.Combat
                     DuelChain thornChain = NewChain();
                     double scale = thornChain.Scale(target, RelicId.ThornVest);
                     DealDamage(target,
-                        JsMath.RoundToInt(2 * thorns * scale) + (target.SetCount(RelicKind.Guard) >= 5 ? 1 : 0),
+                        JsMath.RoundToInt(2 * thorns * scale) + (target.SetCount(RelicKind.Guard, _rules.HollowIdolCountsTowardSets) >= 5 ? 1 : 0),
                         target.Label(RelicId.ThornVest), 1, RelicId.ThornVest, thornChain);
                     FireEmitter(target, RelicId.ThornVest, 0, thornChain, scale);
                 }
@@ -530,10 +539,10 @@ namespace RelicRun.Core.Combat
                         side.Label(RelicId.MartyrsKnot) + " +" + martyr, d));
                 }
 
-                if (side.SetCount(RelicKind.Flesh) >= 5) amount += 1;
+                if (side.SetCount(RelicKind.Flesh, _rules.HollowIdolCountsTowardSets) >= 5) amount += 1;
 
                 // The opponent's bell starves you outright; your own only taxes you unless awakened.
-                amount -= foe.Effective(RelicId.FamineBell) +
+                amount -= (_rules.FamineBellStarvesOpponent ? foe.Effective(RelicId.FamineBell) : 0) +
                           (side.IsAwake(RelicId.FamineBell) ? 0 : side.Effective(RelicId.FamineBell));
             }
 
@@ -618,7 +627,7 @@ namespace RelicRun.Core.Combat
             }
 
             double real = amount;
-            if (side.SetCount(RelicKind.Greed) >= 3) real = JsMath.Round(real * 1.15);
+            if (side.SetCount(RelicKind.Greed, _rules.HollowIdolCountsTowardSets) >= 3) real = JsMath.Round(real * 1.15);
             if (side.Effective(RelicId.FortunesDebt) > 0 && !side.IsAwake(RelicId.FortunesDebt))
             {
                 real = JsMath.Round(real * 0.9);
@@ -720,7 +729,7 @@ namespace RelicRun.Core.Combat
             if (rabbits <= 0 || cause == RelicId.RabbitsFoot) return;
 
             side.RabbitCount++;
-            if (!side.IsAwake(RelicId.RabbitsFoot) && side.RabbitCount % 3 != 0) return;
+            if (!side.IsAwake(RelicId.RabbitsFoot) && side.RabbitCount % _rules.RabbitSignalCadence != 0) return;
 
             chain = chain ?? NewChain();
             double scale = chain.Scale(side, RelicId.RabbitsFoot);
@@ -773,7 +782,7 @@ namespace RelicRun.Core.Combat
                     side.Label(RelicId.CatsWhisker), 1, RelicId.CatsWhisker, chain);
             }
 
-            if (side.SetCount(RelicKind.Luck) >= 7)
+            if (side.SetCount(RelicKind.Luck, _rules.HollowIdolCountsTowardSets) >= 7)
             {
                 DealDamage(side, 2, "Luck set", 1, RelicId.LuckyClover, chain);
             }
@@ -885,7 +894,7 @@ namespace RelicRun.Core.Combat
                     if (cause == id) continue;
                     chain = chain ?? NewChain();
                     double scale = chain.Scale(side, id);
-                    NativeEffect(side, id, depth + 1, chain, scale, true);
+                    RelicEffects.Apply(side, this, _rules, id, depth + 1, chain, scale, true);
                     FireEmitterAt(side, slot, depth + 1, chain, scale);
                 }
                 else
@@ -895,118 +904,12 @@ namespace RelicRun.Core.Combat
 
                     DuelChain fresh = NewChain();
                     double scale = fresh.Scale(side, id);
-                    NativeEffect(side, id, 0, fresh, scale, true);
+                    RelicEffects.Apply(side, this, _rules, id, 0, fresh, scale, true);
                     FireEmitterAt(side, slot, 0, fresh, scale);
                 }
             }
         }
 
-        private void NativeEffect(DuelSide side, RelicId id, int depth, DuelChain chain, double scale, bool viaTrigger)
-        {
-            if (depth > ChainCap) return;
-            chain = chain ?? NewChain();
-
-            int copies = viaTrigger ? 1 : Math.Max(1, side.Effective(id));
-            string name = side.Label(id) + (viaTrigger ? " ⚡" : string.Empty);
-
-            int Scaled(int amount)
-            {
-                return JsMath.RoundToInt(amount * copies * scale);
-            }
-
-            switch (id)
-            {
-                case RelicId.AlchemistsVial: Heal(side, Scaled(1), name, depth + 1, id, chain); break;
-                case RelicId.OxHeart: Heal(side, Scaled(2), name, depth + 1, id, chain); break;
-                case RelicId.VampireTooth: Heal(side, Scaled(1), name, depth + 1, id, chain); break;
-
-                case RelicId.CutpurseHook: GainGold(side, Scaled(1), name, depth + 1, id, chain); break;
-                case RelicId.MidasBlade: GainGold(side, Scaled(2), name, depth + 1, id, chain); break;
-                case RelicId.EmberCask: GainGold(side, Scaled(1), name, depth + 1, id, chain); break;
-
-                case RelicId.WeightedDice:
-                case RelicId.BloodAltar:
-                case RelicId.ThornVest:
-                    DealDamage(side, Scaled(2), name, depth + 1, id, chain);
-                    break;
-
-                case RelicId.HexThread:
-                    if (Other(side).Php > 0) DealDamage(side, Scaled(1), name, depth + 1, id, chain);
-                    break;
-
-                case RelicId.LuckyClover: EmitLuck(side, name, depth + 1, id, chain); break;
-                case RelicId.CoinSinger: EmitLuck(side, name, depth + 1, id, chain); break;
-
-                case RelicId.Whetstone:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0) { side.Fury += bonus; Line(side, id, name + " +" + bonus + " ATK", depth + 1); }
-                    break;
-                }
-
-                case RelicId.IronSkin:
-                {
-                    int bonus = Scaled(2);
-                    if (bonus > 0) { side.Stone += bonus; Line(side, id, name + " +" + bonus + " DEF", depth + 1); }
-                    break;
-                }
-
-                case RelicId.BerserkerCharm:
-                {
-                    int bonus = Scaled(side.Php < side.Pmax / 2.0 ? 2 : 1);
-                    if (bonus > 0) { side.Fury += bonus; Line(side, id, name + " +" + bonus + " ATK", depth + 1); }
-                    break;
-                }
-
-                case RelicId.AdrenalineGland:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0) { side.Fury += bonus; Line(side, id, name + " +" + bonus + " ATK", depth + 1); }
-                    break;
-                }
-
-                case RelicId.RabbitsFoot:
-                {
-                    int bonus = Scaled(1);
-                    if (bonus > 0) { side.LuckGain += bonus; Line(side, id, name + " +" + bonus + " LUCK", depth + 1); }
-                    break;
-                }
-
-                case RelicId.SwiftBoots:
-                case RelicId.BattleDash:
-                {
-                    int bonus = Scaled(2);
-                    if (bonus > 0) { side.Gale += bonus; Line(side, id, name + " +" + bonus + " SPD", depth + 1); }
-                    break;
-                }
-
-                case RelicId.SentinelBell:
-                {
-                    int bonus = Scaled(1);
-                    int cap = side.IsAwake(RelicId.SentinelBell) ? 5 : 3;
-                    if (bonus > 0 && side.Sentinel < cap)
-                    {
-                        side.Sentinel = Math.Min(cap, side.Sentinel + bonus);
-                        Line(side, id, name + " +" + bonus + " DEF", depth + 1);
-                    }
-
-                    break;
-                }
-
-                case RelicId.FortunesEdge:
-                    side.BladeCharged = true;
-                    Line(side, id, name + " charges the blade", depth + 1);
-                    break;
-
-                case RelicId.QuickenedPulse:
-                {
-                    int bonus = side.Effective(id);
-                    side.Gale += bonus;
-                    Line(side, id, name + " +" + bonus + " SPD", depth + 1);
-                    break;
-                }
-            }
-        }
 
         private static int EmitterAmount(SocketEmitter emitter)
         {
@@ -1016,6 +919,46 @@ namespace RelicRun.Core.Combat
                 case SocketEmitter.Gold: return 2;
                 default: return 1;
             }
+        }
+
+        // ---------- ICombatBus ----------
+
+        void ICombatBus.DealDamage(ICombatActor from, int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            DealDamage((DuelSide)from, amount, source, depth, relic, (DuelChain)chain);
+        }
+
+        void ICombatBus.Heal(ICombatActor actor, int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            Heal((DuelSide)actor, amount, source, depth, relic, (DuelChain)chain);
+        }
+
+        void ICombatBus.GainGold(ICombatActor actor, int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            GainGold((DuelSide)actor, amount, source, depth, relic, (DuelChain)chain);
+        }
+
+        void ICombatBus.EmitLuck(ICombatActor actor, string source, int depth, RelicId relic, IChain chain, bool quiet)
+        {
+            EmitLuck((DuelSide)actor, source, depth, relic, (DuelChain)chain, quiet);
+        }
+
+        void ICombatBus.Line(ICombatActor actor, RelicId relic, string text, int depth)
+        {
+            Line((DuelSide)actor, relic, text, depth);
+        }
+
+        bool ICombatBus.HasTarget(ICombatActor actor)
+        {
+            return Other((DuelSide)actor).Php > 0;
+        }
+
+        /// <summary>The rival's Adrenaline is a plain line; the hero's is a typed event.</summary>
+        void IAdrenalineReporter.ReportAdrenaline(ICombatActor actor, int amount, int depth, string name)
+        {
+            var side = (DuelSide)actor;
+            if (side.IsHero) Snap(CombatEventType.Adrenaline, depth, amount: amount, relic: RelicId.AdrenalineGland);
+            else Line(side, RelicId.AdrenalineGland, name + " +" + amount + " ATK", depth);
         }
 
         // ---------- a turn ----------
@@ -1062,7 +1005,7 @@ namespace RelicRun.Core.Combat
                     side.IsHero ? side.Label(RelicId.WeightedDice) : null, 0,
                     side.IsHero ? RelicId.WeightedDice : RelicId.None, critChain);
 
-                if (side.SetCount(RelicKind.Luck) >= 5)
+                if (side.SetCount(RelicKind.Luck, _rules.HollowIdolCountsTowardSets) >= 5)
                 {
                     EmitLuck(side, "Luck set", 1, RelicId.None, critChain);
                 }
@@ -1075,7 +1018,7 @@ namespace RelicRun.Core.Combat
             else
             {
                 int amount = side.StatOf(Stat.Atk);
-                if (side.SetCount(RelicKind.Edge) >= 5 && side.Strikes % 4 == 0)
+                if (side.SetCount(RelicKind.Edge, _rules.HollowIdolCountsTowardSets) >= 5 && side.Strikes % 4 == 0)
                 {
                     amount = JsMath.RoundToInt(amount * 1.5);
                 }
@@ -1108,7 +1051,7 @@ namespace RelicRun.Core.Combat
 
             if (TryExecute(side, target) && target.Php <= 0) return;
 
-            if (side.SetCount(RelicKind.Pace) >= 7 && side.Strikes % 5 == 0 &&
+            if (side.SetCount(RelicKind.Pace, _rules.HollowIdolCountsTowardSets) >= 7 && side.Strikes % 5 == 0 &&
                 target.Php > 0 && side.Php > 0)
             {
                 Line(side, RelicId.None, "Pace set — a second strike!", 0);
@@ -1130,7 +1073,7 @@ namespace RelicRun.Core.Combat
 
                     double scale = hook > 0 ? chain.Scale(side, RelicId.CutpurseHook) : 1.0;
                     int coins = 1 + (hook > 0 ? JsMath.RoundToInt(hook * scale) : 0) +
-                                (side.SetCount(RelicKind.Greed) >= 5 ? 1 : 0);
+                                (side.SetCount(RelicKind.Greed, _rules.HollowIdolCountsTowardSets) >= 5 ? 1 : 0);
 
                     GainGold(side, coins, hook > 0 ? side.Label(RelicId.CutpurseHook) : "loose coins", 1,
                         hook > 0 ? RelicId.CutpurseHook : RelicId.None, chain);

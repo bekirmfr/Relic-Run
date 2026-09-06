@@ -28,13 +28,15 @@ namespace RelicRun.Core.Combat
     /// relics that this engine reads are already handled, since bosses carry kits from
     /// Dungeon 2 onward.
     /// </remarks>
-    public sealed partial class CombatEngine
+    public sealed partial class CombatEngine : ICombatBus, IAdrenalineReporter
     {
         /// <summary>Points a combatant must drain before acting.</summary>
         private const int Gauge = 100;
 
+        private readonly CombatRules _rules = CombatRules.Delve();
+
         /// <summary>Chain depth beyond which effects fizzle rather than continue.</summary>
-        private const int ChainCap = 40;
+        private int ChainCap { get { return _rules.ChainCap; } }
 
         /// <summary>Stops a pathological loop from hanging the harness.</summary>
         private const int MaxIterations = 600;
@@ -148,6 +150,102 @@ namespace RelicRun.Core.Combat
         /// </summary>
         private bool[] _firedThisBeat;
 
+        /// <summary>
+        /// The hero as the shared relic layer sees them. In a delve the in-fight bonuses live on
+        /// the engine rather than on the hero, so this adapter forwards them.
+        /// </summary>
+        private sealed class HeroActor : ICombatActor
+        {
+            private readonly CombatEngine _engine;
+
+            public HeroActor(CombatEngine engine)
+            {
+                _engine = engine;
+            }
+
+            public int Php { get { return _engine._hero.Php; } }
+
+            public int Pmax { get { return _engine._hero.Pmax; } }
+
+            public int Effective(RelicId id) { return _engine.EffectiveCount(id); }
+
+            public bool IsAwake(RelicId id) { return _engine.IsAwake(id); }
+
+            public string Label(RelicId id) { return RelicCatalog.KeyOf(id); }
+
+            public int Fury
+            {
+                get { return _engine._furyBonus; }
+                set { _engine._furyBonus = value; }
+            }
+
+            public int Stone
+            {
+                get { return _engine._stoneBonus; }
+                set { _engine._stoneBonus = value; }
+            }
+
+            public int Gale
+            {
+                get { return _engine._galeBonus; }
+                set { _engine._galeBonus = value; }
+            }
+
+            public int LuckGain
+            {
+                get { return _engine._luckBonus; }
+                set { _engine._luckBonus = value; }
+            }
+
+            public int Sentinel
+            {
+                get { return _engine._carry.SentinelBonus; }
+                set { _engine._carry.SentinelBonus = value; }
+            }
+
+            public bool BladeCharged
+            {
+                get { return _engine._bladeCharged; }
+                set { _engine._bladeCharged = value; }
+            }
+        }
+
+        private HeroActor _actor;
+
+        // ---------- ICombatBus ----------
+
+        void ICombatBus.DealDamage(ICombatActor from, int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            DealDamage(amount, source, depth, relic, (ChainContext)chain);
+        }
+
+        void ICombatBus.Heal(ICombatActor actor, int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            Heal(amount, source, depth, relic, (ChainContext)chain);
+        }
+
+        void ICombatBus.GainGold(ICombatActor actor, int amount, string source, int depth, RelicId relic, IChain chain)
+        {
+            GainGold(amount, source, depth, relic, (ChainContext)chain);
+        }
+
+        void ICombatBus.EmitLuck(ICombatActor actor, string source, int depth, RelicId relic, IChain chain, bool quiet)
+        {
+            EmitLuck(source, depth, relic, (ChainContext)chain, quiet);
+        }
+
+        void ICombatBus.Line(ICombatActor actor, RelicId relic, string text, int depth)
+        {
+            Snap(CombatEventType.First, depth, relic: relic, source: text);
+        }
+
+        bool ICombatBus.HasTarget(ICombatActor actor) { return _enemyHp > 0; }
+
+        void IAdrenalineReporter.ReportAdrenaline(ICombatActor actor, int amount, int depth, string name)
+        {
+            Snap(CombatEventType.Adrenaline, depth, amount: amount, relic: RelicId.AdrenalineGland);
+        }
+
         /// <summary>Runs every foe in the pack, in order, until they are dead or the hero is.</summary>
         public CombatResult ResolveFloor(HeroState hero, IReadOnlyList<EnemyState> pack, Mulberry32 rng)
         {
@@ -161,6 +259,7 @@ namespace RelicRun.Core.Combat
             _carry = hero.Carry != null ? hero.Carry.Clone() : new CarryState();
             _tick = 0;
 
+            _actor = new HeroActor(this);
             CacheLoadout();
             _firedThisBeat = new bool[_hero.Items.Count];
             _bladeCharged = false;
@@ -815,11 +914,12 @@ namespace RelicRun.Core.Combat
                 _kindCounts[(int)RelicCatalog.KindOf(_hero.Items[i])]++;
             }
 
-            // Hollow Idol counts itself toward every set. The engine credits an awakened copy
-            // twice while the stat ledger credits it once — the two disagree in the source, and
-            // both are reproduced as written rather than reconciled, because "fixing" it here
-            // would silently change which set bonuses a real loadout reaches.
-            _hollowIdols = EffectiveCount(RelicId.HollowIdol);
+            // Hollow Idol counts itself toward every set, when the mode says it does. The
+            // engine credits an awakened copy twice while the stat ledger credits it once — the
+            // two disagree in the source, and both are reproduced as written rather than
+            // reconciled, because "fixing" it here would silently change which set bonuses a
+            // real loadout reaches.
+            _hollowIdols = _rules.HollowIdolCountsTowardSets ? EffectiveCount(RelicId.HollowIdol) : 0;
 
             _chainDecay = ChainContext.DecayFor(SetCount(RelicKind.Chain));
         }
