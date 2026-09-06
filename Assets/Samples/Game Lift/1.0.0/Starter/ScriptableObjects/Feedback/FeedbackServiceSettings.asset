@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 317bf415d2938cf45b08698495e897b8, type: 3}
+  m_Name: FeedbackServiceSettings
+  m_EditorClassIdentifier: 
+  feedbacks:
+  - Id: button_click
+    Audio:
+      Enabled: 1
+      Sound: {fileID: 11400000, guid: 07f304ce68e44104c94e565875063896, type: 2}
+    Vibration:
+      Enabled: 1
+      HapticType: 3

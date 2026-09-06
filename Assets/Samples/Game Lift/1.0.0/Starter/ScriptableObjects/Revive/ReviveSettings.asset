@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 487f5bbb5d67b224c89c6ae02f19f681, type: 3}
+  m_Name: ReviveSettings
+  m_EditorClassIdentifier: 
+  <CurrencyId>k__BackingField: gold
+  <ReviveCost>k__BackingField: 900
+  <ReviveCostIncrement>k__BackingField: 400

@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae5cf52a33caedd46abf2e53f6e23901, type: 3}
+  m_Name: PurchasingSettings
+  m_EditorClassIdentifier: 
+  <Environment>k__BackingField: development
+  <Products>k__BackingField:
+  - ProductId: remove_ads_{name_of_your_game}
+    ShopItemType: 1
+    Type: 1
+    Icon: {fileID: 21300000, guid: aec3b9bf291a946a1964cead960dd4d8, type: 3}
+    DisplayName: Remove Ads
+    Badge:
+      Text: 
+      BackgroundColor: {r: 1, g: 0, b: 0, a: 1}
+      TextColor: {r: 1, g: 1, b: 1, a: 1}
+  - ProductId: coin_1000_{name_of_your_game}
+    ShopItemType: 0
+    Type: 0
+    Icon: {fileID: 21300000, guid: f6b12332343894ff78362008a77e87bd, type: 3}
+    DisplayName: 1000 Coins
+    Badge:
+      Text: 
+      BackgroundColor: {r: 1, g: 0, b: 0, a: 1}
+      TextColor: {r: 1, g: 1, b: 1, a: 1}
+  - ProductId: coin_5000_{name_of_your_game}
+    ShopItemType: 0
+    Type: 0
+    Icon: {fileID: 21300000, guid: b0cc3e56fe5d54c9eab8a0e93f565355, type: 3}
+    DisplayName: 5000 Coins
+    Badge:
+      Text: POPULAR
+      BackgroundColor: {r: 0.29411766, g: 1, b: 0.70980394, a: 1}
+      TextColor: {r: 0, g: 0.2901961, b: 0.1882353, a: 1}
+  - ProductId: coin_10000_{name_of_your_game}
+    ShopItemType: 1
+    Type: 0
+    Icon: {fileID: 21300000, guid: 1ebb81369e9d243b497413bc0f540021, type: 3}
+    DisplayName: 10000 Coins
+    Badge:
+      Text: BEST VALUE
+      BackgroundColor: {r: 1, g: 0.84705883, b: 0.2901961, a: 1}
+      TextColor: {r: 0.47843137, g: 0.21960784, b: 0, a: 1}
