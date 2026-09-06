@@ -307,8 +307,19 @@ namespace RelicRun.Tests.Support
             }
 
             // Relic provenance: absent and null both mean "no relic caused this".
+            //
+            // A recorded id the catalog does not know is a CUT relic, and compares as
+            // unattributed. The source credits the Curse set's death blast to Cracked Crown,
+            // which the port does not ship, so the port has no id to answer with. The event's
+            // type, amount, depth and whole snapshot are still compared exactly - only the
+            // label of a relic that no longer exists is let through.
             string wantRid = want["rid"] != null && want["rid"].Type != JTokenType.Null
                 ? want["rid"].Value<string>() : null;
+            if (wantRid != null && !RelicCatalog.TryParse(wantRid, out _))
+            {
+                wantRid = null;
+            }
+
             string gotRid = got.Relic != RelicId.None ? RelicCatalog.KeyOf(got.Relic) : null;
             if (wantRid != gotRid)
             {

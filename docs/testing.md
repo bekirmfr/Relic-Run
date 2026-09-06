@@ -76,6 +76,27 @@ cosmetic is a mutation: changing one line in `CombatPrimitives` (the Alchemist's
 turns all four fight gates red — solo, primitives, mixed and duels. If a future change makes
 that mutation break only one mode, the layer has quietly forked again.
 
+## Reaching a rule the random tiers cannot
+
+Two rules were untestable until the corpus was given cases built for them, and both are worth
+keeping as a pattern.
+
+The **Curse set's death blast** needs seven CURSE relics, and the pool holds five distinct
+ones, so no random loadout can reach it. `edge/curse7/*` stacks deliberate duplicates on a
+hero already at three HP. Removing the blast, or changing its damage from three times attack
+to twice, now fails.
+
+The **defender's reaction order** needs two answers firing on the same blow. `edge/order/*`
+carries Mirror Scale, an awakened Troll Marrow and Thorn Vest together, against dungeons whose
+bosses hold Weighted Dice so the crit that Mirror Scale answers actually lands. Running the
+delve in the duel's order now fails on all 24 cases.
+
+That second one also corrected a wrong conclusion: the order was first assumed to matter only
+when one answer kills the target and denies a later one. It matters far more simply than that
+— the event stream's order is itself compared, so any two reactions on one blow pin it. The
+earlier mutation survived only because random loadouts rarely carry two reacting relics at
+once, which is a statement about corpus coverage rather than about the rule.
+
 ## Mutation testing
 
 A gate that has never gone red is not evidence of anything. Every phase so far has been
@@ -83,12 +104,6 @@ mutation-tested: break the rule deliberately, confirm the suite fails, restore. 
 were only found this way — the stat ledger's bloodied boundary, and the chain corpus not
 exercising decay at all until loadouts were added that make one relic fire twice in a single
 chain.
-
-The defender's reaction ORDER is also unobservable. Both modes run the same answers to a
-landed blow — Mirror Scale, Troll Marrow, the Adrenaline Gland, Thorn Vest — but in different
-sequences, and running the delve in the duel's order still passes. Order can only matter when
-one answer kills the target and denies a later one, which the corpus never produces. The
-sequences are preserved as written, in `CombatDamage.DelveOrder` and `DuelOrder`.
 
 One Phase 6 rule is unobservable: the duel keys chain decay per SIDE as well as per relic,
 but a chain object only ever belongs to one side — every cross-side reaction opens a fresh one

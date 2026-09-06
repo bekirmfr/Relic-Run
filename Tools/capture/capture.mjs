@@ -46,10 +46,11 @@ const COMBAT_FLOORS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13];   // 7 is the ba
 
 /* ---------- case construction ---------- */
 
-function heroState({ floor, items = [], sockets = {}, awake = {}, level = 1, mode = "delve" }) {
+function heroState({ floor, items = [], sockets = {}, awake = {}, level = 1, mode = "delve", php = null }) {
+  const pmax = 100 + 5 * (level - 1);
   return {
     _strikeTot: 0, mode, awake, floor,
-    php: 100 + 5 * (level - 1), pmax: 100 + 5 * (level - 1), gold: 0,
+    php: php == null ? pmax : php, pmax, gold: 0,
     items: items.slice(), sockets: { ...sockets },
     adrenaline: 0, midasBonus: 0, kills: 0,
     atkB: 0, defB: 0, spdB: 0, luckB: 0, furyB: 0, _carry: null,
@@ -76,12 +77,12 @@ const finalOf = (st) => ({
   debtLeft: st._debtLeft, glassBroken: !!st._glassBroken, soilUsed: !!st._soilUsed,
 });
 
-function delveCase(id, tier, { floor, dungeon = 1, items, sockets, awake, level }) {
+function delveCase(id, tier, { floor, dungeon = 1, items, sockets, awake, level, php = null }) {
   const packRng = api.mulberry32(seed());
   const cfg = api.DUNGEONS[dungeon - 1];
   const pack = api.packFor(floor, packRng, { bossRelics: cfg.bossRelics, ghoolemBoss: !!cfg.ghoolemBoss });
   const fightSeed = seed();
-  const st = heroState({ floor, items, sockets, awake, level });
+  const st = heroState({ floor, items, sockets, awake, level, php });
   const input = JSON.parse(JSON.stringify({ hero: st, pack }));
   const events = engine.simulateFloor(st, pack, api.mulberry32(fightSeed));
   return {
@@ -396,6 +397,36 @@ for (let i = 0; i < 12; i++) {
     awakeA: i % 3 === 0 ? { alchemist: 1 } : {},
     awakeB: i % 3 === 1 ? { altar: 1 } : {},
     hp: 70 + int(80),
+  }));
+}
+
+/* Two rules the random tiers cannot reach.
+
+   The Curse set detonates as its bearer falls, but it needs seven CURSE relics and the pool
+   holds only five distinct ones, so it takes deliberate duplicates plus a hero already on the
+   edge of death.
+
+   The defender's reaction ORDER only matters when one answer finishes the foe and denies a
+   later one, so these pair Mirror Scale, an awakened Troll Marrow and Thorn Vest against
+   dungeons whose bosses carry Weighted Dice - the only way to land the crit that Mirror Scale
+   answers - with the hero starting bloodied so Marrow is live too. */
+for (const floor of [8, 10, 12, 13]) {
+  for (const php of [3, 6, 11]) {
+    cases.push(delveCase(`edge/curse7/f${floor}/hp${php}`, "mixed", {
+      floor, dungeon: 10, items: Array(7).fill("millstone"), level: 1, php,
+    }));
+  }
+}
+
+for (let i = 0; i < 24; i++) {
+  const dungeon = [3, 9, 10][i % 3];
+  cases.push(delveCase(`edge/order/${i}`, "mixed", {
+    floor: [8, 9, 10, 11, 12][i % 5],
+    dungeon,
+    items: ["mirrorscale", "marrow", "thorns", "adrenaline", "iron"],
+    awake: { marrow: 1 },
+    level: 1 + (i % 4),
+    php: 6 + i * 2,
   }));
 }
 
