@@ -76,6 +76,20 @@ namespace RelicRun.Core.Content
                         versus: new RelicTuning { SignalCadence = 3 })
                 },
 
+                // Cutpurse's Hook spills coins on a strike and Vampire Tooth drinks from it.
+                // Both count an awakened copy in a duel and not in a delve, matching Blood
+                // Altar and Rabbit's Foot above.
+                {
+                    RelicId.CutpurseHook, Pair(
+                        delve: new RelicTuning { ReactionCountsAwakened = false },
+                        versus: new RelicTuning())
+                },
+                {
+                    RelicId.VampireTooth, Pair(
+                        delve: new RelicTuning { ReactionCountsAwakened = false },
+                        versus: new RelicTuning())
+                },
+
                 // Sentinel Bell rings defence on a dodge. A duel is long enough to let an
                 // awakened Bell climb higher before it stops.
                 {

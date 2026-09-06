@@ -88,7 +88,7 @@ namespace RelicRun.Core.Combat
             {
                 Gauge = (dashA && !dashB) ? 0 : AtbScheduler.Gauge,
                 Alive = () => _a.Php > 0,
-                Act = () => Strike(_a),
+                Act = () => CombatTurn.Strike(_a, this, _rules, null),
                 Speed = () => _a.StatOf(Stat.Spd),
                 WantsFreeAction = () => FreeAction(_a),
                 WantsRiposte = () => Riposte(_a),
@@ -98,7 +98,7 @@ namespace RelicRun.Core.Combat
             {
                 Gauge = (dashB && !dashA) ? 0 : AtbScheduler.Gauge,
                 Alive = () => _b.Php > 0,
-                Act = () => Strike(_b),
+                Act = () => CombatTurn.Strike(_b, this, _rules, null),
                 Speed = () => _b.StatOf(Stat.Spd),
                 WantsFreeAction = () => FreeAction(_b),
                 WantsRiposte = () => Riposte(_b),
@@ -779,6 +779,72 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>The rival's Adrenaline is a plain line; the hero's is a typed event.</summary>
+        // ---------- what a turn asks of this mode ----------
+
+        void ICombatBus.BeginBeat(ICombatActor actor)
+        {
+            var side = (DuelSide)actor;
+            System.Array.Clear(side.FiredThisBeat, 0, side.FiredThisBeat.Length);
+        }
+
+        IChain ICombatBus.NewChain() { return NewChain(); }
+
+        double ICombatBus.NextRandom() { return _rng.Next(); }
+
+        bool ICombatBus.TryExecute(ICombatActor attacker)
+        {
+            var side = (DuelSide)attacker;
+            return TryExecuteInternal(side, Other(side));
+        }
+
+        /// <summary>Every rival is worthy blood.</summary>
+        bool ICombatBus.FacingWorthyBlood(ICombatActor attacker) { return true; }
+
+        /// <summary>Only the hero's momentum is announced; the rival's builds silently.</summary>
+        void ICombatBus.ReportMomentum(ICombatActor actor, int amount)
+        {
+            if (((DuelSide)actor).IsHero)
+            {
+                Snap(CombatEventType.Momentum, 1, amount: amount, relic: RelicId.MomentumBead);
+            }
+        }
+
+        void ICombatBus.BeginCrit() { _critChain = true; }
+
+        void ICombatBus.EndCrit() { _critChain = false; }
+
+        string ICombatBus.PlainStrikeLabel(ICombatActor attacker)
+        {
+            return ((DuelSide)attacker).IsHero ? "you" : null;
+        }
+
+        string ICombatBus.CritLabel(ICombatActor attacker)
+        {
+            var side = (DuelSide)attacker;
+            return side.IsHero ? side.Label(RelicId.WeightedDice) : null;
+        }
+
+        RelicId ICombatBus.CritRelic(ICombatActor attacker)
+        {
+            return ((DuelSide)attacker).IsHero ? RelicId.WeightedDice : RelicId.None;
+        }
+
+        string ICombatBus.CritSignalLabel(ICombatActor attacker)
+        {
+            var side = (DuelSide)attacker;
+            return side.IsHero ? side.Label(RelicId.WeightedDice) : "dice";
+        }
+
+        string ICombatBus.LooseCoinsLabel { get { return "loose coins"; } }
+
+        string ICombatBus.HookSpillLabel(ICombatActor attacker)
+        {
+            return ((DuelSide)attacker).Label(RelicId.CutpurseHook);
+        }
+
+        /// <summary>There is no corpse to loot in a duel, so the Magnet adds nothing.</summary>
+        int ICombatBus.SpillBonus(ICombatActor attacker) { return 0; }
+
         void IAdrenalineReporter.ReportAdrenaline(ICombatActor actor, int amount, int depth, string name)
         {
             var side = (DuelSide)actor;
@@ -788,150 +854,12 @@ namespace RelicRun.Core.Combat
 
         // ---------- a turn ----------
 
-        private void Strike(DuelSide side)
-        {
-            DuelSide target = Other(side);
-            System.Array.Clear(side.FiredThisBeat, 0, side.FiredThisBeat.Length);
-
-            side.Strikes++;
-            side.StrikeTotal++;
-
-            if (side.Effective(RelicId.AnvilHeart) > 0 && side.StrikeTotal % 10 == 0 &&
-                side.AnvilBonus < (side.IsAwake(RelicId.AnvilHeart) ? 12 : 10))
-            {
-                side.AnvilBonus++;
-                side.DefBonus++;
-                Line(side, RelicId.AnvilHeart, side.Label(RelicId.AnvilHeart) + " hardens: +1 DEF", 1);
-            }
-
-            // Every rival is worthy blood, so the Oath always announces itself.
-            int duelist = side.Effective(RelicId.DuelistsOath);
-            if (side.Strikes == 1 && duelist > 0)
-            {
-                Line(side, RelicId.DuelistsOath,
-                    side.Label(RelicId.DuelistsOath) + " — worthy blood: +" + (4 * duelist) + " ATK", 1);
-            }
-
-            if (TryExecute(side, target) && target.Php <= 0) return;
-
-            if (side.Effective(RelicId.WeightedDice) > 0 && _rng.Next() < side.StatOf(Stat.Lck) / 100.0)
-            {
-                DuelChain critChain = NewChain();
-                _critChain = true;
-                double scale = critChain.Scale(side, RelicId.WeightedDice);
-
-                if (side.IsHero)
-                {
-                    Snap(CombatEventType.Luck, 0, source: side.Label(RelicId.WeightedDice), relic: RelicId.WeightedDice);
-                }
-
-                DealDamage(side,
-                    JsMath.RoundToInt(side.StatOf(Stat.Atk) * (side.IsAwake(RelicId.WeightedDice) ? 2 : 1.5)),
-                    side.IsHero ? side.Label(RelicId.WeightedDice) : null, 0,
-                    side.IsHero ? RelicId.WeightedDice : RelicId.None, critChain);
-
-                if (side.SetCount(RelicKind.Luck) >= 5)
-                {
-                    EmitLuck(side, "Luck set", 1, RelicId.None, critChain);
-                }
-
-                FireEmitter(side, RelicId.WeightedDice, 0, critChain, scale);
-                EmitLuck(side, side.IsHero ? side.Label(RelicId.WeightedDice) : "dice", 0,
-                    RelicId.WeightedDice, critChain, quiet: true);
-                _critChain = false;
-            }
-            else
-            {
-                int amount = side.StatOf(Stat.Atk);
-                if (side.SetCount(RelicKind.Edge) >= 5 && side.Strikes % 4 == 0)
-                {
-                    amount = JsMath.RoundToInt(amount * 1.5);
-                }
-
-                if (side.BladeCharged)
-                {
-                    amount = JsMath.RoundToInt(amount * (side.IsAwake(RelicId.FortunesEdge) ? 2 : 1.5));
-                    side.BladeCharged = false;
-                    Line(side, RelicId.FortunesEdge, side.Label(RelicId.FortunesEdge) + " — charged strike!", 1);
-                }
-
-                DealDamage(side, amount, side.IsHero ? "you" : null, 0, RelicId.None, NewChain());
-            }
-
-            int momentum = side.Effective(RelicId.MomentumBead);
-            if (momentum > 0)
-            {
-                side.MomentumCount++;
-                if (side.MomentumCount % (side.IsAwake(RelicId.MomentumBead) ? 2 : 3) == 0)
-                {
-                    side.Momentum += momentum;
-
-                    // Only the hero's momentum is announced; the rival's builds silently.
-                    if (side.IsHero)
-                    {
-                        Snap(CombatEventType.Momentum, 1, amount: momentum, relic: RelicId.MomentumBead);
-                    }
-                }
-            }
-
-            if (TryExecute(side, target) && target.Php <= 0) return;
-
-            if (side.SetCount(RelicKind.Pace) >= 7 && side.Strikes % 5 == 0 &&
-                target.Php > 0 && side.Php > 0)
-            {
-                Line(side, RelicId.None, "Pace set — a second strike!", 0);
-                DealDamage(side, side.StatOf(Stat.Atk), side.IsHero ? "you" : null, 0, RelicId.None, NewChain());
-            }
-
-            if (target.Php > 0 && side.Php > 0)
-            {
-                DuelChain chain = NewChain();
-                int hook = side.Effective(RelicId.CutpurseHook);
-
-                if ((hook > 0 && side.IsAwake(RelicId.CutpurseHook)) ||
-                    _rng.Next() < side.StatOf(Stat.Lck) * (hook > 0 ? 2 : 1) / 100.0)
-                {
-                    if (hook > 0 && side.IsHero)
-                    {
-                        Snap(CombatEventType.Luck, 0, source: "loose coins", relic: RelicId.CutpurseHook);
-                    }
-
-                    double scale = hook > 0 ? chain.Scale(side, RelicId.CutpurseHook) : 1.0;
-                    int coins = 1 + (hook > 0 ? JsMath.RoundToInt(hook * scale) : 0) +
-                                (side.SetCount(RelicKind.Greed) >= 5 ? 1 : 0);
-
-                    GainGold(side, coins, hook > 0 ? side.Label(RelicId.CutpurseHook) : "loose coins", 1,
-                        hook > 0 ? RelicId.CutpurseHook : RelicId.None, chain);
-
-                    if (hook > 0)
-                    {
-                        FireEmitter(side, RelicId.CutpurseHook, 0, chain, scale);
-                        EmitLuck(side, "loose coins", 0, RelicId.CutpurseHook, chain, quiet: true);
-                    }
-                }
-
-                int tooth = side.Effective(RelicId.VampireTooth);
-                if (tooth > 0 && target.Php > 0)
-                {
-                    double scale = chain.Scale(side, RelicId.VampireTooth);
-                    Heal(side, JsMath.RoundToInt(tooth * scale), side.Label(RelicId.VampireTooth), 1,
-                        RelicId.VampireTooth, chain);
-                    FireEmitter(side, RelicId.VampireTooth, 0, chain, scale);
-                }
-
-                side.StrikeCount++;
-                if (side.StrikeCount % 3 == 0)
-                {
-                    FireTrigger(side, SocketTrigger.Attack, 0, RelicId.VampireTooth, RelicId.None, chain);
-                }
-            }
-        }
 
         /// <summary>
         /// Executioner's Coin, versus rules: the threshold is 10% per copy up to two, and it
         /// fires once for the whole duel rather than once per floor.
         /// </summary>
-        private bool TryExecute(DuelSide side, DuelSide target)
+        private bool TryExecuteInternal(DuelSide side, DuelSide target)
         {
             int copies = side.Effective(RelicId.ExecutionersCoin);
             if (copies == 0 || side.ExecutionerUsed || target.Php <= 0) return false;

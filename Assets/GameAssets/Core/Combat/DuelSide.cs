@@ -63,21 +63,40 @@ namespace RelicRun.Core.Combat
         public int Stone { get; set; }
         public int Gale { get; set; }
         public int LuckGain { get; set; }
-        public int Momentum;
-        public int MomentumCount;
+        public int Momentum { get; set; }
+
+        /// <summary>Speed built by Momentum Bead, under the shared name.</summary>
+        public int MomentumBonus
+        {
+            get { return Momentum; }
+            set { Momentum = value; }
+        }
+
+        /// <summary>Permanent defence banked over the run, under the shared name.</summary>
+        public int DefenceBonus
+        {
+            get { return DefBonus; }
+            set { DefBonus = value; }
+        }
+
+        public int StatValue(Stat stat)
+        {
+            return StatOf(stat);
+        }
+        public int MomentumCount { get; set; }
         public int QuenchBonus { get; set; }
         public int QuenchCount { get; set; }
 
         /// <summary>Defence rung up by Sentinel Bell. Capped at 3, or 5 when awakened.</summary>
         public int Sentinel { get; set; }
 
-        public int Strikes;
-        public int StrikeCount;
+        public int Strikes { get; set; }
+        public int StrikeCount { get; set; }
         public int PainCount;
         public int GoldCount { get; set; }
         public int StoneCount;
         public int RabbitCount { get; set; }
-        public int StrikeTotal;
+        public int StrikeTotal { get; set; }
 
         public bool BladeCharged { get; set; }
         public bool Blocked;
@@ -99,7 +118,7 @@ namespace RelicRun.Core.Combat
         /// <summary>Set by an awakened Stutterstep on the opponent: the next swing hits itself.</summary>
         public bool Staggered;
 
-        public int AnvilBonus;
+        public int AnvilBonus { get; set; }
         public int DebtLeft { get; set; }
 
         /// <summary>Per-slot guard, cleared each beat, so a genuine event wakes a copy once.</summary>

@@ -285,7 +285,7 @@ namespace RelicRun.Core.Combat
         /// How many copies answer an event, for the two relics whose reaction strength counts
         /// awakened copies differently between the modes.
         /// </summary>
-        private static int ReactionCount(ICombatActor actor, RelicTuning tuning, RelicId id)
+        internal static int ReactionCount(ICombatActor actor, RelicTuning tuning, RelicId id)
         {
             return tuning.ReactionCountsAwakened ? actor.Effective(id) : actor.CountRaw(id);
         }

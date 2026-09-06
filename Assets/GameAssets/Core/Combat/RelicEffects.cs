@@ -72,6 +72,30 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Relics of a kind, with the mode's Hollow Idol rule already applied.</summary>
         int SetCount(RelicKind kind);
+
+        /// <summary>A stat, read through the ledger.</summary>
+        int StatValue(Stats.Stat stat);
+
+        /// <summary>Strikes thrown in this fight.</summary>
+        int Strikes { get; set; }
+
+        /// <summary>Strikes thrown across the whole run.</summary>
+        int StrikeTotal { get; set; }
+
+        /// <summary>Strikes counted toward the socketed attack trigger.</summary>
+        int StrikeCount { get; set; }
+
+        /// <summary>Notches Anvil Heart has cut.</summary>
+        int AnvilBonus { get; set; }
+
+        /// <summary>Permanent defence banked over the run.</summary>
+        int DefenceBonus { get; set; }
+
+        /// <summary>Strikes counted toward Momentum Bead.</summary>
+        int MomentumCount { get; set; }
+
+        /// <summary>Speed built by Momentum Bead.</summary>
+        int MomentumBonus { get; set; }
     }
 
     /// <summary>The primitives a relic effect can reach for.</summary>
@@ -104,6 +128,42 @@ namespace RelicRun.Core.Combat
 
         void FireTrigger(ICombatActor actor, SocketTrigger trigger, int depth,
             RelicId exclude, RelicId cause, IChain chain);
+
+        /// <summary>Clears the per-beat guard so a genuine event may wake each copy once.</summary>
+        void BeginBeat(ICombatActor actor);
+
+        IChain NewChain();
+
+        double NextRandom();
+
+        /// <summary>Executioner's Coin. Returns whether the sentence was carried out.</summary>
+        bool TryExecute(ICombatActor attacker);
+
+        /// <summary>Whether Duelist's Oath recognises this opponent.</summary>
+        bool FacingWorthyBlood(ICombatActor attacker);
+
+        void ReportMomentum(ICombatActor actor, int amount);
+
+        /// <summary>Marks a critical strike as in flight, so Mirror Scale can answer it.</summary>
+        void BeginCrit();
+
+        void EndCrit();
+
+        /// <summary>How a plain strike is labelled in the log.</summary>
+        string PlainStrikeLabel(ICombatActor attacker);
+
+        string CritLabel(ICombatActor attacker);
+
+        RelicId CritRelic(ICombatActor attacker);
+
+        string CritSignalLabel(ICombatActor attacker);
+
+        string LooseCoinsLabel { get; }
+
+        string HookSpillLabel(ICombatActor attacker);
+
+        /// <summary>Extra coins a spill picks up, beyond the Hook and the Greed set.</summary>
+        int SpillBonus(ICombatActor attacker);
     }
 
     /// <summary>

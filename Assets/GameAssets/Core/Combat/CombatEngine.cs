@@ -250,6 +250,50 @@ namespace RelicRun.Core.Combat
             }
 
             public int SetCount(RelicKind kind) { return _engine.SetCount(kind); }
+
+            public int StatValue(Stat stat) { return _engine.HeroStat(stat); }
+
+            public int Strikes
+            {
+                get { return _engine._fightStrikes; }
+                set { _engine._fightStrikes = value; }
+            }
+
+            public int StrikeTotal
+            {
+                get { return _engine._hero.StrikeTotal; }
+                set { _engine._hero.StrikeTotal = value; }
+            }
+
+            public int StrikeCount
+            {
+                get { return _engine._strikeCount; }
+                set { _engine._strikeCount = value; }
+            }
+
+            public int AnvilBonus
+            {
+                get { return _engine._hero.AnvilBonus; }
+                set { _engine._hero.AnvilBonus = value; }
+            }
+
+            public int DefenceBonus
+            {
+                get { return _engine._hero.DefBonus; }
+                set { _engine._hero.DefBonus = value; }
+            }
+
+            public int MomentumCount
+            {
+                get { return _engine._momentumCount; }
+                set { _engine._momentumCount = value; }
+            }
+
+            public int MomentumBonus
+            {
+                get { return _engine._momentumBonus; }
+                set { _engine._momentumBonus = value; }
+            }
         }
 
         private HeroActor _actor;
@@ -376,7 +420,70 @@ namespace RelicRun.Core.Combat
             public int DebtLeft { get; set; }
 
             public int SetCount(RelicKind kind) { return 0; }
+
+            public int StatValue(Stat stat) { return 0; }
+
+            public int Strikes { get; set; }
+
+            public int StrikeTotal { get; set; }
+
+            public int StrikeCount { get; set; }
+
+            public int AnvilBonus { get; set; }
+
+            public int DefenceBonus { get; set; }
+
+            public int MomentumCount { get; set; }
+
+            public int MomentumBonus { get; set; }
         }
+
+        // ---------- what a turn asks of this mode ----------
+
+        void ICombatBus.BeginBeat(ICombatActor actor)
+        {
+            System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+        }
+
+        IChain ICombatBus.NewChain() { return NewChain(); }
+
+        double ICombatBus.NextRandom() { return _rng.Next(); }
+
+        bool ICombatBus.TryExecute(ICombatActor attacker) { return TryExecuteInternal(); }
+
+        /// <summary>In a delve only elites and bosses are worth the Oath.</summary>
+        bool ICombatBus.FacingWorthyBlood(ICombatActor attacker)
+        {
+            return _cur != null &&
+                   (_cur.Rank == EnemyRank.Boss || _cur.Rank == EnemyRank.King || _cur.Rank == EnemyRank.Elite);
+        }
+
+        void ICombatBus.ReportMomentum(ICombatActor actor, int amount)
+        {
+            Snap(CombatEventType.Momentum, 1, amount: amount, relic: RelicId.MomentumBead);
+        }
+
+        void ICombatBus.BeginCrit() { }
+
+        void ICombatBus.EndCrit() { }
+
+        string ICombatBus.PlainStrikeLabel(ICombatActor attacker) { return "you"; }
+
+        string ICombatBus.CritLabel(ICombatActor attacker) { return RelicCatalog.KeyOf(RelicId.WeightedDice); }
+
+        RelicId ICombatBus.CritRelic(ICombatActor attacker) { return RelicId.WeightedDice; }
+
+        string ICombatBus.CritSignalLabel(ICombatActor attacker)
+        {
+            return RelicCatalog.KeyOf(RelicId.WeightedDice);
+        }
+
+        string ICombatBus.LooseCoinsLabel { get { return "looseCoins"; } }
+
+        string ICombatBus.HookSpillLabel(ICombatActor attacker) { return "looseCoins"; }
+
+        /// <summary>Coin Magnet swells a spill as well as a corpse's loot.</summary>
+        int ICombatBus.SpillBonus(ICombatActor attacker) { return EffectiveCount(RelicId.CoinMagnet); }
 
         void IAdrenalineReporter.ReportAdrenaline(ICombatActor actor, int amount, int depth, string name)
         {
@@ -464,7 +571,7 @@ namespace RelicRun.Core.Combat
                 {
                     Gauge = (heroDash && !enemyDash) ? 0 : AtbScheduler.Gauge,
                     Alive = () => _hero.Php > 0,
-                    Act = PlayerHits,
+                    Act = () => CombatTurn.Strike(_actor, this, _rules, null),
                     Speed = () => HeroStat(Stat.Spd),
                     WantsFreeAction = AwakenedBootsReady,
                     WantsRiposte = TakeRiposte,
@@ -830,7 +937,7 @@ namespace RelicRun.Core.Combat
         /// most once per floor, and the flag lives in carry state so a revive cannot hand the
         /// hero a second execution.
         /// </summary>
-        private bool TryExecute()
+        private bool TryExecuteInternal()
         {
             if (EffectiveCount(RelicId.ExecutionersCoin) == 0 || _carry.ExecutionerUsed ||
                 _enemyHp <= 0 ||
@@ -849,166 +956,6 @@ namespace RelicRun.Core.Combat
             return true;
         }
 
-        private void PlayerHits()
-        {
-            System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
-
-            _fightStrikes++;
-            _hero.StrikeTotal++;
-
-            // Anvil Heart hardens a notch every ten strikes across the whole run.
-            if (EffectiveCount(RelicId.AnvilHeart) > 0 && _hero.StrikeTotal % 10 == 0 &&
-                _hero.AnvilBonus < (IsAwake(RelicId.AnvilHeart) ? 12 : 10))
-            {
-                _hero.AnvilBonus++;
-                _hero.DefBonus++;
-                Snap(CombatEventType.First, 1, relic: RelicId.AnvilHeart,
-                    source: RelicCatalog.KeyOf(RelicId.AnvilHeart) + " hardens: +1 DEF");
-            }
-
-            bool worthyBlood = _cur.Rank == EnemyRank.Boss || _cur.Rank == EnemyRank.King ||
-                               _cur.Rank == EnemyRank.Elite;
-
-            int duelist = EffectiveCount(RelicId.DuelistsOath);
-            if (_fightStrikes == 1 && worthyBlood && duelist > 0)
-            {
-                Snap(CombatEventType.First, 1, relic: RelicId.DuelistsOath,
-                    source: RelicCatalog.KeyOf(RelicId.DuelistsOath) + " — worthy blood: +" +
-                            (4 * duelist) + " ATK");
-            }
-
-            if (TryExecute() && _enemyHp <= 0)
-            {
-                return;
-            }
-
-            // Weighted Dice: a LCK% crit that also puts a luck signal on the bus.
-            if (CountItem(RelicId.WeightedDice) > 0 && _rng.Next() < HeroStat(Stat.Lck) / 100.0)
-            {
-                ChainContext critChain = NewChain();
-                double critScale = critChain.Scale(RelicId.WeightedDice);
-                Snap(CombatEventType.Luck, 0, source: RelicCatalog.KeyOf(RelicId.WeightedDice),
-                    relic: RelicId.WeightedDice);
-                DealDamage(
-                    JsMath.RoundToInt(HeroStat(Stat.Atk) * (IsAwake(RelicId.WeightedDice) ? 2 : 1.5)),
-                    RelicCatalog.KeyOf(RelicId.WeightedDice), 0, RelicId.WeightedDice, critChain);
-
-                // The Luck set makes crits lucky breaks in their own right.
-                if (SetCount(RelicKind.Luck) >= 5)
-                {
-                    EmitLuck("Luck set", 1, RelicId.None, critChain);
-                }
-
-                FireEmitter(RelicId.WeightedDice, 0, critChain, critScale);
-
-                // Quiet: the luck line above already reported it, but the signal still travels.
-                EmitLuck(RelicCatalog.KeyOf(RelicId.WeightedDice), 0, RelicId.WeightedDice, critChain, quiet: true);
-            }
-            else
-            {
-                int amount = HeroStat(Stat.Atk);
-
-                // The Edge set sharpens every fourth strike.
-                if (SetCount(RelicKind.Edge) >= 5 && _fightStrikes % 4 == 0)
-                {
-                    amount = JsMath.RoundToInt(amount * 1.5);
-                }
-
-                // Fortune's Edge spends its charge on this one blow.
-                if (_bladeCharged)
-                {
-                    amount = JsMath.RoundToInt(amount * (IsAwake(RelicId.FortunesEdge) ? 2 : 1.5));
-                    _bladeCharged = false;
-                    Snap(CombatEventType.First, 1, relic: RelicId.FortunesEdge,
-                        source: RelicCatalog.KeyOf(RelicId.FortunesEdge) + " — charged strike!");
-                }
-
-                DealDamage(amount, "you", 0);
-            }
-
-            // Momentum Bead builds speed across the whole floor, not just this fight.
-            int momentum = EffectiveCount(RelicId.MomentumBead);
-            if (momentum > 0)
-            {
-                _momentumCount++;
-                if (_momentumCount % (IsAwake(RelicId.MomentumBead) ? 2 : 3) == 0)
-                {
-                    _momentumBonus += momentum;
-                    Snap(CombatEventType.Momentum, 1, amount: momentum, relic: RelicId.MomentumBead);
-                }
-            }
-
-            if (TryExecute() && _enemyHp <= 0)
-            {
-                return;
-            }
-
-            // The Pace set lands a second strike every fifth blow.
-            if (SetCount(RelicKind.Pace) >= 7 && _fightStrikes % 5 == 0 &&
-                _enemyHp > 0 && _hero.Php > 0)
-            {
-                Snap(CombatEventType.First, 0, source: "Pace set — a second strike!");
-                DealDamage(HeroStat(Stat.Atk), "you", 0);
-            }
-
-            if (_enemyHp > 0)
-            {
-                // The strike is one genuine event; the spill and the lifesteal share its chain.
-                ChainContext chain = NewChain();
-
-                int hook = CountItem(RelicId.CutpurseHook);
-
-                // Loose coins: a LCK% spill on a landed strike, which the Hook doubles. The draw
-                // happens whether or not the hero carries it, so it must not be skipped when
-                // they do not - every later draw in the fight depends on this one being taken.
-                bool spill = (hook > 0 && IsAwake(RelicId.CutpurseHook)) ||
-                             _rng.Next() < HeroStat(Stat.Lck) * (hook > 0 ? 2 : 1) / 100.0;
-
-                if (spill)
-                {
-                    if (hook > 0)
-                    {
-                        Snap(CombatEventType.Luck, 0, source: "looseCoins", relic: RelicId.CutpurseHook);
-                    }
-
-                    double scale = hook > 0 ? chain.Scale(RelicId.CutpurseHook) : 1.0;
-                    int coins = 1
-                        + (hook > 0 ? JsMath.RoundToInt(hook * scale) : 0)
-                        + EffectiveCount(RelicId.CoinMagnet)
-                        + (SetCount(RelicKind.Greed) >= 5 ? 1 : 0);
-
-                    GainGold(coins, "looseCoins", 1,
-                        hook > 0 ? RelicId.CutpurseHook : RelicId.None, chain);
-
-                    if (hook > 0)
-                    {
-                        FireEmitter(RelicId.CutpurseHook, 0, chain, scale);
-
-                        // Quiet: the luck line was already logged above, but the signal itself
-                        // still has to reach anything listening for it.
-                        EmitLuck("looseCoins", 0, RelicId.CutpurseHook, chain, quiet: true);
-                    }
-                }
-
-                // Vampire Tooth drinks on every landed strike.
-                int tooth = CountItem(RelicId.VampireTooth);
-                if (tooth > 0 && _enemyHp > 0)
-                {
-                    double scale = chain.Scale(RelicId.VampireTooth);
-                    Heal(JsMath.RoundToInt(tooth * scale),
-                        RelicCatalog.KeyOf(RelicId.VampireTooth), 1, RelicId.VampireTooth, chain);
-                    FireEmitter(RelicId.VampireTooth, 0, chain, scale);
-                }
-
-                _strikeCount++;
-
-                // Socketed attack triggers fire on every third strike, counted across the floor.
-                if (_strikeCount % 3 == 0)
-                {
-                    FireTrigger(SocketTrigger.Attack, 0, RelicId.VampireTooth, RelicId.None, chain);
-                }
-            }
-        }
 
         // ---------- helpers ----------
 
