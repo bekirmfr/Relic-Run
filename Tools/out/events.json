@@ -1,0 +1,318 @@
+[
+  {
+    "index": 0,
+    "cat": "MERCHANT",
+    "title": "The Pale Merchant",
+    "art": "assets/event-pale-merchant.png",
+    "text": "A lantern gutters in an alcove. A hooded figure spreads a cloth: one relic, gleaming. \"Coin,\" it rasps, \"or something warmer.\"",
+    "choices": [
+      {
+        "label": "Buy the relic",
+        "hint": "COSTS 60 GOLD",
+        "cost": 60,
+        "run": {
+          "__fn": "(G, r, s) => { G.gold -= 60; return { text: \"It hands you \" + evRelic(G, r, s) + \" and melts into the dark.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Pay in blood",
+        "hint": "COSTS 20 HP",
+        "cost": null,
+        "run": {
+          "__fn": "(G, r, s) => { G.php -= 20; return { text: \"The knife stings. \" + evRelic(G, r, s) + \" is yours.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Walk away",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"You keep walking. The lantern fades behind you.\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "cat": "ENCOUNTER",
+    "title": "A Voice in the Dark",
+    "art": "assets/event-voice-dark.png",
+    "text": "Someone is trapped under fallen beams. \"Help me,\" they wheeze, \"and I will not forget it.\" Digging them out will cost you supplies.",
+    "choices": [
+      {
+        "label": "Help them",
+        "hint": "COSTS 10 GOLD",
+        "cost": 10,
+        "run": {
+          "__fn": "G => { G.gold -= 10; G.pending = { floor: G.floor + 1, gold: 30, src: \"A debt repaid\" }; return { text: \"They limp off into the dark, whispering a promise.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Leave them",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"Their curses follow you down the stair.\", good: false })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "cat": "GAMBLE",
+    "title": "Scratching in the Walls",
+    "art": "assets/event-scratching-walls.png",
+    "text": "Behind the brickwork: skrit, skrit, skrit. Something is in there. Something, or someone's stash.",
+    "choices": [
+      {
+        "label": "Break the wall",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "(G, r) => r() < 0.5 ? (G.gold += 25, { text: \"A hidden cache! +25 gold.\", good: true }) : (G.php -= 6, { text: \"Teeth. Many teeth. -6 HP.\", good: false })"
+        }
+      },
+      {
+        "label": "Keep moving",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"Some walls are better left whole.\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "cat": "ENCOUNTER",
+    "title": "The Chained Ghost",
+    "art": "assets/event-chained-ghost.png",
+    "text": "A translucent figure bars the path, dragging a locket on a chain. \"Carry it for me,\" it moans, \"and my shield is yours. It is... heavy.\"",
+    "choices": [
+      {
+        "label": "Take the locket",
+        "hint": "+5 DEF · -5 SPD",
+        "cost": null,
+        "run": {
+          "__fn": "G => { G.defB += 5; G.spdB -= 5; return { text: \"Cold iron settles around you. +5 DEF, -5 SPD.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Refuse",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"The ghost sighs and drifts through the wall.\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 4,
+    "cat": "ENCOUNTER",
+    "title": "Knife at Your Throat",
+    "art": "assets/event-knife-throat.png",
+    "text": "A thief drops from the ceiling, blade already out. \"The purse. Or we see what you're made of.\"",
+    "choices": [
+      {
+        "label": "Pay them off",
+        "hint": "COSTS 15 GOLD",
+        "cost": 15,
+        "run": {
+          "__fn": "G => { G.gold -= 15; return { text: \"The thief bows mockingly and vanishes.\", good: false }; }"
+        }
+      },
+      {
+        "label": "Fight!",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "(G, r) => luckRoll(G, r, 0.6) ? (G.gold += 20, { text: \"You win — and take their purse. +20 gold.\", good: true }) : (G.php -= 8, G.gold = Math.max(0, G.gold - 10), { text: \"The blade finds you. -8 HP, -10 gold.\", good: false })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 5,
+    "cat": "BLESSING",
+    "title": "The Glimmering Pool",
+    "art": "assets/event-glimmering-pool.png",
+    "text": "Water pools in a basin of pale stone, lit from below by nothing at all. It smells like rain from the world above.",
+    "choices": [
+      {
+        "label": "Drink deep",
+        "hint": "+8 HP",
+        "cost": null,
+        "run": {
+          "__fn": "G => { G.php += 8; return { text: \"Warmth spreads through you. +8 HP.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Don't trust it",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"You cup a handful, then let it fall.\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 6,
+    "cat": "TRAP",
+    "title": "Rusted Spike Trap",
+    "art": "assets/event-rusted-spikes.png",
+    "text": "The floor ahead is a carpet of rusted spikes, older than the dungeon's name. There is no way around.",
+    "choices": [
+      {
+        "label": "Pick across slowly",
+        "hint": "-5 SPD",
+        "cost": null,
+        "run": {
+          "__fn": "G => { G.spdB -= 5; return { text: \"You make it — but your boots are ruined. -5 SPD.\", good: false }; }"
+        }
+      },
+      {
+        "label": "Leap it",
+        "hint": "-6 HP",
+        "cost": null,
+        "run": {
+          "__fn": "G => { G.php -= 6; return { text: \"Almost. A spike rakes your leg. -6 HP.\", good: false }; }"
+        }
+      }
+    ]
+  },
+  {
+    "index": 7,
+    "cat": "GAMBLE",
+    "title": "The Imp's Dice",
+    "art": "assets/event-imps-dice.png",
+    "text": "An imp sits cross-legged on a barrel, rattling bone dice. \"Double or nothing, delver. The dice never lie. I do, but the dice never.\"",
+    "choices": [
+      {
+        "label": "Bet 15 gold",
+        "hint": "50/50 · WIN +30",
+        "cost": 15,
+        "run": {
+          "__fn": "(G, r) => luckRoll(G, r, 0.5) ? (G.gold += 30, { text: \"The dice smile on you. +30 gold.\", good: true }) : (G.gold -= 15, { text: \"The imp cackles and pockets your coin. -15 gold.\", good: false })"
+        }
+      },
+      {
+        "label": "Decline",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"The imp shrugs. \\\"Wise. Boring, but wise.\\\"\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 8,
+    "cat": "ENCOUNTER",
+    "title": "Altar of the Deep",
+    "art": "assets/event-altar-deep.png",
+    "text": "A black altar, worn smooth by ten thousand palms. The groove down its center is stained a color you decide not to name.",
+    "choices": [
+      {
+        "label": "Offer blood",
+        "hint": "-5 HP · +2 ATK",
+        "cost": null,
+        "run": {
+          "__fn": "G => { G.php -= 5; G.atkB += 2; return { text: \"The altar drinks. Your arms feel like iron. +2 ATK.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Pray quietly",
+        "hint": "+3 HP",
+        "cost": null,
+        "run": {
+          "__fn": "G => { G.php += 3; return { text: \"A small mercy settles over you. +3 HP.\", good: true }; }"
+        }
+      }
+    ]
+  },
+  {
+    "index": 9,
+    "cat": "GAMBLE",
+    "title": "The Glowing Mushroom",
+    "art": "assets/event-glowing-mushroom.png",
+    "text": "A fist-sized mushroom pulses faint blue in the dark. Every delver knows the stories. Half of them end well.",
+    "choices": [
+      {
+        "label": "Eat it",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "(G, r) => luckRoll(G, r, 0.5) ? (G.pmax += 4, G.php += 4, { text: \"Power blooms in your chest. +4 MAX HP.\", good: true }) : (G.php -= 4, { text: \"Your stomach disagrees. Violently. -4 HP.\", good: false })"
+        }
+      },
+      {
+        "label": "Leave it",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"It pulses on, patient, for the next fool.\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 10,
+    "cat": "MERCHANT",
+    "title": "The Dead Miner's Map",
+    "art": "assets/event-miners-map.png",
+    "text": "A skeleton in a miner's helm clutches a folded chart. Its jaw hangs open, as if mid-bargain. A living voice from nowhere: \"Ten gold, and the good veins are yours.\"",
+    "choices": [
+      {
+        "label": "Buy the map",
+        "hint": "COSTS 10 GOLD",
+        "cost": 10,
+        "run": {
+          "__fn": "G => { G.gold -= 10; G.pending = { floor: G.floor + 1, gold: 25, src: \"The miner's veins\" }; return { text: \"Marked in a dead man's hand: where the gold hides below.\", good: true }; }"
+        }
+      },
+      {
+        "label": "Rob the dead",
+        "hint": "FREE MAP · RISK A CURSE",
+        "cost": null,
+        "run": {
+          "__fn": "(G, r) => luckRoll(G, r, 0.5) ? (G.pending = { floor: G.floor + 1, gold: 25, src: \"The miner's veins\" }, { text: \"You pry the map from cold fingers. The dark stays silent... this time.\", good: true }) : (G.php -= 6, G.spdB -= 3, { text: \"The miner's grip tightens. A dead-man's curse: -6 HP, -3 SPD.\", good: false })"
+        }
+      },
+      {
+        "label": "Walk on",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"You leave the miner his map. Some bargains outlive the bargainer.\", good: true })"
+        }
+      }
+    ]
+  },
+  {
+    "index": 11,
+    "cat": "CURSE",
+    "title": "A Chest, Unclaimed",
+    "art": "assets/event-chest.png",
+    "text": "A banded chest sits in the open, unlocked, unguarded, in a dungeon that has never once been kind. It is exactly as suspicious as it looks.",
+    "choices": [
+      {
+        "label": "Open it",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "(G, r) => r() < 0.4 ? (G.gold += 40, { text: \"Actual treasure. Unbelievable. +40 gold.\", good: true }) : (G.defB -= 1, G.php -= 4, { text: \"A curse of rot seeps out. -1 DEF, -4 HP.\", good: false })"
+        }
+      },
+      {
+        "label": "Leave it",
+        "hint": null,
+        "cost": null,
+        "run": {
+          "__fn": "() => ({ text: \"You've read this story before. You walk on.\", good: true })"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,96 @@
+{
+  "species": [
+    {
+      "idx": 0,
+      "id": "rat",
+      "sheetRow": 1
+    },
+    {
+      "idx": 1,
+      "id": "bat",
+      "sheetRow": 0
+    },
+    {
+      "idx": 2,
+      "id": "skull",
+      "sheetRow": 3
+    },
+    {
+      "idx": 3,
+      "id": "slime",
+      "sheetRow": 2
+    },
+    {
+      "idx": 4,
+      "id": "wraith",
+      "sheetRow": 6
+    },
+    {
+      "idx": 5,
+      "id": "coin",
+      "sheetRow": 4
+    },
+    {
+      "idx": 6,
+      "id": "spider",
+      "sheetRow": 5
+    },
+    {
+      "idx": 7,
+      "id": "ogre",
+      "sheetRow": 11
+    },
+    {
+      "idx": 8,
+      "id": "serpent",
+      "sheetRow": 10
+    },
+    {
+      "idx": 9,
+      "id": "crown",
+      "sheetRow": 12
+    },
+    {
+      "idx": 10,
+      "id": "ghoolem",
+      "sheetRow": 9
+    },
+    {
+      "idx": 11,
+      "id": "eye",
+      "sheetRow": 7
+    },
+    {
+      "idx": 12,
+      "id": "husk",
+      "sheetRow": 8
+    }
+  ],
+  "sheet": {
+    "file": "assets/enemies-hoard.png",
+    "cols": 3,
+    "rows": 13,
+    "cell": 64,
+    "columnIsRank": [
+      "guard",
+      "elite",
+      "boss"
+    ]
+  },
+  "ladder": [
+    1,
+    0,
+    3,
+    2,
+    5,
+    6,
+    4,
+    11,
+    12,
+    10,
+    8
+  ],
+  "spare": 7,
+  "kingSpecies": 9,
+  "notes": "Column = rank variant, row = species. LADDER is floor-order; SPARE is the king's honour guard."
+}

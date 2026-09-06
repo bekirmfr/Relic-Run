@@ -1,0 +1,33 @@
+{
+  "generated": "2026-09-06T18:55:03.087Z",
+  "source": "Daily Delve.dc.html",
+  "counts": {
+    "relics": 50,
+    "relicsCut": 28,
+    "kinds": 8,
+    "dungeons": 10,
+    "events": 12,
+    "species": 13,
+    "triggers": 8,
+    "emitters": 7,
+    "locales": 8
+  },
+  "localeIds": [
+    "en",
+    "tr",
+    "zh",
+    "es",
+    "fr",
+    "ru",
+    "ja",
+    "ar"
+  ],
+  "needsHandPort": [
+    "events.json → choices[].run: outcome closures, port to C# EventOutcome handlers",
+    "progression.json → needFormula / bonusesFormula / tierMult: port to Progression.cs",
+    "progression.json → achievements[].ok: predicates read save state, port to C#"
+  ],
+  "warnings": [
+    "relic debtflesh has no icon cell"
+  ]
+}

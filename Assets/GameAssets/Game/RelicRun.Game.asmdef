@@ -1,0 +1,19 @@
+{
+    "name": "RelicRun.Game",
+    "rootNamespace": "RelicRun.Game",
+    "references": [
+        "RelicRun.Core",
+        "VContainer",
+        "UniTask",
+        "GameLift"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

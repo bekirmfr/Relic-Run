@@ -1,0 +1,1321 @@
+[
+  {
+    "id": "whetstone",
+    "kind": "EDGE",
+    "glyph": "sword",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 0,
+      "row": 2
+    },
+    "text": {
+      "name": "Whetstone",
+      "desc": "+2 attack.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "heart",
+    "kind": "FLESH",
+    "glyph": "heart",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 0,
+      "row": 1
+    },
+    "text": {
+      "name": "Ox Heart",
+      "desc": "+13 max HP, heal 13.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "debtflesh",
+    "kind": "GREED",
+    "glyph": "heart",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "heal"
+    ],
+    "reacts": [],
+    "wheel": [
+      "GOLD",
+      "GRACE"
+    ],
+    "nativeTrigger": null,
+    "icon": null,
+    "text": {
+      "name": "Debt of Flesh",
+      "desc": "Every time you spend gold, heal 10. Any spend — rerolls, the bazaar, tolls.",
+      "flavor": "The body remembers every coin that leaves.",
+      "passive": "Spending gold heals 10.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "magnet",
+    "kind": "GREED",
+    "glyph": "magnet",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "gold"
+    ],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": "t_kill",
+    "icon": {
+      "col": 0,
+      "row": 5
+    },
+    "text": {
+      "name": "Coin Magnet",
+      "desc": "Loose coins drop +1 gold.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "alchemist",
+    "kind": "CHAIN",
+    "glyph": "vial",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "heal"
+    ],
+    "reacts": [
+      "gold"
+    ],
+    "wheel": [
+      "GOLD",
+      "GRACE"
+    ],
+    "nativeTrigger": "t_gold",
+    "icon": {
+      "col": 0,
+      "row": 7
+    },
+    "text": {
+      "name": "Alchemist's Vial",
+      "desc": "When you gain gold: heal 1.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "altar",
+    "kind": "CHAIN",
+    "glyph": "altar",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [
+      "heal"
+    ],
+    "wheel": [
+      "GRACE",
+      "BLOOD"
+    ],
+    "nativeTrigger": "t_heal",
+    "icon": {
+      "col": 1,
+      "row": 7
+    },
+    "text": {
+      "name": "Blood Altar",
+      "desc": "When you heal: deal 2 damage.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "thorns",
+    "kind": "CHAIN",
+    "glyph": "thorns",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [
+      "hit"
+    ],
+    "wheel": null,
+    "nativeTrigger": "t_hit",
+    "icon": {
+      "col": 2,
+      "row": 7
+    },
+    "text": {
+      "name": "Thorn Vest",
+      "desc": "When hit: deal 2 back.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "tooth",
+    "kind": "CHAIN",
+    "glyph": "tooth",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "heal"
+    ],
+    "reacts": [
+      "hit"
+    ],
+    "wheel": null,
+    "nativeTrigger": "t_attack",
+    "icon": {
+      "col": 3,
+      "row": 7
+    },
+    "text": {
+      "name": "Vampire Tooth",
+      "desc": "When you attack: heal 1.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "midas",
+    "kind": "EDGE",
+    "glyph": "crown",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 1,
+      "row": 2
+    },
+    "text": {
+      "name": "Midas Blade",
+      "desc": "On pickup: +1 attack per 60 gold in the purse (now +{n}).",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "greed",
+    "kind": "CURSE",
+    "glyph": "skull",
+    "stackable": false,
+    "modes": [
+      "delve"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": "t_hit",
+    "icon": {
+      "col": 0,
+      "row": 6
+    },
+    "text": {
+      "name": "Greedy Curse",
+      "desc": "Gold gains doubled. Hits hurt +1.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "boots",
+    "kind": "PACE",
+    "glyph": "boots",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 0,
+      "row": 3
+    },
+    "text": {
+      "name": "Swift Boots",
+      "desc": "Attack 25% faster.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "dash",
+    "kind": "PACE",
+    "glyph": "dash",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 1,
+      "row": 3
+    },
+    "text": {
+      "name": "Battle Dash",
+      "desc": "You strike first in every fight.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "clover",
+    "kind": "LUCK",
+    "glyph": "clover",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": "t_dodge",
+    "icon": {
+      "col": 0,
+      "row": 4
+    },
+    "text": {
+      "name": "Lucky Clover",
+      "desc": "Unlocks evasion: dodge enemy attacks at LCK%. Also +10 LCK.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "iron",
+    "kind": "GUARD",
+    "glyph": "shield",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 0,
+      "row": 0
+    },
+    "text": {
+      "name": "Iron Skin",
+      "desc": "+2 DEF. Hits land softer.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "adrenaline",
+    "kind": "EDGE",
+    "glyph": "bolt",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "hit"
+    ],
+    "wheel": null,
+    "nativeTrigger": "t_hit",
+    "icon": {
+      "col": 2,
+      "row": 2
+    },
+    "text": {
+      "name": "Adrenaline Gland",
+      "desc": "First hit taken each floor: +1 attack, permanently.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "piggy",
+    "kind": "GREED",
+    "glyph": "coin",
+    "stackable": false,
+    "modes": [
+      "delve"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 1,
+      "row": 5
+    },
+    "text": {
+      "name": "Piggy Bank",
+      "desc": "Cash out for 25% more gold.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "berserk",
+    "kind": "EDGE",
+    "glyph": "fist",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 2
+    },
+    "text": {
+      "name": "Berserker Charm",
+      "desc": "+4 attack while below half HP.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "rabbit",
+    "kind": "LUCK",
+    "glyph": "rabbit",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": "t_luck",
+    "icon": {
+      "col": 1,
+      "row": 4
+    },
+    "text": {
+      "name": "Rabbit’s Foot",
+      "desc": "Each lucky break: +1 LCK this floor. In versus: every 3rd.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "cutpurse",
+    "kind": "GREED",
+    "glyph": "purse",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "gold"
+    ],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": "t_luck",
+    "icon": {
+      "col": 2,
+      "row": 5
+    },
+    "text": {
+      "name": "Cutpurse Hook",
+      "desc": "Doubles loose-coin spill odds; spills pay +1 gold per copy.",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "dice",
+    "kind": "LUCK",
+    "glyph": "dice",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 2,
+      "row": 4
+    },
+    "text": {
+      "name": "Weighted Dice",
+      "desc": "+5 LCK. Your strikes may crit for 1.5× damage. Crit chance = [[LCK]].",
+      "source": "strings"
+    }
+  },
+  {
+    "id": "marrow",
+    "kind": "FLESH",
+    "glyph": "heart",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "heal"
+    ],
+    "reacts": [
+      "hit"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 1,
+      "row": 1
+    },
+    "text": {
+      "name": "Troll Marrow",
+      "desc": "While below half HP, every hit you take knits back 2 per copy.",
+      "flavor": "It remembers how to grow back — when it must.",
+      "passive": "Bloodied: heal 2 after every hit taken.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "stomach",
+    "kind": "FLESH",
+    "glyph": "vial",
+    "stackable": false,
+    "modes": [
+      "delve"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 2,
+      "row": 1
+    },
+    "text": {
+      "name": "Second Stomach",
+      "desc": "Between-floor breathers heal double.",
+      "flavor": "Always room for one more meal.",
+      "passive": "Breather heals ×2.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "martyr",
+    "kind": "FLESH",
+    "glyph": "heart",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "heal"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 1
+    },
+    "text": {
+      "name": "Martyr's Knot",
+      "desc": "Heals from relics restore +1 more per copy.",
+      "flavor": "Tied once, it gives forever.",
+      "passive": "Relic heals +1.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "bloodpact",
+    "kind": "CURSE",
+    "glyph": "altar",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 1,
+      "row": 6
+    },
+    "text": {
+      "name": "Blood Pact",
+      "desc": "Signing costs 20 HP — and 20% of it again every round in versus; +5 ATK, permanent.",
+      "flavor": "Sign here. And here. And bleed here.",
+      "passive": "-20 HP (versus: -20% max HP per round); +5 ATK forever.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "soil",
+    "kind": "FLESH",
+    "glyph": "skull",
+    "stackable": false,
+    "modes": [
+      "delve"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 1
+    },
+    "text": {
+      "name": "Gravekeeper's Soil",
+      "desc": "Once per run: refuse death, rise at 25% HP.",
+      "flavor": "The ground gave you back. Once.",
+      "passive": "Cheat death once per run (25% HP).",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "hide",
+    "kind": "FLESH",
+    "glyph": "shield",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "hit"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 5,
+      "row": 1
+    },
+    "text": {
+      "name": "Padded Hide",
+      "desc": "+1 DEF; the first hit each fight lands 2 lighter per copy.",
+      "flavor": "Soft outside. Softer inside.",
+      "passive": "+1 DEF; first hit each fight -2.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "mirrorscale",
+    "kind": "GUARD",
+    "glyph": "shield",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [
+      "hit"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 1,
+      "row": 0
+    },
+    "text": {
+      "name": "Mirror Scale",
+      "desc": "Critical hits against you are reflected in full.",
+      "flavor": "See how you like it.",
+      "nativeText": "Fires when an enemy crits you.",
+      "activeText": "Reflects the full crit.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "anvil",
+    "kind": "GUARD",
+    "glyph": "fist",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 2,
+      "row": 0
+    },
+    "text": {
+      "name": "Anvil Heart",
+      "desc": "+1 DEF every 10 strikes you land (max +10).",
+      "flavor": "Every blow forges it harder.",
+      "passive": "Strikes harden you, blow by blow.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "sentinel",
+    "kind": "GUARD",
+    "glyph": "shield",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 0
+    },
+    "text": {
+      "name": "Sentinel Bell",
+      "desc": "Each dodge rings +1 DEF for the rest of the floor.",
+      "flavor": "It rings before the blade arrives.",
+      "nativeText": "Fires when you dodge.",
+      "activeText": "+1 DEF this floor.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "fortunesedge",
+    "kind": "EDGE",
+    "glyph": "sword",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 2
+    },
+    "text": {
+      "name": "Fortune's Edge",
+      "desc": "Luck signals charge the blade: your next strike hits +50%.",
+      "flavor": "Chance, honed to a killing angle.",
+      "nativeText": "Fires on luck signals.",
+      "activeText": "Charges the next strike (+50%).",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "quickpulse",
+    "kind": "PACE",
+    "glyph": "boots",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 3
+    },
+    "text": {
+      "name": "Quickened Pulse",
+      "desc": "Luck signals quicken you: +1 SPD per copy for the rest of the floor (round in versus).",
+      "flavor": "Fortune runs in the veins.",
+      "nativeText": "Fires on luck signals.",
+      "activeText": "+1 SPD this floor.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "duelist",
+    "kind": "EDGE",
+    "glyph": "sword",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 7,
+      "row": 1
+    },
+    "text": {
+      "name": "Duelist's Oath",
+      "desc": "+4 ATK per copy against bosses, elites and rivals — the oath shatters after 4 floors.",
+      "flavor": "Sworn hard. Sworn briefly.",
+      "passive": "+4 ATK vs worthy blood; shatters after 4 floors.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "quenched",
+    "kind": "EDGE",
+    "glyph": "sword",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "heal"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 5,
+      "row": 2
+    },
+    "text": {
+      "name": "Quenched Blade",
+      "desc": "Every 3rd heal tempers +1 ATK for the rest of the floor.",
+      "flavor": "Cooled in mercy, swung in anger.",
+      "nativeText": "Fires on every 3rd heal.",
+      "activeText": "+1 ATK this floor.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "executioner",
+    "kind": "EDGE",
+    "glyph": "skull",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 6,
+      "row": 2
+    },
+    "text": {
+      "name": "Executioner's Coin",
+      "desc": "Once per floor: a strike on an enemy below 20% HP finishes it. In versus: 10% per copy, max 20%.",
+      "flavor": "Heads, it ends. Tails, it ends.",
+      "passive": "Execute low foes, once per floor.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "windanklet",
+    "kind": "PACE",
+    "glyph": "boots",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 2,
+      "row": 3
+    },
+    "text": {
+      "name": "Wind Anklet",
+      "desc": "+2 SPD per copy.",
+      "flavor": "It hears the arrow leave the string.",
+      "passive": "+2 SPD, permanent.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "stutter",
+    "kind": "PACE",
+    "glyph": "dash",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 3
+    },
+    "text": {
+      "name": "Stutterstep",
+      "desc": "Each dodge staggers the enemy: -1 SPD per copy, for the fight.",
+      "flavor": "They swing where you were.",
+      "nativeText": "Fires when you dodge.",
+      "activeText": "Enemy -1 SPD.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "momentum",
+    "kind": "PACE",
+    "glyph": "boots",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 5,
+      "row": 3
+    },
+    "text": {
+      "name": "Momentum Bead",
+      "desc": "Every 3rd strike builds +1 SPD this floor per copy.",
+      "flavor": "It only rolls downhill.",
+      "passive": "Strikes slowly build speed, floor-long.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "haredrum",
+    "kind": "PACE",
+    "glyph": "rabbit",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 6,
+      "row": 3
+    },
+    "text": {
+      "name": "Hare's Drum",
+      "desc": "After a dodge, your next attack comes instantly.",
+      "flavor": "Its beat skips when yours should.",
+      "nativeText": "Fires when you dodge.",
+      "activeText": "Instant riposte.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "horseshoe",
+    "kind": "LUCK",
+    "glyph": "magnet",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "luck"
+    ],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 4
+    },
+    "text": {
+      "name": "Loaded Horseshoe",
+      "desc": "+5 [[LCK]] per copy; your dodges release luck signals.",
+      "flavor": "Nailed on backwards, works anyway.",
+      "nativeText": "Fires when you dodge.",
+      "activeText": "Releases a luck signal.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "catwhisker",
+    "kind": "LUCK",
+    "glyph": "rabbit",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": [
+      "GRACE",
+      "BLOOD"
+    ],
+    "nativeTrigger": null,
+    "icon": {
+      "col": 6,
+      "row": 1
+    },
+    "text": {
+      "name": "Cat's Whisker",
+      "desc": "First dodge each fight: counter for half your ATK.",
+      "flavor": "It twitched. Someone paid.",
+      "nativeText": "Fires on your first dodge each fight.",
+      "activeText": "Counter-strike, half ATK.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "fortunedebt",
+    "kind": "LUCK",
+    "glyph": "dice",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 4
+    },
+    "text": {
+      "name": "Fortune's Debt",
+      "desc": "+10 [[LCK]], but gold gains -10%.",
+      "flavor": "Luck lends. Luck collects.",
+      "passive": "+10 LCK; -10% gold.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "tollring",
+    "kind": "GREED",
+    "glyph": "coin",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "gold"
+    ],
+    "reacts": [
+      "kill"
+    ],
+    "wheel": [
+      "BLOOD",
+      "GOLD"
+    ],
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 5
+    },
+    "text": {
+      "name": "Tollkeeper's Ring",
+      "desc": "Every kill pays a +5 gold toll per copy.",
+      "flavor": "Everyone pays at this gate.",
+      "nativeText": "Fires on every kill.",
+      "activeText": "+5 gold.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "merchantthumb",
+    "kind": "GREED",
+    "glyph": "purse",
+    "stackable": false,
+    "modes": [
+      "delve"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 5
+    },
+    "text": {
+      "name": "Merchant's Thumb",
+      "desc": "Shop wares and draft rerolls cost 20% less.",
+      "flavor": "It presses the scale, gently.",
+      "passive": "Shop & reroll prices -20%.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "auricskin",
+    "kind": "GUARD",
+    "glyph": "coin",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 0
+    },
+    "text": {
+      "name": "Gilded Plate",
+      "desc": "+1 DEF per 50 gold in the purse. No limit.",
+      "flavor": "Wealth, worn close.",
+      "passive": "Gold hardens into armor.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "embercask",
+    "kind": "CHAIN",
+    "glyph": "vial",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "gold"
+    ],
+    "reacts": [
+      "dmg"
+    ],
+    "wheel": [
+      "BLOOD",
+      "GOLD"
+    ],
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 7
+    },
+    "text": {
+      "name": "Ember Cask",
+      "desc": "Relic damage shakes 1 gold loose per copy.",
+      "flavor": "Violence, distilled and bottled.",
+      "nativeText": "Fires when a relic deals damage.",
+      "activeText": "+1 gold.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "coinsinger",
+    "kind": "CHAIN",
+    "glyph": "coin",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "luck"
+    ],
+    "reacts": [
+      "gold"
+    ],
+    "wheel": [
+      "GOLD",
+      "GRACE"
+    ],
+    "nativeTrigger": null,
+    "icon": {
+      "col": 5,
+      "row": 7
+    },
+    "text": {
+      "name": "Coin Singer",
+      "desc": "Gold gained by relics rings out a lucky note.",
+      "flavor": "Every coin has a voice. It knows the song.",
+      "nativeText": "Fires when a relic pays out.",
+      "activeText": "Emits a luck signal.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "hexthread",
+    "kind": "CHAIN",
+    "glyph": "bolt",
+    "stackable": true,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [
+      "dmg"
+    ],
+    "reacts": [
+      "luck"
+    ],
+    "wheel": [
+      "GRACE",
+      "BLOOD"
+    ],
+    "nativeTrigger": null,
+    "icon": {
+      "col": 6,
+      "row": 7
+    },
+    "text": {
+      "name": "Hex Thread",
+      "desc": "Luck signals lash the foe for 1 per copy.",
+      "flavor": "Fortune, sharpened to a point.",
+      "nativeText": "Fires on luck signals.",
+      "activeText": "Deals 1.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "hollowidol",
+    "kind": "CURSE",
+    "glyph": "skull",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 2,
+      "row": 6
+    },
+    "text": {
+      "name": "Hollow Idol",
+      "desc": "All relic set counts +1; -15 max HP.",
+      "flavor": "It counts itself among your treasures.",
+      "passive": "Set counts +1; -15 max HP.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "faminebell",
+    "kind": "CURSE",
+    "glyph": "skull",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 3,
+      "row": 6
+    },
+    "text": {
+      "name": "Famine Bell",
+      "desc": "Enemies cannot heal; your heals restore 1 less.",
+      "flavor": "When it rings, every table empties.",
+      "passive": "No enemy healing; your heals -1.",
+      "source": "NEWR"
+    }
+  },
+  {
+    "id": "millstone",
+    "kind": "CURSE",
+    "glyph": "fist",
+    "stackable": false,
+    "modes": [
+      "delve",
+      "versus"
+    ],
+    "emits": [],
+    "reacts": [],
+    "wheel": null,
+    "nativeTrigger": null,
+    "icon": {
+      "col": 4,
+      "row": 6
+    },
+    "text": {
+      "name": "Millstone Pendant",
+      "desc": "+5 ATK; -5 SPD. The weight swings with you.",
+      "flavor": "Strength is just weight you agreed to carry.",
+      "passive": "+5 ATK; -5 SPD.",
+      "source": "NEWR"
+    }
+  }
+]

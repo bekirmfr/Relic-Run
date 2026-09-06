@@ -169,8 +169,15 @@ No gameplay code.
   formulas) · `kinds.json` (8 + tier tables) · `meta.json` (levels/perks/XP) · `icons.json` (relic → sheet
   cell) · `locales/*.json` (8, from `strings.js` + `NEWR`)
 - `docs/relics-cut.md` — the 28 triaged-out relics with their spec text.
-- `Tools/capture` drives the HTML build headless in sandbox mode over **~200 seeded runs across both modes**,
-  exporting `_sbLog` JSON (`{meta:{seed,mode}, fights:[{player, opponents, events, combatLog}]}`).
+- `Tools/capture` produces the golden corpus: **~200 seeded runs across both modes**, in the flight
+  recorder's own shape (`{meta:{seed,mode}, fights:[{player, opponents, events, combatLog}]}`).
+
+  > **Not via a browser.** The DC file loads `support.js` and `strings.js` but never loads React, and
+  > `support.js` throws without `window.React` — the page cannot boot outside its authoring host, so
+  > headless browser automation would mean reconstructing that host. Instead, `Tools/capture` lifts the
+  > engine functions (`simulateFloor`, `simulateDuel`, `packFor`, `heroStatRows`, `mulberry32`) out of the
+  > file and runs them in Node against small stubs for `this.itemName` / `this.t`. Fewer moving parts, no
+  > browser dependency, and it is exactly what `balanceRuns` already does inside the game.
 - Unity: create the four asmdefs and the folder skeleton above.
 
 **Gate:** all JSON validates against a schema; corpus captured and committed; solution compiles.

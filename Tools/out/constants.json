@@ -1,0 +1,26 @@
+{
+  "MAX_FLOOR": 13,
+  "CHAIN_CAP": 40,
+  "SUPPORTER_SPARKS": 300,
+  "REVIVE_SPARKS": 150,
+  "SHOP_FLOOR": 7,
+  "SHOP_BUY": 40,
+  "SHOP_UP": 60,
+  "EV_MIN_SPD": -10,
+  "EV_MIN_DEF": -2,
+  "SHEET_COLS": 3,
+  "SHEET_ROWS": 13,
+  "SHEET_CELL": 64,
+  "hallAspect": [
+    650,
+    181
+  ],
+  "defenseK": 20,
+  "merchantLines": [
+    "“Ah. A live one. Everything here is for sale — including advice.”",
+    "“I don't fight, delver. I price. Come, see what the dead left behind.”",
+    "“The scales never lie. Your gold, my curios — one deal only.”",
+    "“You'll want something from me. They always do.”",
+    "“Coin now, regret later. That's the usual arrangement.”"
+  ]
+}

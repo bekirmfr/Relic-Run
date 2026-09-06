@@ -1,0 +1,293 @@
+[
+  {
+    "id": "chalice",
+    "n": "Bone Chalice",
+    "d": "Overhealing adds +1 max HP (up to +10 per run).",
+    "fl": "It wastes nothing, least of all mercy.",
+    "pas": "Overheal → +1 max HP, cap +10.",
+    "engineRefs": 10,
+    "ledgerRefs": 0,
+    "totalRefs": 12
+  },
+  {
+    "id": "tower",
+    "n": "Tower Charm",
+    "d": "+3 DEF per copy while above 80% HP.",
+    "fl": "Tall walls, short memory.",
+    "pas": "+3 DEF while healthy (≥80% HP).",
+    "engineRefs": 0,
+    "ledgerRefs": 2,
+    "totalRefs": 4
+  },
+  {
+    "id": "rustward",
+    "n": "Rust Ward",
+    "d": "+1 DEF; enemy hits land 1 lighter per copy while you're below half HP.",
+    "fl": "Old iron protects old wounds.",
+    "pas": "+1 DEF; -1 damage taken while bloodied.",
+    "engineRefs": 4,
+    "ledgerRefs": 1,
+    "totalRefs": 6
+  },
+  {
+    "id": "titheshell",
+    "n": "Shell of the Tithe",
+    "d": "Pays 20 gold at each floor's gate for +4 DEF that floor. Can't pay? It stays shut.",
+    "fl": "Protection has a price. It collects.",
+    "pas": "20g per floor → +4 DEF; dormant if unpaid.",
+    "engineRefs": 10,
+    "ledgerRefs": 0,
+    "totalRefs": 11
+  },
+  {
+    "id": "serrated",
+    "n": "Serrated Fang",
+    "d": "From your 2nd strike each fight: +1 bleed damage per copy.",
+    "fl": "The first cut is just an introduction.",
+    "pas": "Strikes after the first: +1.",
+    "engineRefs": 12,
+    "ledgerRefs": 0,
+    "totalRefs": 12
+  },
+  {
+    "id": "headsman",
+    "n": "Headsman's Notch",
+    "d": "Every kill notches +1 ATK this floor per copy.",
+    "fl": "One line carved for every name.",
+    "nat": "Fires on every kill.",
+    "act": "+1 ATK this floor.",
+    "engineRefs": 13,
+    "ledgerRefs": 0,
+    "totalRefs": 13
+  },
+  {
+    "id": "glassedge",
+    "n": "Glass Edge",
+    "d": "+4 ATK — shatters forever the first time you fall.",
+    "fl": "Beautiful, sharp, and honest about it.",
+    "pas": "+4 ATK until your first death.",
+    "engineRefs": 6,
+    "ledgerRefs": 1,
+    "totalRefs": 9
+  },
+  {
+    "id": "sparbell",
+    "n": "Sparring Bell",
+    "d": "Your opening strike each fight hits +2 per copy.",
+    "fl": "Round one. Ding.",
+    "pas": "First strike each fight: +2.",
+    "engineRefs": 10,
+    "ledgerRefs": 0,
+    "totalRefs": 10
+  },
+  {
+    "id": "cavalry",
+    "n": "Cavalry Horn",
+    "d": "Your first attack gauge each fight starts 30% filled.",
+    "fl": "The charge answers before the call ends.",
+    "pas": "First attack comes 30% sooner.",
+    "engineRefs": 12,
+    "ledgerRefs": 0,
+    "totalRefs": 12
+  },
+  {
+    "id": "sprinter",
+    "n": "Sprinter's Greaves",
+    "d": "Fights won in 6 strikes or fewer heal 2 per copy.",
+    "fl": "Finish fast, breathe easy.",
+    "nat": "Fires on quick kills.",
+    "act": "Heals 2.",
+    "engineRefs": 8,
+    "ledgerRefs": 0,
+    "totalRefs": 8
+  },
+  {
+    "id": "omen",
+    "n": "Omen Feather",
+    "d": "+10 [[LCK]] in boss fights.",
+    "fl": "It points at what wants you dead.",
+    "pas": "+10 LCK vs bosses.",
+    "engineRefs": 0,
+    "ledgerRefs": 2,
+    "totalRefs": 3
+  },
+  {
+    "id": "gambler",
+    "n": "Gambler's Tooth",
+    "d": "Your first crit each floor: +8 [[LCK]] that floor.",
+    "fl": "Bit down on a miracle once.",
+    "nat": "Fires on your first crit each floor.",
+    "act": "+8 LCK this floor.",
+    "engineRefs": 7,
+    "ledgerRefs": 0,
+    "totalRefs": 7
+  },
+  {
+    "id": "trickster",
+    "n": "Trickster's Knot",
+    "d": "10% flat chance per copy (max 20%) enemy attacks simply miss.",
+    "fl": "The knot unties itself. Elsewhere.",
+    "pas": "Enemies may just miss.",
+    "engineRefs": 12,
+    "ledgerRefs": 0,
+    "totalRefs": 12
+  },
+  {
+    "id": "gildedthorns",
+    "n": "Gilded Thorns",
+    "d": "Your thorn reflections also shake loose 2 gold per copy.",
+    "fl": "Even its cruelty is ornamental.",
+    "nat": "Fires when thorns bite.",
+    "act": "Spills 2 gold.",
+    "engineRefs": 8,
+    "ledgerRefs": 0,
+    "totalRefs": 8
+  },
+  {
+    "id": "smuggler",
+    "n": "Smuggler's Lining",
+    "d": "Death recovers 65% of your purse instead of 50%.",
+    "fl": "Sewn shut. Mostly.",
+    "pas": "Better purse recovery on death.",
+    "engineRefs": 0,
+    "ledgerRefs": 0,
+    "totalRefs": 2
+  },
+  {
+    "id": "echobead",
+    "n": "Echo Bead",
+    "d": "The first relic effect each fight is doubled.",
+    "fl": "It answers before you finish asking.",
+    "pas": "First relic effect each fight ×2.",
+    "engineRefs": 30,
+    "ledgerRefs": 0,
+    "totalRefs": 30
+  },
+  {
+    "id": "fusecoil",
+    "n": "Fuse Coil",
+    "d": "Chains decay gently (×0.75), but the chain cap drops.",
+    "fl": "Brighter. Longer. Narrower.",
+    "pas": "Soft decay; lower cap.",
+    "engineRefs": 7,
+    "ledgerRefs": 0,
+    "totalRefs": 7
+  },
+  {
+    "id": "relaytotem",
+    "n": "Relay Totem",
+    "d": "Every fight also activates one random relic you carry.",
+    "fl": "It passes the message along. Loudly.",
+    "nat": "Fires as each fight opens.",
+    "act": "Activates a random relic.",
+    "engineRefs": 10,
+    "ledgerRefs": 0,
+    "totalRefs": 10
+  },
+  {
+    "id": "sparkjar",
+    "n": "Spark Jar",
+    "d": "Catches a fizzled chain; your next strike releases it for 2 damage.",
+    "fl": "Nothing wasted. Nothing forgiven.",
+    "nat": "Fires when a chain fizzles.",
+    "act": "Stores 2 damage.",
+    "engineRefs": 17,
+    "ledgerRefs": 0,
+    "totalRefs": 17
+  },
+  {
+    "id": "resonantskull",
+    "n": "Resonant Skull",
+    "d": "Deep chains (depth 3+) hum back 1 healing.",
+    "fl": "It hums along with the violence.",
+    "nat": "Fires on deep chains.",
+    "act": "Heals 1.",
+    "engineRefs": 8,
+    "ledgerRefs": 0,
+    "totalRefs": 8
+  },
+  {
+    "id": "tinkerloop",
+    "n": "Awakener's Loop",
+    "d": "Your awakened relics count as three copies.",
+    "fl": "One more turn of the screw.",
+    "pas": "Socketed emitters +1.",
+    "engineRefs": 4,
+    "ledgerRefs": 1,
+    "totalRefs": 5
+  },
+  {
+    "id": "stormlattice",
+    "n": "Storm Lattice",
+    "d": "Speed surges arc 1 damage per copy to the enemy.",
+    "fl": "The wind here has teeth.",
+    "nat": "Fires on speed gains.",
+    "act": "Arcs 1 damage.",
+    "engineRefs": 16,
+    "ledgerRefs": 0,
+    "totalRefs": 16
+  },
+  {
+    "id": "crackedcrown",
+    "n": "Cracked Crown",
+    "d": "+3 ATK; enemy hits land +1 harder.",
+    "fl": "Heavy is the head. And dented.",
+    "pas": "+3 ATK; +1 damage taken.",
+    "engineRefs": 4,
+    "ledgerRefs": 1,
+    "totalRefs": 5
+  },
+  {
+    "id": "leechpurse",
+    "n": "Leech Purse",
+    "d": "Each of your turns costs 3 gold; when it collects, heal 1 per copy.",
+    "fl": "It pays you in your own blood, laundered.",
+    "pas": "3g per turn → heal 1.",
+    "engineRefs": 11,
+    "ledgerRefs": 0,
+    "totalRefs": 12
+  },
+  {
+    "id": "butchertithe",
+    "n": "Butcher's Tithe",
+    "d": "Gold gained by relics buys back 1 flesh per copy.",
+    "fl": "Every coin weighed in meat.",
+    "nat": "Fires when a relic pays out.",
+    "act": "Heals 1.",
+    "engineRefs": 4,
+    "ledgerRefs": 0,
+    "totalRefs": 4
+  },
+  {
+    "id": "tollplate",
+    "n": "Toll Plate",
+    "d": "Relic damage mints 1 gold per copy off your armor.",
+    "fl": "The plate keeps what the blow paid.",
+    "nat": "Fires when a relic deals damage.",
+    "act": "+1 gold.",
+    "engineRefs": 16,
+    "ledgerRefs": 0,
+    "totalRefs": 16
+  },
+  {
+    "id": "giltrot",
+    "n": "Gilt Rot",
+    "d": "Gold gained by relics decays into a tainted 1-heal per copy.",
+    "fl": "Even rot pays rent.",
+    "nat": "Fires when a relic pays out.",
+    "act": "Heals 1.",
+    "engineRefs": 4,
+    "ledgerRefs": 0,
+    "totalRefs": 4
+  },
+  {
+    "id": "debtorchain",
+    "n": "Debtor's Chain",
+    "d": "+40 gold now; -2 ATK until 60 gold is earned back.",
+    "fl": "The links are shaped like promises.",
+    "pas": "Loan now, weakness until repaid.",
+    "engineRefs": 0,
+    "ledgerRefs": 0,
+    "totalRefs": 4
+  }
+]

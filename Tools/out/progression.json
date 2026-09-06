@@ -1,0 +1,159 @@
+{
+  "structuralPerks": {
+    "3": [
+      "🔓 Daily Delve mode unlocked",
+      "none",
+      0
+    ],
+    "5": [
+      "Start with 20 gold · 🔓 Versus mode unlocked",
+      "gold",
+      20
+    ],
+    "10": [
+      "+1 draft choice (every draft)",
+      "draft",
+      1
+    ],
+    "15": [
+      "Second bazaar deal",
+      "deal",
+      1
+    ],
+    "20": [
+      "+30 more starting gold",
+      "gold",
+      30
+    ]
+  },
+  "xpSteps": [
+    1,
+    0.8,
+    0.4,
+    0.2
+  ],
+  "xpFloor": 0.1,
+  "needFormula": {
+    "__fn": "l => Math.round(1000 * Math.pow(1.2, l - 2))"
+  },
+  "bonusesFormula": {
+    "__fn": "bonuses(level) { const l = Math.max(1, level | 0); const b = { hp: 5 * (l - 1), atk: Math.round(l / 5), def: Math.round(l / 4), spd: Math.round(l / 5), lck: Math.round(l / 4), breath: Math.round(l / 5), gold: 0, draft: 0, deal: 0 }; for (const k of Object.keys(this.STRUCT)) if (l >= +k) { const p = this.STRUCT[k]; if (p[2]) b[p[1]] = (b[p[1]] || 0) + p[2]; } return b; }"
+  },
+  "tierMult": {
+    "__fn": "t => Math.pow(1.1, (t || 1) - 1)"
+  },
+  "achievements": [
+    {
+      "id": "firstblood",
+      "n": "First Blood",
+      "d": "Finish a delve.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.runs\", 0) | 0) >= 1"
+      }
+    },
+    {
+      "id": "clear1",
+      "n": "Hoard-Slayer",
+      "d": "Clear the dungeon.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.clears\", 0) | 0) >= 1"
+      }
+    },
+    {
+      "id": "clear5",
+      "n": "Regular Customer",
+      "d": "Clear the dungeon 5 times.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.clears\", 0) | 0) >= 5"
+      }
+    },
+    {
+      "id": "score1k",
+      "n": "Deep Delver",
+      "d": "Score 1,000 in one run.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.best\", 0) | 0) >= 1000"
+      }
+    },
+    {
+      "id": "score2k",
+      "n": "Cartographer of the Dark",
+      "d": "Score 2,000 in one run.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.best\", 0) | 0) >= 2000"
+      }
+    },
+    {
+      "id": "crown1",
+      "n": "Crowned",
+      "d": "Win a versus lobby.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.vsCrowns\", 0) | 0) >= 1"
+      }
+    },
+    {
+      "id": "crown5",
+      "n": "Dynasty",
+      "d": "Win 5 versus lobbies.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.vsCrowns\", 0) | 0) >= 5"
+      }
+    },
+    {
+      "id": "rich",
+      "n": "Purse of Renown",
+      "d": "Bank 1,000 gold lifetime.",
+      "ok": {
+        "__fn": "() => (Store.get(\"dd.goldLife\", 0) | 0) >= 1000"
+      }
+    },
+    {
+      "id": "lvl5",
+      "n": "Seasoned",
+      "d": "Reach level 5.",
+      "ok": {
+        "__fn": "() => META.level() >= 5"
+      }
+    },
+    {
+      "id": "lvl10",
+      "n": "Veteran",
+      "d": "Reach level 10.",
+      "ok": {
+        "__fn": "() => META.level() >= 10"
+      }
+    },
+    {
+      "id": "t2",
+      "n": "Deeper Doors",
+      "d": "Unlock a second dungeon.",
+      "ok": {
+        "__fn": "() => META.unlocked() >= 2"
+      }
+    },
+    {
+      "id": "t3",
+      "n": "The Third Gate",
+      "d": "Unlock a third dungeon.",
+      "ok": {
+        "__fn": "() => META.unlocked() >= 3"
+      }
+    },
+    {
+      "id": "mdaily",
+      "n": "The Daily Ritual",
+      "d": "Unlock Daily Delve mode (level 3).",
+      "ok": {
+        "__fn": "() => META.level() >= 3"
+      }
+    },
+    {
+      "id": "mversus",
+      "n": "Blood in the Arena",
+      "d": "Unlock Versus mode (level 5).",
+      "ok": {
+        "__fn": "() => META.level() >= 5"
+      }
+    }
+  ]
+}

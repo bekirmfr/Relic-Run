@@ -1,0 +1,64 @@
+{
+  "GUARD": {
+    "c": "#7A93A8",
+    "tiers": {
+      "3": "+3 DEF",
+      "5": "Thorns strike +1",
+      "7": "First blow each fight glances off"
+    }
+  },
+  "FLESH": {
+    "c": "#C4595C",
+    "tiers": {
+      "3": "+3 max HP",
+      "5": "All heals +1",
+      "7": "Once per floor: refuse death at 1 HP"
+    }
+  },
+  "EDGE": {
+    "c": "#D08B4C",
+    "tiers": {
+      "3": "+1 ATK",
+      "5": "Every 4th strike ×1.5",
+      "7": "+1 permanent ATK per kill"
+    }
+  },
+  "PACE": {
+    "c": "#5FB3C9",
+    "tiers": {
+      "3": "+2 SPD",
+      "5": "Attack gauge starts 25% filled",
+      "7": "Every 5th strike hits twice"
+    }
+  },
+  "LUCK": {
+    "c": "#9B8BD0",
+    "tiers": {
+      "3": "+5 LCK",
+      "5": "Crits emit a luck signal",
+      "7": "Dodges counter for 2"
+    }
+  },
+  "GREED": {
+    "c": "#E3B341",
+    "tiers": {
+      "3": "Gold ×1.15",
+      "5": "Cutpurse spills +1",
+      "7": "Kill loot ×1.5"
+    }
+  },
+  "CHAIN": {
+    "c": "#B77BC4",
+    "tiers": {
+      "3": "Chain decay softens",
+      "5": "Chain cap +1",
+      "7": "Chain decay barely bites (×0.75)"
+    }
+  },
+  "CURSE": {
+    "c": "#8BA65B",
+    "tiers": {
+      "3": "+1 ATK"
+    }
+  }
+}

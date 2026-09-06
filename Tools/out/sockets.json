@@ -1,0 +1,87 @@
+{
+  "triggers": {
+    "t_attack": {
+      "n": "Attack Trigger",
+      "d": "Socketed relic also activates on every 3rd strike each floor."
+    },
+    "t_hit": {
+      "n": "Pain Trigger",
+      "d": "Socketed relic also activates on every 3rd hit you take each floor."
+    },
+    "t_gold": {
+      "n": "Gold Trigger",
+      "d": "Socketed relic also activates on every 3rd gold gain each floor."
+    },
+    "t_kill": {
+      "n": "Kill Trigger",
+      "d": "Socketed relic also activates on every kill."
+    },
+    "t_dodge": {
+      "n": "Dodge Trigger",
+      "d": "Socketed relic also activates when an enemy misses you."
+    },
+    "t_luck": {
+      "n": "Luck Trigger",
+      "d": "Socketed relic also activates on a lucky break (luck events)."
+    },
+    "t_floor": {
+      "n": "Floor Trigger",
+      "d": "Socketed relic also activates as each floor's first fight begins."
+    },
+    "t_fight": {
+      "n": "Fight Trigger",
+      "d": "Socketed relic also activates as each fight begins."
+    }
+  },
+  "emitters": {
+    "e_dmg": {
+      "n": "Fang Emitter",
+      "d": "When the socketed relic activates: deal 2 damage.",
+      "amt": 2
+    },
+    "e_heal": {
+      "n": "Salve Emitter",
+      "d": "When the socketed relic activates: heal 1.",
+      "amt": 1
+    },
+    "e_gold": {
+      "n": "Coin Emitter",
+      "d": "When the socketed relic activates: gain 2 gold.",
+      "amt": 2
+    },
+    "e_atk": {
+      "n": "Fury Emitter",
+      "d": "When the socketed relic activates: +1 attack this floor.",
+      "amt": 1
+    },
+    "e_def": {
+      "n": "Stone Emitter",
+      "d": "When the socketed relic activates: +1 defense this floor.",
+      "amt": 1
+    },
+    "e_spd": {
+      "n": "Gale Emitter",
+      "d": "When the socketed relic activates: +1 speed this floor.",
+      "amt": 1
+    },
+    "e_luck": {
+      "n": "Charm Emitter",
+      "d": "When the socketed relic activates: +1 luck this floor.",
+      "amt": 1
+    }
+  },
+  "busTriggers": [
+    "t_attack",
+    "t_dodge",
+    "t_fight",
+    "t_floor",
+    "t_gold",
+    "t_heal",
+    "t_hit",
+    "t_kill",
+    "t_luck"
+  ],
+  "unsocketableBusTriggers": [
+    "t_heal"
+  ]
+}
