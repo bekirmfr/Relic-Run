@@ -37,6 +37,9 @@
 # Visual Studio cache directory
 .vs/
 
+# html5/javascript files to port to unity
+.port/
+
 # Gradle cache directory
 .gradle/
 
