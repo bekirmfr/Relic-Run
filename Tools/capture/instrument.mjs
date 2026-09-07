@@ -37,7 +37,10 @@ export function instrumentBalanceRuns(src) {
   //    and the stat floors have been applied, because what the port has to reproduce is
   //    the state the choice left behind, not the state it was made in.
   at("const ch = def.choices[eventChoice(def, st)];",
-     "const __ci = eventChoice(def, st);\n" +
+     "const __fc = Array.isArray(P.forceChoice) ? P.forceChoice[evAt[f]] : P.forceChoice;\n" +
+     "          const __ci = __fc != null\n" +
+     "            ? Math.min(__fc, def.choices.length - 1)\n" +
+     "            : eventChoice(def, st);\n" +
      "          const ch = def.choices[__ci];");
 
   at("st.pmax = Math.max(1, st.pmax); st.php = Math.min(st.pmax, st.php);",
@@ -74,6 +77,18 @@ export function instrumentBalanceRuns(src) {
   at("res.picks[id] = (res.picks[id] || 0) + 1;",
      "res.picks[id] = (res.picks[id] || 0) + 1;\n" +
      '            __deal = "buy"; __dealId = id;');
+
+  // The harness's greed decides what the bazaar does and which event choice is taken, and
+  // both are stand-ins for a player rather than rules. That means whole outcomes can go
+  // unrecorded simply because the bot never wants them — the Chained Ghost's locket is
+  // always refused, and nothing it holds is ever worth awakening twice. Steering the bot is
+  // how those get reached; it changes no rule, only who is playing.
+  at("let bestAw = null, bestPS = 5;",
+     "let bestAw = null, bestPS = 5;\n" +
+     "          if (P.forceAwaken) {\n" +
+     "            const __t = cand.filter(c => c.id === P.forceAwaken)[0];\n" +
+     "            if (__t) { bestAw = __t; bestPS = Infinity; }\n" +
+     "          }");
 
   at("continue;   /* no combat on shop floor */",
      "if (P.onShop) P.onShop(run, f, __offer, __deal, __dealId, st);\n" +

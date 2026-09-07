@@ -111,6 +111,13 @@ namespace RelicRun.Core.Run
         private static readonly int[] EventGaps = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 
         /// <summary>How far an event may drag a stat down before the floor holds.</summary>
+        /// <remarks>
+        /// Only the speed floor is ever reached: the Ghost's locket and the Spike Trap cost
+        /// five each and a failed robbery three more, which is thirteen. Nothing can spend more
+        /// than one point of defence in a run — only the unclaimed chest costs any, and no
+        /// event repeats — so the defence floor is unreachable. It is ported because the source
+        /// has it, not because it can bite.
+        /// </remarks>
         private const int MinSpdBonus = -10;
         private const int MinDefBonus = -2;
 
@@ -290,6 +297,12 @@ namespace RelicRun.Core.Run
         /// <summary>
         /// A Debt of Flesh pays out in health every time gold leaves the purse at a counter.
         /// </summary>
+        /// <remarks>
+        /// The awakened half is unreachable. A relic is awakened only at the bazaar, which
+        /// offers none that do not stack, and a Debt of Flesh does not — so it always pays ten.
+        /// Ported as written rather than folded to a constant, because what is unreachable is
+        /// the awakening, not this rule.
+        /// </remarks>
         private static void PayTheDebt(RunState run)
         {
             if (!run.Has(RelicId.DebtOfFlesh)) return;

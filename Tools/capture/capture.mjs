@@ -546,6 +546,22 @@ for (let i = 0; i < 16; i++) {
   }));
 }
 
+/* Whether a defender's answers share the chain of the blow or each open their own only shows
+   when ONE relic answers twice inside a single blow. That needs a defender carrying two
+   reactions — a Troll Marrow that heals and a Thorn Vest that bites — and a relic both of them
+   feed, so an Ember Cask pays out at full strength the first time and decayed the second. A
+   delve shares; a duel does not. Nothing in the random duel tier ever assembled that hand. */
+for (let i = 0; i < 16; i++) {
+  const answering = ["marrow", "thorns", "embercask", "embercask", "altar", "adrenaline"];
+  cases.push(duelCase(`duel/answers/${i}`, {
+    itemsA: answering.concat(i % 2 === 0 ? ["dice"] : ["mirrorscale", "dice"]),
+    itemsB: answering.concat(i % 3 === 0 ? ["whetstone"] : ["dice", "boots"]),
+    awakeA: i % 2 === 0 ? { marrow: 1 } : { marrow: 1, thorns: 1 },
+    awakeB: i % 3 === 0 ? {} : { marrow: 1, embercask: 1 },
+    hp: [60, 90, 140, 200][i % 4],
+  }));
+}
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });

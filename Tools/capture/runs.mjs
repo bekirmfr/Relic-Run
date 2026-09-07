@@ -90,6 +90,42 @@ const SETS = [
   { name: "deep", runs: 24, P: { seed: 0xDEE9, baseHp: 140, baseAtk: 8, baseDef: 3 } },
   { name: "kitted", runs: 24, P: { seed: 0x1A2B, startKit: ["clover", "tooth", "boots"], baseGold: 80 } },
   { name: "wide", runs: 24, P: { seed: 0x7A17, draftChoices: 5, baseLck: 25 } },
+
+  /* The harness's greed leaves whole outcomes unrecorded: it always refuses the Chained
+     Ghost's locket, never rerolls with a Merchant's Thumb in hand, and never thinks a Debt of
+     Flesh worth awakening. These steer it. Choosing is not a rule, so steering the chooser
+     changes nothing that is under test — it only reaches the rules the greedy line never
+     walks past. */
+  { name: "choice0", runs: 20, P: { seed: 0x0C01, forceChoice: 0, baseGold: 120 } },
+  { name: "choice1", runs: 20, P: { seed: 0x0C02, forceChoice: 1, baseGold: 120 } },
+  { name: "choice2", runs: 20, P: { seed: 0x0C03, forceChoice: 2, baseGold: 120 } },
+
+  /* Every event that costs speed, taken, so the -10 floor an event cannot drag a stat past
+     is actually reached: the Ghost's locket and the Spike Trap both cost 5, and robbing the
+     dead miner costs 3 more. */
+  /* The floor an event cannot drag a stat past needs THREE speed losses in one run — the
+     Ghost's locket and the Spike Trap for five each, and a failed robbery of the dead miner
+     for three more. Only about one run in 126 places all three, so the seed is chosen rather
+     than left to chance: 0x128BA lands the triple four times in its first thirty, and sixteen times in 120. */
+  {
+    name: "slowed",
+    runs: 120,
+    P: { seed: 0x128BA, baseGold: 150, forceChoice: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0] },
+  },
+
+  { name: "thumb", runs: 20, P: { seed: 0x7B00, baseGold: 600, startKit: ["merchantthumb"] } },
+
+  /* A Debt of Flesh pays out in health at every counter, and twice as much once awakened —
+     but only a hero who is actually hurt can tell the two apart, so the breather is cut to
+     one and the purse left deep enough to keep buying. */
+  {
+    name: "debt",
+    runs: 40,
+    P: {
+      seed: 0xDEB7, baseGold: 800, breath: 1,
+      startKit: ["debtflesh"], forceAwaken: "debtflesh",
+    },
+  },
 ];
 
 const runs = [];

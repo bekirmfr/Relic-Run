@@ -510,11 +510,13 @@ namespace RelicRun.Core.Combat
             CombatPrimitives.Heal(defender, bus, rules, 2 * marrow,
                 defender.Label(RelicId.TrollMarrow), 1, RelicId.TrollMarrow, chain);
 
-            // Awakened, it knits from the attacker's flesh rather than its own.
+            // Awakened, it knits from the attacker's flesh rather than its own. Where answers
+            // do not share a chain, the bite opens one of its own rather than continuing the
+            // heal's — so the two halves of one relic decay independently.
             if (defender.IsAwake(RelicId.TrollMarrow) && bus.HasTarget(defender))
             {
                 bus.DealDamage(defender, 2 * marrow, defender.Label(RelicId.TrollMarrow), 2,
-                    RelicId.TrollMarrow, chain);
+                    RelicId.TrollMarrow, rules.ReactionsShareOneChain ? chain : bus.NewChain());
             }
         }
 

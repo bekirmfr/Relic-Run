@@ -177,6 +177,53 @@ when one answer kills the target and denies a later one. It matters far more sim
 earlier mutation survived only because random loadouts rarely carry two reacting relics at
 once, which is a statement about corpus coverage rather than about the rule.
 
+## The run gate
+
+`runs.json` is Phase 5's contract, and it is built differently from the fight corpus. The
+source's own headless run loop, `balanceRuns`, walks a full thirteen floors over the real
+content, so rather than re-walking that loop in a recorder — where a transcription that drifted
+would record the RECORDER's run and the port would be verified against a mistake — it is
+instrumented. Read-only hooks are injected at seven points in the lifted source. With them
+installed `balanceRuns` returns byte-identical aggregates, which is the proof they change
+nothing.
+
+`balanceRuns` also carries a greedy bot: `pickScore` ranks a draft, `eventChoice` reads an
+event's hint text, `punchOf` decides whether the bazaar awakens or buys. None of that is a game
+rule, so none of it is ported. The corpus records the DECISIONS and the port replays them
+through `IRunChoices`; what the port must reproduce is everything around a decision. An offer is
+compared as a SET for the same reason — which relics `weightedRelic` drew is a rule, the order
+they are ranked in is not.
+
+Two things the recorder has to override, and both are in `instrument.mjs` with the reason:
+
+- **The pack path.** `balanceRuns` prices foes through the Balance Lab's editable formula table;
+  the game passes a dungeon and no curve. The two round differently — floor 10 alone looted ten
+  gold more — so the recorder takes the game's path. Pack composition stays gated by
+  `packs.json`, which is what keeps a run-loop failure from being a pack bug in disguise.
+- **The bot's greed.** It always refuses the Chained Ghost's locket, never rerolls with a
+  Merchant's Thumb in hand, and never awakens what it does not rate. Steering the chooser
+  reaches rules the greedy line never walks past; it changes nothing under test.
+
+The source wraps an event outcome in `try/catch`, which is right for a game and dangerous for a
+lift: an identifier the lift forgot makes an outcome silently do NOTHING, and the corpus records
+the no-op as truth. `luckRoll` was missing at first and four of the twelve events quietly
+stopped rolling. The catch stays; the error is now handed to the recorder, which refuses to
+write a corpus containing one.
+
+### What the run gate cannot reach
+
+Thirty-six mutations of the run layer; thirty-two die. The four that live are worth naming,
+because none of them is a coverage gap that more cases would close.
+
+| survives | why |
+| --- | --- |
+| the breather also heals before floor 1 | a run starts at full health, so the heal is a no-op |
+| an event grant draws from the whole table | no relic is versus-only, so in a delve the two pools are the same list |
+| an awakened Debt of Flesh pays 10, not 20 | the bazaar only awakens relics that STACK, and this one does not — unreachable in the source too |
+| the defence floor is one lower | events can cost at most one defence in a run, and the floor is two |
+
+The last two are dead branches in the source, ported as written and commented where they sit.
+
 ## Mutation testing
 
 A gate that has never gone red is not evidence of anything. Every phase so far has been

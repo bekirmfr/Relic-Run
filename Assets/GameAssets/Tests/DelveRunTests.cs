@@ -153,7 +153,11 @@ namespace RelicRun.Tests
                 for (int i = 0; i < pack.Count; i++)
                 {
                     drop += pack[i].Drop;
-                    hp += pack[i].MaxHp;
+
+                    // Hp, not MaxHp: an awakened Vampire Tooth eats the foe's CEILING as the
+                    // fight runs, and this is read afterwards. Starting health is what was
+                    // recorded, and nothing writes to it.
+                    hp += pack[i].Hp;
                 }
 
                 if (drop != step["drop"].Value<int>())
@@ -163,7 +167,8 @@ namespace RelicRun.Tests
 
                 if (hp != step["hp"].Value<int>())
                 {
-                    Fail("floor " + floor + ": pack health recorded " + step["hp"] + ", replayed " + hp);
+                    Fail("floor " + floor + ": pack health recorded " + step["hp"] +
+                         ", replayed " + hp);
                 }
 
                 int events = step["events"].Value<int>();
