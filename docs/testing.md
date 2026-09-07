@@ -70,33 +70,56 @@ against.
 
 ## What is actually shared
 
-`CombatEngine` and `DuelEngine` still exist as two classes, but neither holds a combat rule
-any more. Both are adapters: they bind one mode's state to the shared layer and implement
-`ICombatBus`. Everything a relic does lives once —
+`CombatEngine` and `DuelEngine` still exist as two classes, but neither holds a combat rule any
+more. Both are adapters: they bind one mode's state to the shared layer and implement
+`ICombatBus`. Both sides of a fight are an `ICombatActor` — a delve foe is a `FoeActor` that
+reads its own relics, not a stat block — so the shared rules never ask which mode they are in.
 
 | shared | file |
 | --- | --- |
 | every relic activation | `RelicEffects.Apply` |
 | heal, gold, luck, the Rabbit's reaction | `CombatPrimitives` |
 | a side's whole turn, the riposte, the free action | `CombatTurn` |
-| landing a blow, the dodge, the kill, the execution, refusing death, the defender's answers | `CombatDamage` |
+| landing a blow, mitigating it, the dodge, the kill, the execution, refusing death, the defender's answers | `CombatDamage` |
 | sockets: emitter strength, firing a copy, firing a trigger | `SocketFiring` |
 | the ATB gauges and the opening | `AtbScheduler` |
 
-Four things are still written per engine, and each is a real difference rather than a
-duplicate:
+`CombatDamage.Mitigate` is one ladder for every blow in the game, and it reads the **defender's**
+own relics. That is the whole reason the delve looked for a long time as though it needed a
+second, simpler version: the JS wrote the ladder out twice there — once in `enemyHits` with the
+hero defending, once in `dealDmg` with the foe — while the duel wrote it once and used it both
+ways. A foe carries no Guard set and no Padded Hide, so the same ladder collapses to armor when
+the foe is the one being hit.
 
-- **`Mitigate`** — a delve foe is a stat block, so a blow meets armor and nothing else, at
-  every depth. A duellist is a full defender, so a genuine strike meets a Guard set, a
-  stagger, a Martyr's Knot, armor and Padded Hide, while relic damage lands raw.
-- **`CanDeal`** — a duel refuses a blow from a fallen striker; a delve does not. Making the
-  delve adopt the duel's guard fails the corpus, so this is recorded behaviour.
-- **the fight loop** — the delve walks a pack with per-fight resets, carry state and revives;
-  the duel resolves one symmetric pair. The scheduler underneath is the same.
-- **`EnemyHits`** — the delve's foe has no relics and no turn of its own to take.
+What is still written per engine, and why each is real:
+
+- **the fight loop** — a delve walks a pack with per-fight resets, carry state and revives; a
+  duel resolves one symmetric pair. The scheduler underneath is shared.
+- **a delve foe's crit** — Weighted Dice multiplies AFTER mitigation for a foe and before it
+  for a full side, so the foe's turn applies it in `ApplyDamage`, which returns what actually
+  landed so the defender answers the larger number.
+- **a delve foe's Thorn Vest and Berserker Charm** — the JS deliberately gives a foe's Thorn
+  Vest a flatter rule than the player's (no chain scale, no Guard-5 bonus, no emitter). They
+  are monster traits that share a name with a relic, not the relic.
+- **`ClaimsTheKill`** — a foe that fells the hero ends the run; it does not collect loot.
 
 Everything else in both files is a one-line `ICombatBus` member reading or writing that mode's
 state.
+
+## Where the modes disagree
+
+Each of these is one named flag with a corpus case behind it, not a second copy of the rule.
+Every one has been mutated in both directions, and both directions fail.
+
+| rule | delve | versus |
+| --- | --- | --- |
+| `ArmorMeetsRelicDamage` | every blow | genuine strikes only |
+| `StaggerTripsOnBeingHit` | the striker trips on its own turn | the struck side trips |
+| `WhetstoneSundersOnlyPlainStrikes` | crits and relics do not sunder | everything sunders |
+| `ReturnedBlowUsesTheStrikersAttack` | the striker's attack | the blow turned aside |
+| `ReturnedBlowDepth` | 0 — the foe's whole turn | 1 — a consequence |
+| `IronSkin.GlancesOneBlow` | yes | no |
+| `HaresDrum.RiposteStrikesWhenAwakened` | yes | no |
 
 ## Single-sourcing
 
