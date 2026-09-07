@@ -1,0 +1,83 @@
+/*
+ * Trace hooks for the game's own run loop.
+ *
+ * balanceRuns is a complete headless 13-floor delve — event placement, the real event
+ * table, the bazaar, the draft with its reroll ladder, and combat — but it only returns
+ * aggregates. The corpus needs a per-floor trace.
+ *
+ * The obvious move is to re-walk the loop in the recorder. That is the wrong move: a
+ * transcription that drifts records the RECORDER's run, and the port would then be
+ * verified against a mistake. So the loop itself is instrumented instead, by injecting
+ * read-only callbacks at six points. The recorder observes the game's run; it does not
+ * reimplement it.
+ *
+ * Every hook must be free of side effects, and above all must not touch `rng` or `er`.
+ * The run is a single RNG stream, and one stray draw would move everything after it.
+ */
+
+/** Injects `P.on*` callbacks into lifted balanceRuns source. */
+export function instrumentBalanceRuns(src) {
+  const at = (anchor, replacement) => {
+    const first = src.indexOf(anchor);
+    if (first < 0) throw new Error("instrument: anchor not found:\n  " + anchor);
+    if (src.indexOf(anchor, first + 1) >= 0) {
+      throw new Error("instrument: anchor is not unique:\n  " + anchor);
+    }
+
+    src = src.slice(0, first) + replacement + src.slice(first + anchor.length);
+  };
+
+  // 1. The run is set up: seeds drawn, events placed. Nothing has happened yet.
+  at("for (let i = 0; i < nEv; i++) evAt[gaps[i]] = evIdx[i];",
+     "for (let i = 0; i < nEv; i++) evAt[gaps[i]] = evIdx[i];\n" +
+     "      if (P.onRun) P.onRun(run, st, evAt);");
+
+  // 2. A between-floor event resolved. The chosen index is what the port has to match,
+  //    so it is pulled into a name rather than left inline.
+  at("const ch = def.choices[eventChoice(def, st)];",
+     "const __ci = eventChoice(def, st);\n" +
+     "          const ch = def.choices[__ci];\n" +
+     "          if (P.onEvent) P.onEvent(run, f, evAt[f], __ci, st);");
+
+  // 3. The bazaar, reported once with whichever of its three outcomes happened. The port
+  //    replays the DECISION — awaken this, buy that, or walk away — because choosing is
+  //    the harness's greed, not a game rule; what is under test is the price, what a
+  //    purchase does, and the offer itself, which is game code.
+  at("if (f === SHOP_FLOOR) {   /* shop: greedy buys */",
+     "if (f === SHOP_FLOOR) {   /* shop: greedy buys */\n" +
+     '          let __deal = "none", __dealId = null;');
+
+  // Snapshot the offer before a purchase shifts an item off it.
+  at("st.awake = st.awake || {};",
+     "st.awake = st.awake || {};\n" +
+     "          const __offer = offer.slice();");
+
+  at('res.sockPicks["awaken:" + bestAw.id] = (res.sockPicks["awaken:" + bestAw.id] || 0) + 1;',
+     'res.sockPicks["awaken:" + bestAw.id] = (res.sockPicks["awaken:" + bestAw.id] || 0) + 1;\n' +
+     '            __deal = "awaken"; __dealId = bestAw.id;');
+
+  at("res.picks[id] = (res.picks[id] || 0) + 1;",
+     "res.picks[id] = (res.picks[id] || 0) + 1;\n" +
+     '            __deal = "buy"; __dealId = id;');
+
+  at("continue;   /* no combat on shop floor */",
+     "if (P.onShop) P.onShop(run, f, __offer, __deal, __dealId, st);\n" +
+     "          continue;   /* no combat on shop floor */");
+
+  // 4. A relic was drafted, after any rerolls.
+  at("applyPickup(st, pick); res.picks[pick] = (res.picks[pick] || 0) + 1;",
+     "applyPickup(st, pick); res.picks[pick] = (res.picks[pick] || 0) + 1;\n" +
+     "        if (P.onPick) P.onPick(run, f, pick, offer, st);");
+
+  // 5. The floor's fight resolved.
+  at("const ev = this.simulateFloor(st, pk, rng);",
+     "const ev = this.simulateFloor(st, pk, rng);\n" +
+     "        if (P.onFight) P.onFight(run, f, pk, ev, st);");
+
+  // 6. The run ended, win or death.
+  at("if (!dead) { res.wins++; res.winHp.push(st.php); res.winGold.push(st.gold); }",
+     "if (P.onEnd) P.onEnd(run, st, dead, deadAt, deadTo);\n" +
+     "      if (!dead) { res.wins++; res.winHp.push(st.php); res.winGold.push(st.gold); }");
+
+  return src;
+}

@@ -22,6 +22,7 @@
  */
 
 import { writeFileSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildEngine } from "./engine.mjs";
@@ -593,10 +594,15 @@ const manifest = {
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
-      "phase 5": "packs.json + progression.json",
+      "phase 5": "packs.json + progression.json + runs.json",
       "phase 6": "duel.json",
     },
   },
 };
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf8");
-console.log(`\n  ${cases.length} cases · ${totalEvents} events · ${packs.length} packs\n`);
+console.log(`\n  ${cases.length} cases · ${totalEvents} events · ${packs.length} packs`);
+
+/* The run corpus comes out of the game's own balanceRuns rather than out of the case spread
+   above, so it lives in its own script — but one command has to regenerate the whole corpus,
+   or the two halves drift apart. */
+execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "runs.mjs")], { stdio: "inherit" });

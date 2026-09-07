@@ -60,5 +60,28 @@ export function liftMethod(name) {
   return SRC.slice(m.index, scan(SRC, bodyStart, false));
 }
 
+/**
+ * Source text of a method, bounded by where the NEXT method begins rather than by
+ * brace matching.
+ *
+ * The depth scanner cannot read every method: a regex literal containing an unbalanced
+ * brace (or a `/` that looks like a comment) throws its count off, and `balanceRuns`
+ * has both. Method definitions are reliably the only thing indented by exactly two
+ * spaces and followed by `(`, so the next one marks the end.
+ */
+export function liftMethodTo(name) {
+  const start = new RegExp(`^  ${name}\\s*\\(`, "m").exec(SRC);
+  if (!start) throw new Error(`method not found: ${name}`);
+
+  const rest = SRC.slice(start.index + start[0].length);
+  const next = /^  [A-Za-z_$][\w$]*\s*\(/m.exec(rest);
+  if (!next) throw new Error(`no method follows: ${name}`);
+
+  const text = SRC.slice(start.index, start.index + start[0].length + next.index);
+  const close = text.lastIndexOf("}");
+  if (close < 0) throw new Error(`no closing brace: ${name}`);
+  return text.slice(0, close + 1);
+}
+
 /** An IIFE-backed const such as Store or SFX, with its initializer intact. */
 export const liftIife = liftConst;
