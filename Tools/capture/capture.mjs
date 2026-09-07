@@ -562,6 +562,23 @@ for (let i = 0; i < 16; i++) {
   }));
 }
 
+/* A duel stops answering the moment the answer kills. A defender whose Thorn Vest finishes the
+   striker never gets to the adrenaline, the marrow or the mirror behind it; a delve, answering
+   the same blow, works through the whole ladder. Nothing separates the two unless the defender
+   carries a Thorn Vest AND something later in the ladder, and is itself hurt enough for the
+   later thing to have work to do — so both sides get thorns and a marrow, and open low enough
+   that the marrow is live by the time somebody falls. */
+for (let i = 0; i < 16; i++) {
+  const answering = ["thorns", "marrow", "adrenaline", "mirrorscale"];
+  cases.push(duelCase(`duel/lastword/${i}`, {
+    itemsA: answering.concat(i % 2 === 0 ? ["whetstone"] : ["berserk", "whetstone"]),
+    itemsB: answering.concat(i % 3 === 0 ? ["whetstone"] : ["dice", "whetstone"]),
+    awakeA: i % 2 === 0 ? { thorns: 1 } : { thorns: 1, marrow: 1 },
+    awakeB: i % 4 === 0 ? { marrow: 1 } : {},
+    hp: [24, 30, 40, 52][i % 4],
+  }));
+}
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });
@@ -611,7 +628,7 @@ const manifest = {
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
       "phase 5": "packs.json + progression.json + delve.json + outcomes.json",
-      "phase 6": "duel.json + versus.json + synergy.json",
+      "phase 6": "duel.json + duels.json + versus.json + synergy.json",
     },
   },
 };

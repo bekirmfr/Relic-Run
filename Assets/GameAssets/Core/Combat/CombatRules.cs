@@ -48,6 +48,21 @@ namespace RelicRun.Core.Combat
         /// </summary>
         public bool KillSharesTheBlowsChain;
 
+        /// <summary>
+        /// Whether a defender stops answering once its Thorn Vest has killed the striker.
+        /// </summary>
+        /// <remarks>
+        /// A duel does: the thorns bite, and if the blow that provoked them was the striker's
+        /// last, the rest of the answer — the adrenaline, the marrow's second wind, the mirror —
+        /// never happens, because there is nobody left to answer. A delve answers on regardless,
+        /// so a hero whose thorns kill the foe still takes the marrow heal that follows.
+        ///
+        /// Found by the lobby duel tier, which is the only place a defender was ever carrying
+        /// both a Thorn Vest and something later in the ladder while the striker was low enough
+        /// to die to it.
+        /// </remarks>
+        public bool ReactionsStopWhenTheStrikerFalls;
+
         /// <summary>Whether the Edge set sharpens permanently with every kill.</summary>
         public bool EdgeSetSharpensOnKill = true;
 
@@ -124,6 +139,7 @@ namespace RelicRun.Core.Combat
                 KillFiresTrigger = false,
                 KillSharesTheBlowsChain = true,
                 ReactionsShareOneChain = false,
+                ReactionsStopWhenTheStrikerFalls = true,
             };
         }
 

@@ -74,13 +74,52 @@ const hero = (G) => ({
   sockets: Object.assign({}, G.sockets || {}),
 });
 
-function match(id, seed, wants) {
+/** XP that lands exactly on a level, so a lobby's setup is stated rather than approximated. */
+function xpForLevel(level) {
+  let acc = 0;
+  for (let l = 2; l <= level; l++) acc += Math.round(1000 * Math.pow(1.2, l - 2));
+  return acc;
+}
+
+/**
+ * The deepest duel of each match, recorded event for event.
+ *
+ * The designed duel tier fights two hand-built sides on a level field. A lobby does not: by the
+ * eighth round both delvers are carrying nine relics, a pool three times what they opened on,
+ * and whatever their earlier duels left them holding. That is a different corner of the engine,
+ * and it is the corner a player actually reaches, so one duel per match is kept.
+ */
+const lobbyDuels = [];
+
+function match(id, seed, wants, level) {
+  // The hero's level seeds the lobby: it sets the pool both sides open on, how many relics the
+  // delve offer that startRun deals holds, and the band the rivals' own levels are drawn around.
+  // finishRun banks XP, so left alone this would drift from match to match — it is set instead.
+  api.Store.set("dd.xp", xpForLevel(level));
+
   const engine = new api.Engine();
   engine.state = {};
   api.seedLobby(seed);
   engine.startVersus();
 
   const G = engine.G;
+
+  // Wrap the duel so the LAST one of the match can be kept. Wrapping is read-only: the
+  // arguments are snapshotted before the engine touches them, and the engine's own return
+  // value is handed straight back.
+  let deepest = null;
+  const fight = engine.simulateDuel.bind(engine);
+  engine.simulateDuel = (A, B, rng) => {
+    const before = JSON.parse(JSON.stringify({ a: A, b: B }));
+
+    // The duel is fought from the MATCH's generator, mid-stream, so there is no seed of its
+    // own to record. What is recorded instead is how far the stream had got: a replay seeds
+    // the match and skips that many draws to arrive at the same place.
+    const skip = engine._draws;
+    const events = fight(A, B, rng);
+    deepest = { round: G.floor | 0, input: before, skip, events: [...events] };
+    return events;
+  };
 
   // Building the lobby spends around 250 draws, and most of them go on the rivals' LOOKS: ten
   // wardrobe slots and eleven colour families each, plus an accent and a motto. The port has
@@ -96,6 +135,7 @@ function match(id, seed, wants) {
     // startVersus. It is the second that a replay needs, so it is the second that is recorded.
     lobbySeed: seed,
     seed: G.seed >>> 0,
+    level,
     start: { hero: hero(G), hall: G.vsHall | 0, roster: G.vsRoster.map(side) },
     rounds: [],
     bazaar: null,
@@ -187,6 +227,18 @@ function match(id, seed, wants) {
   // The match ended mid-round, so that round has not been recorded yet.
   if (G.vsLastWon !== undefined) round();
 
+  if (deepest) {
+    lobbyDuels.push({
+      id: id + "/round" + deepest.round,
+      tier: "lobby",
+      mode: "versus",
+      seed: G.seed >>> 0,
+      skip: deepest.skip,
+      input: deepest.input,
+      events: deepest.events,
+    });
+  }
+
   record.setupDraws = setupDraws;
   record.end = {
     how: G.how || "unresolved",
@@ -203,14 +255,19 @@ function match(id, seed, wants) {
 
 const matches = [];
 for (let i = 0; i < 120; i++) {
-  // Cycle what the shopper wants, so buying and walking away are recorded too.
+  // Cycle what the shopper wants, so buying and walking away are recorded too, and walk the
+  // levels, because the hero's level is what shapes the lobby around them.
   const wants = ["awaken", "buy", "leave"][i % 3];
-  matches.push(match("versus/" + i, (0x5E1F00D + i * 7919) >>> 0, wants));
+  const level = [1, 4, 7, 10, 13, 16, 20][i % 7];
+  matches.push(match("versus/" + i, (0x5E1F00D + i * 7919) >>> 0, wants, level));
 }
 
 mkdirSync(OUT, { recursive: true });
 const json = JSON.stringify(matches);
 writeFileSync(join(OUT, "versus.json"), json, "utf8");
+
+const duelJson = JSON.stringify(lobbyDuels);
+writeFileSync(join(OUT, "duels.json"), duelJson, "utf8");
 
 const rounds = matches.reduce((n, m) => n + m.rounds.length, 0);
 const cleared = matches.filter((m) => m.end.how === "cleared").length;
@@ -224,3 +281,7 @@ console.log(`  ${rounds} rounds · ${cleared} cleared · ${shopped} reached the 
 const deals = {};
 for (const m of matches) if (m.bazaar) deals[m.bazaar.action.kind] = (deals[m.bazaar.action.kind] || 0) + 1;
 console.log("  bazaar: " + (Object.entries(deals).map(([k, n]) => k + " " + n).join(" · ") || "never reached"));
+
+const duelEvents = lobbyDuels.reduce((n, d) => n + d.events.length, 0);
+console.log(`  → duels.json         ${String(lobbyDuels.length).padStart(4)} duels  ` +
+            `${(Buffer.byteLength(duelJson) / 1024).toFixed(0)} KB · ${duelEvents} events`);

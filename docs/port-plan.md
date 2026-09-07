@@ -232,8 +232,10 @@ Port order: EDGE → GUARD → FLESH → PACE → LUCK → GREED → CHAIN → C
 ### Phase 6 — Versus
 - `VersusRun` on the same engine: 8-delver roster, rotating rival, 3 lives, round 5 bazaar
 - Bot drafting, persistent rival stat sheets, `hallForDuel`, staging
+- Lobby generation, faces included — the appearance is discarded but the draws are spent, so a
+  roster comes out of a seed rather than out of a recording
 
-**Gate:** corpus versus lobbies reproduce round-by-round.
+**Gate:** corpus versus lobbies are MADE from their seed, and then reproduce round-by-round.
 
 > Phases 1–6 need no scene, no prefab, no sprite. The whole game is verifiable as a test suite before any
 > UI exists.

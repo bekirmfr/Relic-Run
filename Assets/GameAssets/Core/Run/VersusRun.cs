@@ -384,8 +384,13 @@ namespace RelicRun.Core.Run
             return Draw(match, ShopChoices, rng);
         }
 
-        /// <summary>The relics on offer, drawn without repeats and weighted against duplicates.</summary>
         private static List<RelicId> Draw(VersusMatch match, int want, Mulberry32 rng)
+        {
+            return Draw(match.Items, want, rng);
+        }
+
+        /// <summary>The relics on offer, drawn without repeats and weighted against duplicates.</summary>
+        private static List<RelicId> Draw(IReadOnlyList<RelicId> hand, int want, Mulberry32 rng)
         {
             var avail = new List<RelicId>();
             List<RelicId> pool = RelicCatalog.PoolFor(GameModes.Versus);
@@ -393,8 +398,8 @@ namespace RelicRun.Core.Run
             for (int i = 0; i < pool.Count; i++)
             {
                 RelicId id = pool[i];
-                if (!RelicCatalog.Get(id).Stackable && match.Count(id) > 0) continue;
-                if (!RelicDraft.IsLive(id, match.Items)) continue;
+                if (!RelicCatalog.Get(id).Stackable && Held(hand, id) > 0) continue;
+                if (!RelicDraft.IsLive(id, hand)) continue;
                 avail.Add(id);
             }
 
@@ -404,11 +409,22 @@ namespace RelicRun.Core.Run
 
             while (offer.Count < take && guard++ < 200)
             {
-                RelicId id = RelicDraft.Weighted(avail, match.Items, rng);
+                RelicId id = RelicDraft.Weighted(avail, hand, rng);
                 if (!offer.Contains(id)) offer.Add(id);
             }
 
             return offer;
+        }
+
+        private static int Held(IReadOnlyList<RelicId> hand, RelicId id)
+        {
+            int n = 0;
+            for (int i = 0; i < hand.Count; i++)
+            {
+                if (hand[i] == id) n++;
+            }
+
+            return n;
         }
 
         /// <summary>What a counter charges. A Merchant's Thumb shaves a fifth off it.</summary>
@@ -580,6 +596,136 @@ namespace RelicRun.Core.Run
                 int due = Math.Max(1, JsMath.RoundToInt(match.Pmax * 0.2));
                 match.Php = Math.Max(1, match.Php - due);
             }
+        }
+
+        /// <summary>The seven delvers a lobby is made from, in the order they are rolled.</summary>
+        private static readonly string[] RivalNames =
+        {
+            "Bramblejaw", "Mole Widow", "Grim Patty", "Sootfinger", "Old Lantern", "The Tithe",
+            "Knucklebone",
+        };
+
+        /// <summary>
+        /// What a rival wants out of its opening three, before it has anything to build around.
+        /// </summary>
+        /// <remarks>
+        /// Sustain and flat stats first. Anything absent is worth three, which is why a relic
+        /// scored below three would never be picked over an unlisted one — none are.
+        /// </remarks>
+        private static readonly Dictionary<RelicId, int> OpeningValue = new Dictionary<RelicId, int>
+        {
+            { RelicId.OxHeart, 9 }, { RelicId.IronSkin, 8 }, { RelicId.VampireTooth, 8 },
+            { RelicId.Whetstone, 8 }, { RelicId.AlchemistsVial, 6 }, { RelicId.ThornVest, 5 },
+            { RelicId.AdrenalineGland, 5 }, { RelicId.SwiftBoots, 4 },
+            { RelicId.BerserkerCharm, 4 }, { RelicId.LuckyClover, 4 },
+        };
+
+        private const int OpeningValueDefault = 3;
+
+        /// <summary>Relics a rival opens with.</summary>
+        private const int OpeningKit = 3;
+
+        /// <summary>
+        /// Makes a lobby: the hall, the pool both sides open on, and seven persistent delvers.
+        /// </summary>
+        /// <remarks>
+        /// The arena opens both sides on HALF the hero's levelled delve pool and flattens every
+        /// other stat to arena parity, so a level is flavour rather than an advantage. A rival's
+        /// level lands within one of the hero's; it nudges their statline by three health and a
+        /// point of attack and defence, and it decides how deep a hall they can be hosting in —
+        /// which is the lobby telegraphing who is dangerous before a blow is struck.
+        ///
+        /// Making a lobby costs about two hundred and fifty draws and most of them go on the
+        /// rivals' FACES. Nothing reads a face back, so the port spends the draws without
+        /// choosing anything — see <see cref="HeroWardrobe"/>. It also deals, and discards, a
+        /// DELVE offer: setting a versus match up starts a run first and re-deals from the
+        /// versus pool afterwards, and the offer that gets thrown away was paid for.
+        /// </remarks>
+        public static VersusLobby Make(uint seed, int level)
+        {
+            var rng = new Mulberry32(seed);
+            LevelBonuses bonuses = Progression.Bonuses(level);
+
+            // The delve offer a run opens with, dealt and then thrown away when the mode changes.
+            RelicDraft.RollOffer(new List<RelicId>(), 2 + bonuses.DraftChoices, rng,
+                RunRules.Shipped(), GameModes.Delve);
+
+            var lobby = new VersusLobby
+            {
+                Hall = 1,
+                HeroPool = JsMath.RoundToInt((100 + bonuses.Hp) / 2.0),
+            };
+
+            lobby.OpeningOffer = Draw(new List<RelicId>(), DraftChoices, rng);
+
+            for (int i = 0; i < RivalNames.Length; i++)
+            {
+                lobby.Rivals.Add(MakeRival(RivalNames[i], level, lobby.HeroPool, rng));
+            }
+
+            lobby.SetupDraws = rng.Draws;
+            return lobby;
+        }
+
+        private static Rival MakeRival(string name, int heroLevel, int heroPool, Mulberry32 rng)
+        {
+            int level = Math.Max(1, heroLevel + rng.NextInt(3) - 1);
+            var rival = new Rival { Name = name, Level = level, Lives = Lives };
+
+            List<RelicId> pool = RelicCatalog.PoolFor(GameModes.Versus);
+            int guard = 0;
+
+            // Two at a time, keep the one it wants more, and try again if that one is a
+            // duplicate it cannot hold.
+            while (rival.Relics.Count < OpeningKit && guard++ < 200)
+            {
+                RelicId a = pool[rng.NextInt(pool.Count)];
+                RelicId b = pool[rng.NextInt(pool.Count)];
+
+                RelicId want = Wants(a) >= Wants(b)
+                    ? (Holdable(rival, a) ? a : b)
+                    : (Holdable(rival, b) ? b : a);
+
+                if (Holdable(rival, want)) rival.Relics.Add(want);
+            }
+
+            // Their face: rolled once, read by nobody here, and paid for out of this stream.
+            rng.Skip(HeroWardrobe.DrawsPerFace);
+
+            // A deeper hall telegraphs a stronger rival.
+            int reach = Math.Max(1, Math.Min(DungeonCatalog.All.Count, 1 + level / 3));
+            rival.Hall = 1 + rng.NextInt(reach);
+
+            int step = level - heroLevel;
+            rival.Base = new RivalBase
+            {
+                Hp = heroPool + 3 * step + rng.NextInt(7) - 3,
+                Atk = 5 + (step > 0 ? 1 : 0) + (rng.Next() < 0.35 ? 1 : 0),
+                Def = step > 0 ? 1 : 0,
+                Spd = 25 + rng.NextInt(5) - 2,
+                Lck = 10 + rng.NextInt(5) - 2,
+            };
+
+            return rival;
+        }
+
+        private static int Wants(RelicId id)
+        {
+            int value;
+            return OpeningValue.TryGetValue(id, out value) ? value : OpeningValueDefault;
+        }
+
+        /// <summary>
+        /// Whether a rival can add this relic: anything that stacks, or anything they lack.
+        /// </summary>
+        /// <remarks>
+        /// Read off the catalog rather than off <see cref="RunRules"/>, as <see cref="RivalsDraft"/>
+        /// does: a rival's own draft is the source's, and the port's stacking change is about
+        /// what the BAZAAR will wake for the hero.
+        /// </remarks>
+        private static bool Holdable(Rival rival, RelicId id)
+        {
+            return RelicCatalog.Get(id).Stackable || !rival.Relics.Contains(id);
         }
 
         /// <summary>Plays a match out of a lobby that has already been made.</summary>

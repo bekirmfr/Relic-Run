@@ -35,6 +35,16 @@ namespace RelicRun.Core.Determinism
         }
 
         /// <summary>
+        /// How many numbers this generator has produced.
+        /// </summary>
+        /// <remarks>
+        /// The inverse of <see cref="Skip"/>, and needed for the same reason: a versus lobby is
+        /// made by one stretch of the stream and then played by another, so whoever makes the
+        /// lobby has to be able to say how far it got.
+        /// </remarks>
+        public int Draws { get; private set; }
+
+        /// <summary>
         /// The generator's raw 32-bit output — the exact numerator of the next draw.
         /// </summary>
         /// <remarks>
@@ -49,6 +59,7 @@ namespace RelicRun.Core.Determinism
 
             unchecked
             {
+                Draws++;
                 _state += 0x6d2b79f5u;
                 uint x = (_state ^ (_state >> 15)) * (1u | _state);
                 x = (x + ((x ^ (x >> 7)) * (61u | x))) ^ x;
@@ -56,11 +67,6 @@ namespace RelicRun.Core.Determinism
             }
         }
 
-        /// <summary>Next double in [0, 1), matching the JS generator draw for draw.</summary>
-        /// <remarks>
-        /// Dividing by 2^32 is exact in IEEE 754 — no rounding happens here, so this agrees
-        /// with the JS value bit for bit on every runtime.
-        /// </remarks>
         /// <summary>
         /// Burns <paramref name="draws"/> numbers without using them.
         /// </summary>
@@ -75,6 +81,11 @@ namespace RelicRun.Core.Determinism
             for (int i = 0; i < draws; i++) NextRaw();
         }
 
+        /// <summary>Next double in [0, 1), matching the JS generator draw for draw.</summary>
+        /// <remarks>
+        /// Dividing by 2^32 is exact in IEEE 754 — no rounding happens here, so this agrees
+        /// with the JS value bit for bit on every runtime.
+        /// </remarks>
         public double Next()
         {
             return NextRaw() / 4294967296.0;

@@ -206,7 +206,7 @@ namespace RelicRun.Tests.Support
             return foes;
         }
 
-        private static EnemyRank ParseRank(JToken token)
+        public static EnemyRank ParseRank(JToken token)
         {
             if (token == null || token.Type == JTokenType.Null) return EnemyRank.Guard;
             switch (token.Value<string>())

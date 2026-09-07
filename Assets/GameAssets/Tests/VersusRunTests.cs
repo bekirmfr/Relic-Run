@@ -318,6 +318,128 @@ namespace RelicRun.Tests
             return lobby;
         }
 
+        /// <summary>
+        /// Every recorded lobby is MADE from its seed and the hero's level, rather than read
+        /// back off the recording.
+        /// </summary>
+        /// <remarks>
+        /// The lobby used to be handed over the way a pack is, because making one spends most
+        /// of its randomness on the rivals' faces and the port had no wardrobe. It still has
+        /// none — but nothing reads a face back, so the draws can be spent without choosing
+        /// anything, and everything that IS read back comes out of the port: seven levels within
+        /// one of the hero's, an opening kit of three apiece, a hall each, a statline each, and
+        /// the offer the hero opens on.
+        ///
+        /// The draw count is compared too. It is the one number that notices a wardrobe slot or
+        /// a colour family miscounted in a way the rosters happen to survive.
+        /// </remarks>
+        [Test]
+        public void RecordedLobbiesAreMadeExactly()
+        {
+            JArray cases = Corpus.Array("versus.json");
+            Assert.That(cases.Count, Is.GreaterThan(0), "versus corpus is empty");
+
+            var failures = new List<string>();
+
+            foreach (JToken token in cases)
+            {
+                var match = (JObject)token;
+                string id = match["id"].Value<string>();
+                var start = (JObject)match["start"];
+
+                VersusLobby made = VersusRun.Make(
+                    match["seed"].Value<uint>(), match["level"].Value<int>());
+
+                string diff =
+                    Same(id, "setup draws", match["setupDraws"].Value<int>(), made.SetupDraws) ??
+                    Same(id, "hall", start["hall"].Value<int>(), made.Hall) ??
+                    Same(id, "hero pool", ((JObject)start["hero"])["pmax"].Value<int>(), made.HeroPool) ??
+                    Same(id, "roster size", ((JArray)start["roster"]).Count, made.Rivals.Count) ??
+                    Roster(id, (JArray)start["roster"], made.Rivals) ??
+                    Offer(id, LobbyFrom(match).OpeningOffer, made.OpeningOffer);
+
+                if (diff != null) failures.Add(diff);
+            }
+
+            Assert.That(failures, Is.Empty,
+                failures.Count + " of " + cases.Count + " lobbies diverge:\n  " +
+                string.Join("\n  ", failures.GetRange(0, System.Math.Min(8, failures.Count))));
+        }
+
+        private static string Same(string id, string what, int recorded, int made)
+        {
+            return recorded == made
+                ? null
+                : id + ": " + what + " recorded " + recorded + ", made " + made;
+        }
+
+        private static string Roster(string id, JArray recorded, IReadOnlyList<Rival> made)
+        {
+            for (int i = 0; i < made.Count; i++)
+            {
+                var r = (JObject)recorded[i];
+                var b = (JObject)r["base"];
+                Rival mine = made[i];
+
+                string diff =
+                    Same(id + " rival " + i, "name", r["name"].Value<string>(), mine.Name) ??
+                    Same(id + " " + mine.Name, "level", r["lvl"].Value<int>(), mine.Level) ??
+                    Same(id + " " + mine.Name, "lives", r["lives"].Value<int>(), mine.Lives) ??
+                    Same(id + " " + mine.Name, "hall", r["hall"].Value<int>(), mine.Hall) ??
+                    Same(id + " " + mine.Name, "gold", r["gold"].Value<int>(), mine.Gold) ??
+                    Same(id + " " + mine.Name, "hp", b["hp"].Value<int>(), mine.Base.Hp) ??
+                    Same(id + " " + mine.Name, "atk", b["atk"].Value<int>(), mine.Base.Atk) ??
+                    Same(id + " " + mine.Name, "def", b["def"].Value<int>(), mine.Base.Def) ??
+                    Same(id + " " + mine.Name, "spd", b["spd"].Value<int>(), mine.Base.Spd) ??
+                    Same(id + " " + mine.Name, "lck", b["lck"].Value<int>(), mine.Base.Lck) ??
+                    Kit(id + " " + mine.Name, (JArray)r["relics"], mine.Relics);
+
+                if (diff != null) return diff;
+            }
+
+            return null;
+        }
+
+        private static string Same(string where, string what, string recorded, string made)
+        {
+            return recorded == made
+                ? null
+                : where + ": " + what + " recorded " + recorded + ", made " + made;
+        }
+
+        /// <summary>An opening kit is ORDERED — it is the order the two-at-a-time draw kept.</summary>
+        private static string Kit(string where, JArray recorded, IReadOnlyList<RelicId> made)
+        {
+            var want = new List<string>();
+            foreach (JToken t in recorded) want.Add(t.Value<string>());
+
+            var got = new List<string>(made.Count);
+            for (int i = 0; i < made.Count; i++) got.Add(RelicCatalog.KeyOf(made[i]));
+
+            return string.Join(",", want) == string.Join(",", got)
+                ? null
+                : where + ": kit recorded [" + string.Join(",", want) + "], made [" +
+                  string.Join(",", got) + "]";
+        }
+
+        private static string Offer(string id, IReadOnlyList<RelicId> recorded,
+            IReadOnlyList<RelicId> made)
+        {
+            var want = new List<string>(recorded.Count);
+            for (int i = 0; i < recorded.Count; i++) want.Add(RelicCatalog.KeyOf(recorded[i]));
+
+            var got = new List<string>(made.Count);
+            for (int i = 0; i < made.Count; i++) got.Add(RelicCatalog.KeyOf(made[i]));
+
+            want.Sort(System.StringComparer.Ordinal);
+            got.Sort(System.StringComparer.Ordinal);
+
+            return string.Join(",", want) == string.Join(",", got)
+                ? null
+                : id + ": opening offer recorded [" + string.Join(",", want) + "], made [" +
+                  string.Join(",", got) + "]";
+        }
+
         [Test]
         public void RecordedMatchesReplayExactly()
         {

@@ -4,6 +4,7 @@ using NUnit.Framework;
 using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
 using RelicRun.Core.Determinism;
+using RelicRun.Core.Stats;
 using RelicRun.Tests.Support;
 
 namespace RelicRun.Tests
@@ -79,6 +80,10 @@ namespace RelicRun.Tests
                 LuckBonus = s["luckB"].Value<int>(),
                 SpeciesIndex = s["idx"] != null ? s["idx"].Value<int>() : 0,
                 Variant = s["variant"] != null ? s["variant"].Value<int>() : 0,
+
+                // The last rival standing is fought as the KING, and a Duelist's Oath reads the
+                // rank. The designed tier never sets one, so it defaults where the source does.
+                Rank = s["rank"] != null ? CorpusFight.ParseRank(s["rank"]) : EnemyRank.Boss,
                 AnvilBonus = s["_anvilB"].Value<int>(),
                 DebtLeft = s["_debtLeft"].Value<int>(),
                 GlassBroken = s["_glassBroken"].Value<bool>(),
@@ -124,6 +129,61 @@ namespace RelicRun.Tests
 
             Assert.That(failures, Is.Empty,
                 failures.Count + " of " + cases.Count + " duels diverge:\n  " +
+                string.Join("\n  ", failures.GetRange(0, System.Math.Min(8, failures.Count))));
+        }
+
+        /// <summary>
+        /// Phase 6 gate: <c>Tools/corpus/duels.json</c> — the deepest duel of every lobby.
+        /// </summary>
+        /// <remarks>
+        /// The designed tier fights two hand-built sides on a level field, and that is the right
+        /// shape for asking what one relic does. It is not the shape a player meets. By the
+        /// eighth round of a match both delvers carry nine relics and a pool three times what
+        /// they opened on, and each is still holding what its earlier duels left it. This is
+        /// that corner of the engine, and it caught a divergence the designed tier could not.
+        ///
+        /// A lobby duel has no seed of its own — it is fought from the match's generator, part
+        /// way through — so the recording carries the match's seed and how far the stream had
+        /// got, and the replay skips to the same place.
+        /// </remarks>
+        [Test]
+        public void RecordedLobbyDuelsReplayExactly()
+        {
+            JArray cases = Corpus.Array("duels.json");
+            Assert.That(cases.Count, Is.GreaterThan(0), "lobby duel corpus is empty");
+
+            var failures = new List<string>();
+
+            foreach (JToken token in cases)
+            {
+                string id = token["id"].Value<string>();
+                DuelSide hero = ReadSide((JObject)token["input"]["a"], true);
+                DuelSide rival = ReadSide((JObject)token["input"]["b"], false);
+                JArray want = (JArray)token["events"];
+
+                var rng = new Mulberry32(token["seed"].Value<uint>());
+                rng.Skip(token["skip"].Value<int>());
+
+                CombatResult got = new DuelEngine(CombatRules.DuelAsRecorded())
+                    .Resolve(hero, rival, rng);
+
+                int n = System.Math.Min(want.Count, got.Events.Count);
+                string diff = null;
+                for (int i = 0; i < n && diff == null; i++)
+                {
+                    diff = CorpusFight.Diff((JObject)want[i], got.Events[i], i);
+                }
+
+                if (diff == null && want.Count != got.Events.Count)
+                {
+                    diff = "recorded " + want.Count + " events, replayed " + got.Events.Count;
+                }
+
+                if (diff != null) failures.Add(id + ": " + diff);
+            }
+
+            Assert.That(failures, Is.Empty,
+                failures.Count + " of " + cases.Count + " lobby duels diverge:\n  " +
                 string.Join("\n  ", failures.GetRange(0, System.Math.Min(8, failures.Count))));
         }
 

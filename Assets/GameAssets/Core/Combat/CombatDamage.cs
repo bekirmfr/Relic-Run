@@ -485,7 +485,13 @@ namespace RelicRun.Core.Combat
                     case DefenderReaction.Marrow: Marrow(defender, bus, rules, chain); break;
                     case DefenderReaction.AttackerLifesteal: bus.AttackerLifesteal(attacker, defender); break;
                     case DefenderReaction.Adrenaline: Adrenaline(defender, bus, rules, chain); break;
-                    case DefenderReaction.Thorns: Thorns(defender, bus, rules, chain); break;
+                    case DefenderReaction.Thorns:
+                        Thorns(defender, bus, rules, chain);
+
+                        // Thorns are the one answer that can kill, and in a duel a dead striker
+                        // ends the answer: nothing after this fires.
+                        if (rules.ReactionsStopWhenTheStrikerFalls && attacker.Php <= 0) return;
+                        break;
                     case DefenderReaction.PainCadence: PainCadence(defender, bus, rules, chain); break;
                 }
             }

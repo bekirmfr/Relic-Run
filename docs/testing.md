@@ -310,6 +310,60 @@ that is written, is reachable from the code, and can never fire because the only
 awakens anything refuses relics that do not stack. Making any of them stack would make its
 awakened half real, and the mutant would start dying. Each is commented where it sits.
 
+## The versus lobby
+
+A match used to be handed a finished lobby the way a fight is handed a finished pack, because
+making one spends most of its randomness on the rivals' FACES — an outfit slot by slot, a colour
+per family, an accent and a motto, about two hundred and fifty draws in all — and the port has
+no wardrobe.
+
+It still has none. But nothing reads a face back: the draws are spent and the results discarded,
+so a port can spend them without choosing anything. `HeroWardrobe` holds only the counts, and
+everything a lobby actually produces now comes out of `VersusRun.Make` — seven delvers with a
+level within one of the hero's, an opening kit of three apiece, a hall each (deeper for a
+stronger rival, which is the lobby telegraphing danger before a blow is struck), a statline each,
+and the offer the hero opens on.
+
+Two things about setting one up are easy to miss and are gated:
+
+- **A versus match starts a delve first.** `startVersus` calls `startRun`, which deals an offer
+  from the DELVE pool, and then re-deals from the versus pool once the mode has changed. The
+  first offer is thrown away, but it was paid for — and how many relics it held depends on the
+  hero's level, because the level-ten perk adds a third choice.
+- **The draw count is compared.** It is the one number that notices a wardrobe slot or a colour
+  family miscounted in a way the rosters happen to survive.
+
+### Duels in a lobby
+
+The designed duel tier fights two hand-built sides on a level field, which is the right shape
+for asking what one relic does. It is not the shape a player meets. By the eighth round of a
+match both delvers carry nine relics and a pool three times what they opened on, and each is
+still holding what its earlier duels left it. `duels.json` keeps the deepest duel of every
+lobby, event for event.
+
+It earned its place immediately. A duel stops answering the moment the answer kills: a defender
+whose Thorn Vest finishes the striker never reaches the adrenaline, the marrow or the mirror
+behind it, because there is nobody left to answer. A delve works through the whole ladder
+regardless. Nothing separates the two unless the defender is carrying a Thorn Vest AND something
+later in the ladder while the striker is low enough to die to it — which the designed tier had
+never assembled, and which a round-four duel between two delvers with six relics each did.
+`CombatRules.ReactionsStopWhenTheStrikerFalls` is the seam, and `duel/lastword/*` is the designed
+tier that now covers it on purpose rather than by luck.
+
+A lobby duel has no seed of its own — it is fought from the match's generator, part way through
+— so the recording carries the match's seed and how far the stream had got, and a replay skips
+to the same place.
+
+### The mutations
+
+Sixteen mutations of the lobby and the last word, all sixteen die.
+
+One of them had to be rewritten to earn that. What an unlisted relic is worth to a rival's
+opening draft only matters against the listed values, and every listed value is higher, so
+moving the default from three to nought changes no pick — an equivalent mutant, and a mutant
+that cannot fail is not a test. Moving it to ten, above everything the bot wants, does change
+picks, and that is the mutant the suite carries.
+
 ## Scoring a finished run
 
 `outcomes.json` covers what a run was worth: banked gold, score, stars and XP. The source keeps
@@ -416,7 +470,7 @@ node Tools/extract/validate.mjs
 | Gate | Corpus | Status |
 |---|---|---|
 | Phase 0 — content | `Tools/out/` | passing, 4 tracked content gaps |
-| Phase 0 — corpus | `Tools/corpus/` | passing, 1653 cases replay exactly |
+| Phase 0 — corpus | `Tools/corpus/` | passing, 1789 cases replay exactly |
 | Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 raw draws bit-exact |
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
 | Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |
@@ -428,6 +482,8 @@ node Tools/extract/validate.mjs
 | Phase 5b — progression | `corpus/progression.json` | passing, levels, perks and the reward table |
 | Phase 5c — the delve loop | `delve.json` | passing, 516 runs and 13,472 steps replay exactly |
 | Phase 5d — scoring | `outcomes.json` | passing, 637 finished runs across all ten halls |
-| Phase 6a — duels | `duel.json` | passing, 132 duels replay event-for-event |
-| Phase 6b — the versus match | `versus.json` | passing, 120 matches and 710 rounds |
-| Phase 6c — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |
+| Phase 6a — duels | `duel.json` | passing, 148 duels replay event-for-event |
+| Phase 6b — duels in a lobby | `duels.json` | passing, 120 deep duels, 11,774 events |
+| Phase 6c — the versus lobby | `versus.json` | passing, 120 lobbies made from a seed |
+| Phase 6d — the versus match | `versus.json` | passing, 120 matches and 733 rounds |
+| Phase 6e — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |

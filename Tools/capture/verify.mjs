@@ -94,7 +94,11 @@ for (const tier of tiers) {
     checked++;
     let got;
     if (c.mode === "versus") {
-      got = engine.simulateDuel(clone(c.input.a), clone(c.input.b), api.mulberry32(c.fightSeed));
+      // A duel fought inside a lobby has no seed of its own: it picks the match's stream up
+      // part way through, so it is replayed by seeding the match and skipping to the same spot.
+      const rng = api.mulberry32(c.fightSeed !== undefined ? c.fightSeed : c.seed);
+      for (let k = 0; k < (c.skip || 0); k++) rng();
+      got = engine.simulateDuel(clone(c.input.a), clone(c.input.b), rng);
     } else {
       got = engine.simulateFloor(clone(c.input.hero), clone(c.input.pack), api.mulberry32(c.fightSeed));
     }
