@@ -65,89 +65,8 @@ namespace RelicRun.Core.Combat
         /// stagger or a Martyr's Knot that sends it back, then armor and Padded Hide. Only a
         /// genuine strike meets any of it — relic damage lands raw.
         /// </summary>
-        int ICombatBus.Mitigate(ICombatActor attacker, int amount, string source, int depth)
-        {
-            var side = (DuelSide)attacker;
-            DuelSide target = Other(side);
 
-            if (depth != 0) return Math.Max(1, amount);
-
-            if (target.SetCount(RelicKind.Guard) >= 7 && !target.Blocked)
-            {
-                target.Blocked = true;
-                Line(target, RelicId.None, Prefix(target) + "Guard set — the first blow glances off", 0);
-                return CombatDamage.TurnedAside;
-            }
-
-            // An awakened Stutterstep leaves the staggered side swinging into itself.
-            if (target.Staggered)
-            {
-                target.Staggered = false;
-                Line(target, RelicId.Stutterstep,
-                    target.Label(RelicId.Stutterstep) + " — the foe trips into its own blade", 1);
-                if (side.Php > 0)
-                {
-                    DealDamage(target, Math.Max(1, amount), target.Label(RelicId.Stutterstep), 1,
-                        RelicId.Stutterstep, NewChain());
-                }
-
-                return CombatDamage.TurnedAside;
-            }
-
-            // An awakened Martyr's Knot puts every third blow back on the striker.
-            if (target.IsAwake(RelicId.MartyrsKnot) && target.Effective(RelicId.MartyrsKnot) > 0)
-            {
-                target.MartyrCount++;
-                if (target.MartyrCount % 3 == 0)
-                {
-                    Line(target, RelicId.MartyrsKnot,
-                        target.Label(RelicId.MartyrsKnot) + " bears it — the blow lands on the foe", 1);
-                    if (side.Php > 0)
-                    {
-                        DealDamage(target, Math.Max(1, amount), target.Label(RelicId.MartyrsKnot), 1,
-                            RelicId.MartyrsKnot, NewChain());
-                    }
-
-                    return CombatDamage.TurnedAside;
-                }
-            }
-
-            // An awakened Greedy Curse charges the purse instead of deepening the wound.
-            if (target.IsAwake(RelicId.GreedyCurse) && target.Effective(RelicId.GreedyCurse) > 0)
-            {
-                target.Gold += 2;
-                Line(target, RelicId.GreedyCurse, target.Label(RelicId.GreedyCurse) + " charges the purse: +2 gold", 1);
-            }
-
-            bool sunders = side.IsAwake(RelicId.Whetstone) && side.Effective(RelicId.Whetstone) > 0;
-            int real = Defense.Apply(amount, sunders ? 0 : target.StatOf(Stat.Def));
-
-            target.HitCount++;
-
-            int hide = target.Effective(RelicId.PaddedHide);
-            if (target.IsAwake(RelicId.PaddedHide) && hide > 0 && target.HitCount > 1 && target.HideLearned > 0)
-            {
-                real = Math.Max(1, JsMath.RoundToInt(real * 0.5));
-                Line(target, RelicId.PaddedHide, target.Label(RelicId.PaddedHide) + " has learned this blow", 1);
-            }
-
-            // Padded Hide softens the first blow of the duel, and learns it for the rest.
-            if (!target.HitTaken)
-            {
-                target.HitTaken = true;
-                if (target.IsAwake(RelicId.PaddedHide) && hide > 0) target.HideLearned = 1;
-                if (hide > 0)
-                {
-                    real -= 2 * hide;
-                    Line(target, RelicId.PaddedHide,
-                        target.Label(RelicId.PaddedHide) + " softens the blow: -" + (2 * hide), 1);
-                }
-            }
-
-            return Math.Max(1, real);
-        }
-
-        void ICombatBus.ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic)
+        int ICombatBus.ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic)
         {
             var side = (DuelSide)attacker;
             Other(side).Php -= dealt;
@@ -162,6 +81,8 @@ namespace RelicRun.Core.Combat
                     foe: relic != RelicId.None ? (bool?)true : false,
                     enemyCrit: _critChain && depth == 0);
             }
+
+            return dealt;
         }
 
         void ICombatBus.AfterDamage(ICombatActor attacker, int dealt, int depth, IChain chain)
@@ -561,6 +482,10 @@ namespace RelicRun.Core.Combat
             EmitLuck((DuelSide)actor, source, depth, relic, (DuelChain)chain, quiet);
         }
 
+        string ICombatBus.SidePrefix(ICombatActor actor) { return Prefix((DuelSide)actor); }
+
+        DefenseModel ICombatBus.DefenseModelOf(ICombatActor actor) { return DefenseModel.Percentage; }
+
         void ICombatBus.Line(ICombatActor actor, RelicId relic, string text, int depth)
         {
             Line((DuelSide)actor, relic, text, depth);
@@ -588,6 +513,9 @@ namespace RelicRun.Core.Combat
         {
             return CombatDamage.TryExecute(attacker, this, _rules);
         }
+
+        /// <summary>Either duellist collects for the other.</summary>
+        bool ICombatBus.ClaimsTheKill(ICombatActor killer) { return true; }
 
         void ICombatBus.ReportKill(ICombatActor killer, int depth)
         {

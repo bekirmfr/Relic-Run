@@ -54,6 +54,37 @@ namespace RelicRun.Core.Combat
         /// <summary>Whether a kill puts a socketed trigger on the bus.</summary>
         public bool KillFiresTrigger = true;
 
+        /// <summary>
+        /// Whether armor meets relic damage as well as a genuine strike. A delve reduces every
+        /// blow; a duel reduces only what a duellist actually swings.
+        /// </summary>
+        public bool ArmorMeetsRelicDamage = true;
+
+        /// <summary>
+        /// Where an awakened Stutterstep's stagger is spent. A delve spends it on the staggered
+        /// side's own turn — "their next strike hits themselves", as the relic reads. A duel
+        /// spends it when the staggered side is struck instead.
+        /// </summary>
+        public bool StaggerTripsOnBeingHit;
+
+        /// <summary>
+        /// Whether an awakened Whetstone cuts through armor on every blow or only on a plain
+        /// strike. A delve exempts crits and relic damage; a duel sunders with everything.
+        /// </summary>
+        public bool WhetstoneSundersOnlyPlainStrikes = true;
+
+        /// <summary>
+        /// Which depth a returned blow's line sits at. A delve reports it as the whole of the
+        /// foe's turn; a duel reports it as a consequence of the blow that was turned aside.
+        /// </summary>
+        public int ReturnedBlowDepth;
+
+        /// <summary>
+        /// What a Martyr's Knot or a stagger throws back: the striker's own attack, or the
+        /// blow that was turned aside. They differ once the striker is enraged or charged.
+        /// </summary>
+        public bool ReturnedBlowUsesTheStrikersAttack = true;
+
         /// <summary>Whether the Curse set detonates as its bearer falls.</summary>
         public bool CurseSetExplodes = true;
 
@@ -75,6 +106,11 @@ namespace RelicRun.Core.Combat
                 ReactionOrder = CombatDamage.DuelOrder,
                 CurseSetExplodes = false,
                 GreedEmitterFiresOnPain = false,
+                ArmorMeetsRelicDamage = false,
+                StaggerTripsOnBeingHit = true,
+                WhetstoneSundersOnlyPlainStrikes = false,
+                ReturnedBlowUsesTheStrikersAttack = false,
+                ReturnedBlowDepth = 1,
                 StoneEmitterFloorsBeforeFizzle = false,
                 EdgeSetSharpensOnKill = false,
                 KillFiresTrigger = false,

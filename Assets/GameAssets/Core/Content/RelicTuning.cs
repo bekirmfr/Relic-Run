@@ -75,6 +75,9 @@ namespace RelicRun.Core.Content
         /// <summary>Whether an awakened riposte also lands a blow of its own.</summary>
         public bool RiposteStrikesWhenAwakened = true;
 
+        /// <summary>Whether an awakened Iron Skin shrugs one blow off outright each fight.</summary>
+        public bool GlancesOneBlow = true;
+
         private static readonly RelicTuning Default = new RelicTuning();
 
         /// <summary>
@@ -157,6 +160,14 @@ namespace RelicRun.Core.Content
                     RelicId.HaresDrum, Pair(
                         delve: new RelicTuning(),
                         versus: new RelicTuning { RiposteStrikesWhenAwakened = false })
+                },
+
+                // An awakened Iron Skin shrugs the first blow of each fight off entirely.
+                // A duel keeps the defence and drops the glance.
+                {
+                    RelicId.IronSkin, Pair(
+                        delve: new RelicTuning(),
+                        versus: new RelicTuning { GlancesOneBlow = false })
                 },
 
                 // Sentinel Bell rings defence on a dodge. A duel is long enough to let an

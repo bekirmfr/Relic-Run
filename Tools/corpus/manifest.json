@@ -1,16 +1,16 @@
 {
-  "generated": "2026-09-07T00:03:52.888Z",
+  "generated": "2026-09-07T00:32:37.354Z",
   "masterSeed": 98693133,
   "engine": "lifted from .port/Daily Delve.dc.html",
   "tiers": {
     "bare": 48,
     "primitives": 86,
     "solo": 150,
-    "mixed": 212,
-    "duel": 84
+    "mixed": 236,
+    "duel": 116
   },
-  "cases": 580,
-  "events": 27800,
+  "cases": 636,
+  "events": 31819,
   "packs": 360,
   "rngSeeds": [
     1,

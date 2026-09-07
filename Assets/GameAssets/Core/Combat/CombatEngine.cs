@@ -82,6 +82,8 @@ namespace RelicRun.Core.Combat
         private bool _blockedFight;
         private bool _whiskerUsed;
         private bool _ironGlanced;
+        private bool _hitTaken;
+        private bool _foeCrit;
 
         /// <summary>Set by an awakened Stutterstep: the foe's next swing hits itself.</summary>
         private bool _staggered;
@@ -340,6 +342,49 @@ namespace RelicRun.Core.Combat
                 set { _engine._bootsUsedOnStrike = value; }
             }
 
+            /// <summary>The Guard set turns one blow aside per fight.</summary>
+            public bool Blocked
+            {
+                get { return _engine._blockedFight; }
+                set { _engine._blockedFight = value; }
+            }
+
+            /// <summary>
+            /// Always false. A delve staggers the FOE, never the hero — the Stutterstep that
+            /// would do it is the hero's own.
+            /// </summary>
+            public bool Staggered { get; set; }
+
+            public bool IronGlanced
+            {
+                get { return _engine._ironGlanced; }
+                set { _engine._ironGlanced = value; }
+            }
+
+            public int HitCount
+            {
+                get { return _engine._hitCount; }
+                set { _engine._hitCount = value; }
+            }
+
+            public bool HitTaken
+            {
+                get { return _engine._hitTaken; }
+                set { _engine._hitTaken = value; }
+            }
+
+            public int HideLearned
+            {
+                get { return _engine._hideLearned; }
+                set { _engine._hideLearned = value; }
+            }
+
+            public int MartyrCount
+            {
+                get { return _engine._martyrCount; }
+                set { _engine._martyrCount = value; }
+            }
+
             public int Kills
             {
                 get { return _engine._hero.Kills; }
@@ -360,6 +405,7 @@ namespace RelicRun.Core.Combat
         }
 
         private HeroActor _actor;
+        private FoeActor _foe;
 
         // ---------- ICombatBus ----------
 
@@ -383,59 +429,92 @@ namespace RelicRun.Core.Combat
             EmitLuck(source, depth, relic, (ChainContext)chain, quiet);
         }
 
+        string ICombatBus.SidePrefix(ICombatActor actor) { return string.Empty; }
+
+        /// <summary>Both sides of a delve are reduced on the hero's curve.</summary>
+        DefenseModel ICombatBus.DefenseModelOf(ICombatActor actor) { return _hero.DefenseModel; }
+
         void ICombatBus.Line(ICombatActor actor, RelicId relic, string text, int depth)
         {
             Snap(CombatEventType.First, depth, relic: relic, source: text);
         }
 
-        bool ICombatBus.HasTarget(ICombatActor actor) { return _enemyHp > 0; }
+        bool ICombatBus.HasTarget(ICombatActor actor) { return Opponent(actor).Php > 0; }
 
         /// <summary>
         /// A delve foe is a stat block, not a relic-bearing side. It carries no relics the
         /// shared rules read, so an empty stand-in keeps those rules from having to special-case
         /// the asymmetry.
         /// </summary>
-        ICombatActor ICombatBus.Opponent(ICombatActor actor) { return EmptyActor.Instance; }
+        /// <summary>The delve's two sides: the hero swings at the foe, and the foe back.</summary>
+        ICombatActor ICombatBus.Opponent(ICombatActor actor) { return Opponent(actor); }
+
+        private ICombatActor Opponent(ICombatActor actor) { return actor == _actor ? (ICombatActor)_foe : _actor; }
 
         void ICombatBus.ReportFizzle(int depth) { Snap(CombatEventType.Fizzle, depth); }
 
-        /// <summary>A delve foe cannot be struck by a corpse it already made, so only it is asked.</summary>
-        bool ICombatBus.CanDeal(ICombatActor attacker) { return _enemyHp > 0; }
+        bool ICombatBus.CanDeal(ICombatActor attacker) { return Opponent(attacker).Php > 0; }
 
-        /// <summary>Foes evade only with a Lucky Clover of their own.</summary>
+        /// <summary>Only the hero collects for a corpse; a foe that fells the hero ends the run.</summary>
+        bool ICombatBus.ClaimsTheKill(ICombatActor killer) { return killer == _actor; }
+
+        /// <summary>
+        /// Evasion lives entirely in the Lucky Clover, on either side. A delve exempts the
+        /// hero's crits: a foe cannot slip a Weighted Dice blow, only a plain one.
+        /// </summary>
         bool ICombatBus.TargetEvades(ICombatActor attacker, string source, int depth, IChain chain)
         {
-            if (source != "you" || _cur.Relics == null) return false;
-            if (_cur.CountRelic(RelicId.LuckyClover) == 0) return false;
-            if (_rng.Next() >= _cur.Lck / 100.0) return false;
+            if (attacker == _actor && source != "you") return false;
 
-            Snap(CombatEventType.EnemyMiss, 0, foe: true);
+            ICombatActor target = Opponent(attacker);
+            if (target.CountRaw(RelicId.LuckyClover) == 0) return false;
+            if (_rng.Next() >= target.StatValue(Stat.Lck) / 100.0) return false;
+
+            if (attacker == _actor)
+            {
+                Snap(CombatEventType.EnemyMiss, 0, foe: true);
+            }
+            else
+            {
+                Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
+                CombatDamage.OnDodge(_actor, this, _rules);
+            }
+
             return true;
         }
 
-        /// <summary>
-        /// A stat-block foe has nothing that turns a blow aside, so this is armor alone — and
-        /// armor meets every blow, unlike a duel, where only a genuine strike meets a defence.
-        /// An awakened Whetstone cuts straight through it, but only on the hero's own strikes.
-        /// </summary>
-        int ICombatBus.Mitigate(ICombatActor attacker, int amount, string source, int depth)
+        int ICombatBus.ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic)
         {
-            bool sunders = IsAwake(RelicId.Whetstone) && CountItem(RelicId.Whetstone) > 0 && source == "you";
-            return Defense.Apply(amount, sunders ? 0 : _cur.Armor, _hero.DefenseModel);
+            if (attacker == _actor)
+            {
+                _enemyHp -= dealt;
+                Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
+                return dealt;
+            }
+
+            // The foe's Weighted Dice multiplies AFTER mitigation — a stat block rolls its crit
+            // on the blow that landed, where a full side rolls it on the blow it throws.
+            _foeCrit = _cur.CountRelic(RelicId.WeightedDice) > 0 && _rng.Next() < _cur.Lck / 100.0;
+            if (_foeCrit) dealt = JsMath.RoundToInt(dealt * 1.5);
+
+            _hero.Php -= dealt;
+            Snap(CombatEventType.PlayerDamage, depth, amount: dealt, enemyCrit: _foeCrit);
+            return dealt;
         }
 
-        void ICombatBus.ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic)
-        {
-            _enemyHp -= dealt;
-            Snap(CombatEventType.EnemyDamage, depth, amount: dealt, source: source, relic: relic);
-        }
-
         /// <summary>
-        /// A foe answers with the two things a stat block can carry: a Thorn Vest that bites
-        /// whoever struck it, and a Berserker Charm that enrages once it is bloodied.
+        /// The hero answers a blow with the full reaction ladder. A foe answers with the two
+        /// traits a stat block carries — and its Thorn Vest is a flatter thing than the hero's,
+        /// so it is a monster trait rather than the relic.
         /// </summary>
         void ICombatBus.AfterDamage(ICombatActor attacker, int dealt, int depth, IChain chain)
         {
+            if (attacker != _actor)
+            {
+                CombatDamage.React(_actor, _foe, dealt, _foeCrit, this, _rules);
+                return;
+            }
+
             int thorns = _cur.CountRelic(RelicId.ThornVest);
             if (depth == 0 && thorns > 0 && _hero.Php > 0)
             {
@@ -450,6 +529,33 @@ namespace RelicRun.Core.Combat
                 Snap(CombatEventType.EnemyFury, 1, amount: 2, relic: RelicId.BerserkerCharm, foe: true);
             }
         }
+
+        /// <summary>The foe's whole turn: it swings, and the shared ladder does the rest.</summary>
+        private void EnemyHits()
+        {
+            // The foe's action is one genuine event: everything it provokes shares this chain,
+            // and each socketed copy may wake at most once inside it.
+            System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+
+            int swing = _foe.StatValue(Stat.Atk) + (_foeFury ? 2 : 0);
+            CombatDamage.Deal(_foe, this, _rules, swing, null, 0, RelicId.None, NewChain());
+        }
+
+        /// <summary>A delve foe cannot be struck by a corpse it already made, so only it is asked.</summary>
+
+        /// <summary>Foes evade only with a Lucky Clover of their own.</summary>
+
+        /// <summary>
+        /// A stat-block foe has nothing that turns a blow aside, so this is armor alone — and
+        /// armor meets every blow, unlike a duel, where only a genuine strike meets a defence.
+        /// An awakened Whetstone cuts straight through it, but only on the hero's own strikes.
+        /// </summary>
+
+
+        /// <summary>
+        /// A foe answers with the two things a stat block can carry: a Thorn Vest that bites
+        /// whoever struck it, and a Berserker Charm that enrages once it is bloodied.
+        /// </summary>
 
         void ICombatBus.ReportHeal(ICombatActor actor, int amount, string source, int depth, RelicId relic)
         {
@@ -505,6 +611,159 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>A side that holds nothing, for rules that ask about an opponent's relics.</summary>
+        /// <summary>
+        /// A delve foe, as an actor in its own right.
+        /// </summary>
+        /// <remarks>
+        /// It carries relics — Battle Dash, Berserker Charm, Lucky Clover, Thorn Vest, Vampire
+        /// Tooth, Weighted Dice — so the shared rules can read it the same way they read a
+        /// duellist. What it does not have is awakenings, sockets, chain counters or a purse:
+        /// those read as empty, which is exactly what makes the shared ladder collapse to
+        /// "armor only" when the foe is the one being hit.
+        /// </remarks>
+        private sealed class FoeActor : ICombatActor
+        {
+            private readonly CombatEngine _engine;
+
+            public FoeActor(CombatEngine engine)
+            {
+                _engine = engine;
+            }
+
+            public int Php
+            {
+                get { return _engine._enemyHp; }
+                set { _engine._enemyHp = value; }
+            }
+
+            public int Pmax { get { return _engine.EnemyMax; } }
+
+            public int Effective(RelicId id) { return _engine._cur.CountRelic(id); }
+
+            public int CountRaw(RelicId id) { return _engine._cur.CountRelic(id); }
+
+            /// <summary>A foe's relics never wake.</summary>
+            public bool IsAwake(RelicId id) { return false; }
+
+            public string Label(RelicId id) { return RelicCatalog.KeyOf(id); }
+
+            public int SetCount(RelicKind kind)
+            {
+                IReadOnlyList<RelicId> relics = _engine._cur.Relics;
+                if (relics == null) return 0;
+
+                int n = 0;
+                for (int i = 0; i < relics.Count; i++)
+                {
+                    if (RelicCatalog.KindOf(relics[i]) == kind) n++;
+                }
+
+                return n;
+            }
+
+            public int StatValue(Stat stat)
+            {
+                switch (stat)
+                {
+                    // Bare attack. A Berserker Charm's rage swells the blow the foe throws,
+                    // not its attack — a Martyr's Knot returns the unenraged number.
+                    case Stat.Atk: return _engine._cur.Atk;
+                    case Stat.Def: return _engine._cur.Armor;
+                    case Stat.Spd: return Math.Max(10, _engine._cur.Spd);
+                    case Stat.Lck: return _engine._cur.Lck;
+                    default: return 0;
+                }
+            }
+
+            /// <summary>An awakened Stutterstep leaves the foe, not the hero, swinging wide.</summary>
+            public bool Staggered
+            {
+                get { return _engine._staggered; }
+                set { _engine._staggered = value; }
+            }
+
+            // A stat block has none of the rest: no bonuses to bank, no sockets to fire, no
+            // purse to fill. Every one of these reads as empty by design.
+
+            public int Fury { get; set; }
+
+            public int Stone { get; set; }
+
+            public int Gale { get; set; }
+
+            public int LuckGain { get; set; }
+
+            public int Sentinel { get; set; }
+
+            public bool BladeCharged { get; set; }
+
+            public int Gold { get; set; }
+
+            public int QuenchBonus { get; set; }
+
+            public int QuenchCount { get; set; }
+
+            public int RabbitCount { get; set; }
+
+            public int GoldCount { get; set; }
+
+            public int DebtLeft { get; set; }
+
+            public int Strikes { get; set; }
+
+            public int StrikeTotal { get; set; }
+
+            public int StrikeCount { get; set; }
+
+            public int AnvilBonus { get; set; }
+
+            public int DefenceBonus { get; set; }
+
+            public int MomentumCount { get; set; }
+
+            public int MomentumBonus { get; set; }
+
+            public int Adrenaline { get; set; }
+
+            public int PainCount { get; set; }
+
+            public int StoneCount { get; set; }
+
+            public int HeadsmanBonus { get; set; }
+
+            public bool WhiskerUsed { get; set; }
+
+            public bool InstantRiposte { get; set; }
+
+            public int BootsUsedOnStrike { get; set; }
+
+            public int Kills { get; set; }
+
+            public bool Blocked { get; set; }
+
+            public bool IronGlanced { get; set; }
+
+            public int HitCount { get; set; }
+
+            public bool HitTaken { get; set; }
+
+            public int HideLearned { get; set; }
+
+            public int MartyrCount { get; set; }
+
+            public int ItemCount { get { return 0; } }
+
+            public RelicId ItemAt(int slot) { return RelicId.None; }
+
+            public SocketTrigger TriggerAt(int slot) { return SocketTrigger.None; }
+
+            public SocketEmitter EmitterAt(int slot) { return SocketEmitter.None; }
+
+            public bool HasFiredThisBeat(int slot) { return true; }
+
+            public void MarkFiredThisBeat(int slot) { }
+        }
+
         private sealed class EmptyActor : ICombatActor
         {
             public static readonly EmptyActor Instance = new EmptyActor();
@@ -577,6 +836,20 @@ namespace RelicRun.Core.Combat
 
             public int BootsUsedOnStrike { get; set; }
 
+            public bool Blocked { get; set; }
+
+            public bool Staggered { get; set; }
+
+            public bool IronGlanced { get; set; }
+
+            public int HitCount { get; set; }
+
+            public bool HitTaken { get; set; }
+
+            public int HideLearned { get; set; }
+
+            public int MartyrCount { get; set; }
+
             public int Kills { get; set; }
 
             public int ItemCount { get { return 0; } }
@@ -648,7 +921,7 @@ namespace RelicRun.Core.Combat
 
         void ICombatBus.EndCrit() { }
 
-        string ICombatBus.PlainStrikeLabel(ICombatActor attacker) { return "you"; }
+        string ICombatBus.PlainStrikeLabel(ICombatActor attacker) { return attacker == _actor ? "you" : null; }
 
         string ICombatBus.CritLabel(ICombatActor attacker) { return RelicCatalog.KeyOf(RelicId.WeightedDice); }
 
@@ -685,6 +958,7 @@ namespace RelicRun.Core.Combat
             _tick = 0;
 
             _actor = new HeroActor(this);
+            _foe = new FoeActor(this);
             CacheLoadout();
             _firedThisBeat = new bool[_hero.Items.Count];
             _bladeCharged = false;
@@ -725,6 +999,7 @@ namespace RelicRun.Core.Combat
                 _blockedFight = false;
                 _whiskerUsed = false;
                 _ironGlanced = false;
+                _hitTaken = false;
                 _instantRiposte = false;
 
                 // Momentum deliberately survives between fights on the same floor.
@@ -852,126 +1127,6 @@ namespace RelicRun.Core.Combat
             return RelicCatalog.KeyOf(RelicId.GravekeepersSoil) + " — the ground gives you back";
         }
 
-        private void EnemyHits()
-        {
-            // The enemy's action is one genuine event: everything it provokes shares this chain,
-            // and each socketed copy may wake at most once inside it.
-            System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
-            ChainContext chain = NewChain();
-
-            // Evasion lives entirely in the Lucky Clover. Without one the hero cannot dodge at
-            // all, and no draw is taken — which is what keeps the RNG stream aligned.
-            if (CountItem(RelicId.LuckyClover) > 0 && _rng.Next() < HeroStat(Stat.Lck) / 100.0)
-            {
-                Snap(CombatEventType.Miss, 0, relic: RelicId.LuckyClover);
-                CombatDamage.OnDodge(_actor, this, _rules);
-                return;
-            }
-
-            // The Guard set turns the opening blow of each fight aside entirely.
-            if (SetCount(RelicKind.Guard) >= 7 && !_blockedFight)
-            {
-                _blockedFight = true;
-                Snap(CombatEventType.First, 0, source: "Guard set — the first blow glances off");
-                return;
-            }
-
-            int defense = HeroStat(Stat.Def);
-
-            // An awakened Stutterstep leaves the foe swinging into its own blade.
-            if (_staggered)
-            {
-                _staggered = false;
-                Snap(CombatEventType.First, 0, relic: RelicId.Stutterstep,
-                    source: RelicCatalog.KeyOf(RelicId.Stutterstep) + " — the foe trips into its own blade");
-                if (_enemyHp > 0)
-                {
-                    DealDamage(Math.Max(1, _cur.Atk), RelicCatalog.KeyOf(RelicId.Stutterstep), 1,
-                        RelicId.Stutterstep, NewChain());
-                }
-
-                return;
-            }
-
-            // An awakened Martyr's Knot takes every third blow onto the foe instead.
-            if (IsAwake(RelicId.MartyrsKnot) && EffectiveCount(RelicId.MartyrsKnot) > 0)
-            {
-                _martyrCount++;
-                if (_martyrCount % 3 == 0)
-                {
-                    Snap(CombatEventType.First, 0, relic: RelicId.MartyrsKnot,
-                        source: RelicCatalog.KeyOf(RelicId.MartyrsKnot) +
-                                " bears it \u2014 the blow lands on the foe");
-                    if (_enemyHp > 0)
-                    {
-                        DealDamage(Math.Max(1, _cur.Atk), RelicCatalog.KeyOf(RelicId.MartyrsKnot), 1,
-                            RelicId.MartyrsKnot, NewChain());
-                    }
-
-                    return;
-                }
-            }
-
-            // The Greedy Curse makes every blow bite one deeper — unless awakened, when it pays
-            // out instead. The coin goes through GainGold so it feeds the Vial like any other.
-            bool greedy = CountItem(RelicId.GreedyCurse) > 0;
-            bool greedAwake = IsAwake(RelicId.GreedyCurse);
-            if (greedy && greedAwake)
-            {
-                GainGold(2, RelicCatalog.KeyOf(RelicId.GreedyCurse), 1, RelicId.GreedyCurse, NewChain());
-            }
-
-            int damage = Defense.Apply(
-                _cur.Atk + (_foeFury ? 2 : 0) + (greedy && !greedAwake ? 1 : 0),
-                defense, _hero.DefenseModel);
-
-            // Awakened Iron Skin shrugs off one blow per fight outright.
-            if (IsAwake(RelicId.IronSkin) && EffectiveCount(RelicId.IronSkin) > 0 && !_ironGlanced)
-            {
-                _ironGlanced = true;
-                Snap(CombatEventType.First, 0, relic: RelicId.IronSkin,
-                    source: RelicCatalog.KeyOf(RelicId.IronSkin) + " — the blow glances off");
-                return;
-            }
-
-            _hitCount++;
-
-            int hide = EffectiveCount(RelicId.PaddedHide);
-            if (IsAwake(RelicId.PaddedHide) && hide > 0 && _hitCount > 1 && _hideLearned > 0)
-            {
-                damage = Math.Max(1, JsMath.RoundToInt(damage * 0.5));
-                Snap(CombatEventType.First, 1, relic: RelicId.PaddedHide,
-                    source: RelicCatalog.KeyOf(RelicId.PaddedHide) + " has learned this blow");
-            }
-
-            // Padded Hide softens only the first blow of each fight.
-            if (_hitCount <= 1)
-            {
-                if (IsAwake(RelicId.PaddedHide) && hide > 0) _hideLearned = 1;
-                if (hide > 0)
-                {
-                    damage -= 2 * hide;
-                    Snap(CombatEventType.First, 1, relic: RelicId.PaddedHide,
-                        source: RelicCatalog.KeyOf(RelicId.PaddedHide) + " softens the blow: -" + (2 * hide));
-                }
-            }
-
-            damage = Math.Max(1, damage);
-
-            // Weighted Dice on the foe: a LCK% chance to land half again as hard.
-            bool crit = false;
-            if (_cur.CountRelic(RelicId.WeightedDice) > 0 && _rng.Next() < _cur.Lck / 100.0)
-            {
-                crit = true;
-                damage = JsMath.RoundToInt(damage * 1.5);
-            }
-
-            _hero.Php -= damage;
-            Snap(CombatEventType.PlayerDamage, 0, amount: damage, enemyCrit: crit);
-
-            CombatDamage.RefuseDeath(_actor, this, _rules);
-            CombatDamage.React(_actor, EmptyActor.Instance, damage, crit, this, _rules);
-        }
 
         /// <summary>The hero slipped the blow. Everything that keys off a dodge fires here.</summary>
 

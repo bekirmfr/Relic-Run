@@ -99,8 +99,8 @@ namespace RelicRun.Core.Combat
         public int StrikeTotal { get; set; }
 
         public bool BladeCharged { get; set; }
-        public bool Blocked;
-        public bool HitTaken;
+        public bool Blocked { get; set; }
+        public bool HitTaken { get; set; }
         public bool AdrenalineUsed;
         public bool WhiskerUsed { get; set; }
         public bool ExecutionerUsed;
@@ -110,13 +110,16 @@ namespace RelicRun.Core.Combat
         public bool GlassBroken;
         public bool FleshSetApplied;
 
-        public int HitCount;
-        public int HideLearned;
-        public int MartyrCount;
+        public int HitCount { get; set; }
+
+        /// <summary>Unused in a duel: no Iron Skin glances a blow off there.</summary>
+        public bool IronGlanced { get; set; }
+        public int HideLearned { get; set; }
+        public int MartyrCount { get; set; }
         public int BootsUsedOnStrike { get; set; } = -1;
 
         /// <summary>Set by an awakened Stutterstep on the opponent: the next swing hits itself.</summary>
-        public bool Staggered;
+        public bool Staggered { get; set; }
 
         public int AnvilBonus { get; set; }
         public int DebtLeft { get; set; }

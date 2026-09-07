@@ -1,6 +1,7 @@
 using System;
 using RelicRun.Core.Content;
 using RelicRun.Core.Determinism;
+using RelicRun.Core.Stats;
 
 namespace RelicRun.Core.Combat
 {
@@ -111,6 +112,30 @@ namespace RelicRun.Core.Combat
 
         int Kills { get; set; }
 
+        // ---- what a defender carries into a blow ----
+
+        /// <summary>Whether the Guard set has already turned a blow aside this fight.</summary>
+        bool Blocked { get; set; }
+
+        /// <summary>Whether an awakened Stutterstep has left this side swinging into itself.</summary>
+        bool Staggered { get; set; }
+
+        /// <summary>Whether an awakened Iron Skin has already shrugged off a blow this fight.</summary>
+        bool IronGlanced { get; set; }
+
+        /// <summary>Blows taken this fight, which Padded Hide counts.</summary>
+        int HitCount { get; set; }
+
+        /// <summary>Whether the first blow of the fight has already landed.</summary>
+        bool HitTaken { get; set; }
+
+        /// <summary>Whether Padded Hide has learned a blow well enough to halve it.</summary>
+        int HideLearned { get; set; }
+
+        /// <summary>Blows borne, of which a Martyr's Knot returns every third.</summary>
+        int MartyrCount { get; set; }
+
+
         /// <summary>Whether the Cat's Whisker has already spent its one free counter.</summary>
         bool WhiskerUsed { get; set; }
 
@@ -145,6 +170,12 @@ namespace RelicRun.Core.Combat
 
         /// <summary>A plain log line attributed to this side.</summary>
         void Line(ICombatActor actor, RelicId relic, string text, int depth);
+
+        /// <summary>How a set's own line names its owner. Empty for the hero, "Rival's " for a rival.</summary>
+        string SidePrefix(ICombatActor actor);
+
+        /// <summary>Which curve this side's defence follows.</summary>
+        DefenseModel DefenseModelOf(ICombatActor actor);
 
         /// <summary>Whether this side still has something to hit.</summary>
         bool HasTarget(ICombatActor actor);
@@ -243,6 +274,12 @@ namespace RelicRun.Core.Combat
 
         // ---- a kill, and the blow that forces one ----
 
+        /// <summary>
+        /// Whether a fallen target is a kill this striker claims. A delve foe that finishes the
+        /// hero ends the run; it does not collect loot for it.
+        /// </summary>
+        bool ClaimsTheKill(ICombatActor killer);
+
         void ReportKill(ICombatActor killer, int depth);
 
         /// <summary>What the fallen leaves behind, already scaled by this mode's rules.</summary>
@@ -279,14 +316,11 @@ namespace RelicRun.Core.Combat
         bool TargetEvades(ICombatActor attacker, string source, int depth, IChain chain);
 
         /// <summary>
-        /// Reduces a blow to what actually lands, and runs whatever can turn it aside first —
-        /// a Guard set, a stagger, a Martyr's Knot, an awakened Iron Skin. Returns
-        /// <see cref="TurnedAside"/> when nothing lands at all.
+        /// Subtracts the blow and reports it from the hero's point of view. Returns what
+        /// actually landed, which is not always what was handed in: a delve foe's Weighted Dice
+        /// multiplies here, after mitigation, and the defender answers the larger number.
         /// </summary>
-        int Mitigate(ICombatActor attacker, int amount, string source, int depth);
-
-        /// <summary>Subtracts the blow and reports it from the hero's point of view.</summary>
-        void ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic);
+        int ApplyDamage(ICombatActor attacker, int dealt, string source, int depth, RelicId relic);
 
         /// <summary>Whatever answers a blow that landed and did not kill.</summary>
         void AfterDamage(ICombatActor attacker, int dealt, int depth, IChain chain);

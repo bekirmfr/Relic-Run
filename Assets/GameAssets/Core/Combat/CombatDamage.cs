@@ -173,7 +173,152 @@ namespace RelicRun.Core.Combat
             bus.FireTrigger(dodger, SocketTrigger.Dodge, 0, RelicId.LuckyClover, RelicId.None, chain);
         }
 
-        /// <summary>Returned by <see cref="ICombatBus.Mitigate"/> when nothing lands.</summary>
+        /// <summary>
+        /// What a blow is reduced to, and everything the defender can do to stop it first.
+        /// </summary>
+        /// <remarks>
+        /// One ladder for every blow in the game, driven by the DEFENDER's own relics. A delve
+        /// foe carries relics but no Guard set, no Martyr's Knot and no Padded Hide, so the
+        /// ladder collapses to armor alone when the foe is the one being hit — which is why
+        /// the delve looked for a long time as though it needed a second, simpler version of
+        /// this. It did not: the JS simply wrote the ladder out twice, once for the hero as
+        /// defender and once for the foe.
+        ///
+        /// Returns <see cref="TurnedAside"/> when nothing lands at all.
+        /// </remarks>
+        public static int Mitigate(ICombatActor attacker, ICombatActor defender, ICombatBus bus,
+            CombatRules rules, int amount, string source, int depth)
+        {
+            // Only a genuine strike meets a defender's relics. Armor is the exception in a
+            // delve, where it stands against relic damage too.
+            if (depth != 0)
+            {
+                return rules.ArmorMeetsRelicDamage
+                    ? Armor(attacker, defender, bus, rules, amount, source)
+                    : Math.Max(1, amount);
+            }
+
+            // The Guard set turns the opening blow of the fight aside entirely.
+            if (defender.SetCount(RelicKind.Guard) >= 7 && !defender.Blocked)
+            {
+                defender.Blocked = true;
+                bus.Line(defender, RelicId.None,
+                    bus.SidePrefix(defender) + "Guard set — the first blow glances off", 0);
+                return TurnedAside;
+            }
+
+            // An awakened Stutterstep leaves a side swinging into its own blade, and the two
+            // modes disagree about which side that is. A delve trips the STRIKER on its own
+            // turn — "their next strike hits themselves", as the relic reads. A duel trips the
+            // side that is struck. Either way the blow lands on the striker, which is the
+            // staggered one in a delve and the other one in a duel.
+            ICombatActor tripping = rules.StaggerTripsOnBeingHit ? defender : attacker;
+            if (tripping.Staggered)
+            {
+                tripping.Staggered = false;
+                ThrowBack(attacker, defender, bus, rules, amount, RelicId.Stutterstep,
+                    defender.Label(RelicId.Stutterstep) + " — the foe trips into its own blade");
+                return TurnedAside;
+            }
+
+            // An awakened Martyr's Knot puts every third blow back on the striker.
+            if (defender.IsAwake(RelicId.MartyrsKnot) && defender.Effective(RelicId.MartyrsKnot) > 0)
+            {
+                defender.MartyrCount++;
+                if (defender.MartyrCount % 3 == 0)
+                {
+                    ThrowBack(attacker, defender, bus, rules, amount, RelicId.MartyrsKnot,
+                        defender.Label(RelicId.MartyrsKnot) + " bears it — the blow lands on the foe");
+                    return TurnedAside;
+                }
+            }
+
+            // The Greedy Curse makes every blow bite one deeper — unless awakened, when it
+            // charges the purse instead. The coin goes through the gold bus, so it feeds the
+            // Vial and the Singer like any other coin.
+            int greed = defender.Effective(RelicId.GreedyCurse);
+            if (greed > 0)
+            {
+                if (defender.IsAwake(RelicId.GreedyCurse))
+                {
+                    CombatPrimitives.GainGold(defender, bus, rules, 2,
+                        defender.Label(RelicId.GreedyCurse), 1, RelicId.GreedyCurse, bus.NewChain());
+                }
+                else
+                {
+                    amount += 1;
+                }
+            }
+
+            int real = Armor(attacker, defender, bus, rules, amount, source);
+
+            // An awakened Iron Skin shrugs one blow off outright each fight.
+            if (defender.IsAwake(RelicId.IronSkin) && defender.Effective(RelicId.IronSkin) > 0 &&
+                !defender.IronGlanced &&
+                RelicTuning.For(RelicId.IronSkin, rules.Mode).GlancesOneBlow)
+            {
+                defender.IronGlanced = true;
+                bus.Line(defender, RelicId.IronSkin,
+                    defender.Label(RelicId.IronSkin) + " — the blow glances off", 0);
+                return TurnedAside;
+            }
+
+            defender.HitCount++;
+
+            int hide = defender.Effective(RelicId.PaddedHide);
+            if (defender.IsAwake(RelicId.PaddedHide) && hide > 0 &&
+                defender.HitCount > 1 && defender.HideLearned > 0)
+            {
+                real = Math.Max(1, JsMath.RoundToInt(real * 0.5));
+                bus.Line(defender, RelicId.PaddedHide,
+                    defender.Label(RelicId.PaddedHide) + " has learned this blow", 1);
+            }
+
+            // Padded Hide softens only the first blow of the fight, and learns it for the rest.
+            if (!defender.HitTaken)
+            {
+                defender.HitTaken = true;
+                if (defender.IsAwake(RelicId.PaddedHide) && hide > 0) defender.HideLearned = 1;
+                if (hide > 0)
+                {
+                    real -= 2 * hide;
+                    bus.Line(defender, RelicId.PaddedHide,
+                        defender.Label(RelicId.PaddedHide) + " softens the blow: -" + (2 * hide), 1);
+                }
+            }
+
+            return Math.Max(1, real);
+        }
+
+        /// <summary>Armor, and the awakened Whetstone that cuts straight through it.</summary>
+        private static int Armor(ICombatActor attacker, ICombatActor defender, ICombatBus bus,
+            CombatRules rules, int amount, string source)
+        {
+            bool sunders = attacker.IsAwake(RelicId.Whetstone) && attacker.Effective(RelicId.Whetstone) > 0;
+            if (sunders && rules.WhetstoneSundersOnlyPlainStrikes && source != bus.PlainStrikeLabel(attacker))
+            {
+                sunders = false;
+            }
+
+            return Defense.Apply(amount, sunders ? 0 : defender.StatValue(Stat.Def),
+                bus.DefenseModelOf(defender));
+        }
+
+        /// <summary>A blow the defender turned around and sent back at the striker.</summary>
+        private static void ThrowBack(ICombatActor attacker, ICombatActor defender, ICombatBus bus,
+            CombatRules rules, int amount, RelicId relic, string line)
+        {
+            bus.Line(defender, relic, line, rules.ReturnedBlowDepth);
+            if (attacker.Php <= 0) return;
+
+            int back = rules.ReturnedBlowUsesTheStrikersAttack
+                ? attacker.StatValue(Stat.Atk)
+                : amount;
+
+            bus.DealDamage(defender, Math.Max(1, back), defender.Label(relic), 1, relic, bus.NewChain());
+        }
+
+        /// <summary>Returned by <see cref="Mitigate"/> when nothing lands.</summary>
         public const int TurnedAside = -1;
 
         /// <summary>
@@ -210,10 +355,10 @@ namespace RelicRun.Core.Combat
             // slipped — relic damage always finds its mark.
             if (depth == 0 && bus.TargetEvades(attacker, source, depth, chain)) return;
 
-            int dealt = bus.Mitigate(attacker, amount, source, depth);
+            int dealt = Mitigate(attacker, bus.Opponent(attacker), bus, rules, amount, source, depth);
             if (dealt == TurnedAside) return;
 
-            bus.ApplyDamage(attacker, dealt, source, depth, relic);
+            dealt = bus.ApplyDamage(attacker, dealt, source, depth, relic);
 
             // Ember Cask shakes gold loose from relic damage — the BLOOD to GOLD arc.
             int cask = attacker.Effective(RelicId.EmberCask);
@@ -234,7 +379,11 @@ namespace RelicRun.Core.Combat
 
             if (!bus.HasTarget(attacker))
             {
-                OnKill(attacker, bus, rules, depth, rules.KillSharesTheBlowsChain ? chain : null);
+                if (bus.ClaimsTheKill(attacker))
+                {
+                    OnKill(attacker, bus, rules, depth, rules.KillSharesTheBlowsChain ? chain : null);
+                }
+
                 return;
             }
 

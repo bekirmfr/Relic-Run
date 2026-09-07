@@ -487,6 +487,64 @@ for (let i = 0; i < 12; i++) {
   }));
 }
 
+/* Five rules that the shared damage ladder made reachable but no random loadout reaches.
+
+   An awakened Stutterstep staggers the foe, and the stagger is spent on the FOE's own turn —
+   a rule that was silently lost once and not caught, because nothing in the corpus dodged with
+   an awakened Stutterstep. The Guard set needs seven GUARD relics. A foe can only slip a blow
+   with a Clover of its own, and only dungeon 9 and 6 hand bosses one, so pairing that with a
+   hero carrying Weighted Dice is the only way to ask whether a crit can be evaded. And a duel
+   only tells its returned blow from the striker's attack when the two differ, which needs a
+   crit or a charged strike meeting a Martyr's Knot. */
+for (const floor of [9, 11, 12, 13]) {
+  cases.push(delveCase(`edge/stagger/f${floor}`, "mixed", {
+    floor, dungeon: 4, level: 14,
+    items: ["clover", "clover", "clover", "clover", "stutter", "stutter"],
+    awake: { stutter: 1 },
+  }));
+  cases.push(delveCase(`edge/stagger/deep/f${floor}`, "mixed", {
+    floor, dungeon: 10, level: 20,
+    items: ["clover", "clover", "clover", "clover", "clover", "stutter", "haredrum"],
+    awake: { stutter: 1, haredrum: 1 },
+  }));
+
+  cases.push(delveCase(`edge/guard7/f${floor}`, "mixed", {
+    floor, dungeon: 4, level: 8,
+    items: ["iron", "iron", "iron", "iron", "sentinel", "sentinel", "sentinel"],
+  }));
+  cases.push(delveCase(`edge/guard7-awake/f${floor}`, "mixed", {
+    floor, dungeon: 4, level: 8,
+    items: ["iron", "iron", "iron", "iron", "sentinel", "sentinel", "sentinel"],
+    awake: { iron: 1 },
+  }));
+
+  // Dungeons 9 and 6 are the only ones whose bosses carry a Clover to evade with.
+  for (const dungeon of [6, 9]) {
+    cases.push(delveCase(`edge/foedodge/d${dungeon}/f${floor}`, "mixed", {
+      floor, dungeon, level: 16,
+      items: ["dice", "dice", "whetstone", "fortunesedge"],
+      awake: { whetstone: 1 },
+    }));
+  }
+}
+
+for (let i = 0; i < 16; i++) {
+  cases.push(duelCase(`duel/returned/${i}`, {
+    itemsA: ["dice", "dice", "fortunesedge", "whetstone", "boots"],
+    itemsB: ["martyr", "martyr", "hide", "iron", "iron"],
+    awakeA: { dice: 1, whetstone: 1, fortunesedge: 1 },
+    awakeB: i % 2 === 0 ? { martyr: 1 } : { martyr: 1, hide: 1, iron: 1 },
+    hp: [70, 110, 160, 220][i % 4],
+  }));
+  cases.push(duelCase(`duel/staggerback/${i}`, {
+    itemsA: ["clover", "clover", "clover", "stutter", "stutter", "dice"],
+    itemsB: ["clover", "clover", "clover", "stutter", "dice", "whetstone"],
+    awakeA: { stutter: 1, dice: 1 },
+    awakeB: i % 3 === 0 ? { stutter: 1 } : { stutter: 1, whetstone: 1 },
+    hp: [70, 110, 160][i % 3],
+  }));
+}
+
 /* ---------- write ---------- */
 
 mkdirSync(OUT, { recursive: true });
