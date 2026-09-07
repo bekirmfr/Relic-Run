@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
 using RelicRun.Core.Determinism;
 using RelicRun.Core.Run;
@@ -147,6 +148,90 @@ namespace RelicRun.Tests
             RunState awake = Holding(RelicId.DebtOfFlesh);
             awake.Awaken(RelicId.DebtOfFlesh);
             Assert.That(DelveRun.DebtPayment(awake), Is.EqualTo(20));
+        }
+
+        /// <summary>
+        /// Asking for a deal the shelf could never have offered buys nothing.
+        /// </summary>
+        /// <remarks>
+        /// The recorded runs only ever ask for legal deals, so nothing in the corpus notices if
+        /// the bazaar stops checking. A caller — a UI with a stale button, a bot, a bad save —
+        /// can ask for anything, and the price must not be taken for a deal that cannot happen.
+        /// </remarks>
+        [Test]
+        public void TheBazaarRefusesADealTheShelfCouldNotOffer()
+        {
+            var refused = new Shopper(BazaarDeal.Awaken(RelicId.LuckyClover));
+            RunState a = AtTheBazaar(refused, RelicId.LuckyClover);
+
+            Assert.That(refused.Saw, Is.True, "the run never reached the bazaar");
+            Assert.That(a.IsAwake(RelicId.LuckyClover), Is.False,
+                "a Lucky Clover does not stack, so the shelf never carried it");
+            Assert.That(refused.GoldAfter, Is.EqualTo(refused.GoldBefore),
+                "nothing was bought, so nothing should have been paid");
+
+            // The same shape, legally: a Debt of Flesh stacks here, so this one goes through.
+            var taken = new Shopper(BazaarDeal.Awaken(RelicId.DebtOfFlesh));
+            RunState b = AtTheBazaar(taken, RelicId.DebtOfFlesh);
+
+            Assert.That(b.IsAwake(RelicId.DebtOfFlesh), Is.True);
+            Assert.That(taken.GoldBefore - taken.GoldAfter, Is.EqualTo(DelveRun.AwakenPrice),
+                "a legal awakening costs the full price — what a Debt of Flesh pays back is " +
+                "health, not coin");
+        }
+
+        /// <summary>Walks a run to the bazaar and asks for one particular deal there.</summary>
+        private sealed class Shopper : IRunChoices, IRunObserver
+        {
+            private readonly BazaarDeal _deal;
+
+            public bool Saw;
+            public int GoldBefore;
+            public int GoldAfter;
+
+            public Shopper(BazaarDeal deal) { _deal = deal; }
+
+            public int Event(RunState run, DungeonEvent ev) { return ev.Choices.Count - 1; }
+
+            public bool Reroll(RunState run, IReadOnlyList<RelicId> offer, int price) { return false; }
+
+            public RelicId Draft(RunState run, IReadOnlyList<RelicId> offer) { return offer[0]; }
+
+            public bool Revive(RunState run, int floor) { return false; }
+
+            public BazaarDeal Bazaar(RunState run, IReadOnlyList<RelicId> offer)
+            {
+                Saw = true;
+                GoldBefore = run.Gold;
+                return _deal;
+            }
+
+            void IRunObserver.Bazaar(RunState run, int floor, IReadOnlyList<RelicId> offer, BazaarDeal deal)
+            {
+                GoldAfter = run.Gold;
+            }
+
+            public void Event(RunState run, int floor, int index, int choice) { }
+
+            public void Draft(RunState run, int floor, IReadOnlyList<RelicId> offer, int rerolls, RelicId pick) { }
+
+            public void Fight(RunState run, int floor, IReadOnlyList<EnemyState> pack, CombatResult result) { }
+
+            public void Revived(RunState run, int floor) { }
+
+            public void End(RunState run, bool dead, int floor) { }
+        }
+
+        /// <summary>A hero tough and rich enough to reach floor 7 with the price in hand.</summary>
+        private static RunState AtTheBazaar(Shopper shopper, RelicId kit)
+        {
+            var setup = new RunSetup
+            {
+                Hp = 4000, Atk = 60, Gold = 500,
+                StartKit = new List<RelicId> { kit },
+            };
+
+            return DelveRun.Resolve(99u, setup, shopper, shopper);
         }
 
         /// <summary>The bazaar cannot awaken what the shelf would never carry.</summary>

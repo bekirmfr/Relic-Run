@@ -231,7 +231,8 @@ than wait for a run to stumble into them, `RunRuleTests` asks each one directly:
 arrangement as `CombatRules.DuelAsRecorded`: `Shipped()` is what the game plays and
 `AsRecorded()` is what the corpus replays, so the diff between them IS the design change.
 
-Two mutations still survive, and both are unreachable rather than untested:
+Twenty-eight mutations of the run layer, twenty-six die. Two survive, and both are unreachable
+rather than untested:
 
 | survives | why |
 | --- | --- |
@@ -276,6 +277,24 @@ than one, offered once per run, a run that takes it never ending sooner than one
 and a resumed fight that meets the foe that felled the hero with its wounds intact rather than
 starting the floor over. That is weaker than a corpus and is called out here so it is not
 mistaken for one. The numbers came off the source by reading, not by diffing.
+
+## Running mutations
+
+    python Tools/mutate/mutate.py Tools/mutate/run-layer.json
+
+**Never mutate the project in place.** Unity watches the filesystem and recompiles what it
+finds, and a mutation that lives only for the two seconds a test run takes is long enough for
+the editor to catch it. It will then report a failure in code that has already been put back —
+a bug that does not exist, in a file that is correct on disk and in git. That happened, and cost
+a round trip to work out.
+
+So the harness copies the sources it needs somewhere else and mutates the copy. The project is
+never written to, which is a stronger guarantee than restoring carefully: there is nothing to
+restore. It also runs the unmutated copy first and refuses to go on if that does not pass, since
+a broken copy would report every mutant as killed.
+
+A suite is a JSON list of `{name, file, find, replace}`. Each is applied alone and must make the
+tests FAIL.
 
 ## Mutation testing
 

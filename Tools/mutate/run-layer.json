@@ -1,0 +1,173 @@
+{
+  "name": "the run layer and its rules",
+  "mutants": [
+    {
+      "name": "the breather also heals before floor 1",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (floor <= 1) return 0;",
+      "replace": ""
+    },
+    {
+      "name": "the breather ignores a Second Stomach",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "return setup.Breath * (run.Has(RelicId.SecondStomach) ? 2 : 1);",
+      "replace": "return setup.Breath;"
+    },
+    {
+      "name": "promised gold arrives a floor early",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "run.Pending.Value.Floor == floor",
+      "replace": "run.Pending.Value.Floor == floor + 1"
+    },
+    {
+      "name": "the event stream is the fight stream",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "var events = new Mulberry32(seed ^ EventSeedMix);",
+      "replace": "var events = new Mulberry32(seed);"
+    },
+    {
+      "name": "the shuffle walks upward",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "for (int i = a.Length - 1; i > 0; i--)",
+      "replace": "for (int i = 1; i < a.Length; i++)"
+    },
+    {
+      "name": "an event's speed floor is one lower",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "MinSpdBonus = -10;",
+      "replace": "MinSpdBonus = -11;"
+    },
+    {
+      "name": "an event's defence floor is one lower",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "MinDefBonus = -2;",
+      "replace": "MinDefBonus = -3;"
+    },
+    {
+      "name": "the bazaar sits on floor 8",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "BazaarFloor = 7;",
+      "replace": "BazaarFloor = 8;"
+    },
+    {
+      "name": "awakening is priced like a purchase",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "AwakenPrice = 60;",
+      "replace": "AwakenPrice = 40;"
+    },
+    {
+      "name": "rerolls cost a flat ten",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "double price = 10 * Math.Pow(2, run.Rerolls);",
+      "replace": "double price = 10.0;"
+    },
+    {
+      "name": "a Merchant's Thumb does not discount",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.Has(RelicId.MerchantsThumb)) price *= 0.8;",
+      "replace": ""
+    },
+    {
+      "name": "an awakened Debt of Flesh pays the same as a plain one",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "return run.IsAwake(RelicId.DebtOfFlesh) ? 20 : 10;",
+      "replace": "return 10;"
+    },
+    {
+      "name": "the bazaar awakens what the shelf never carried",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "deal.Kind == DealKind.Awaken && run.CanAwaken(deal.Relic)",
+      "replace": "deal.Kind == DealKind.Awaken"
+    },
+    {
+      "name": "a copy can be awakened twice",
+      "file": "Assets/GameAssets/Core/Run/RunState.cs",
+      "find": "Count(id) > AwakenedCount(id)",
+      "replace": "Count(id) > 0"
+    },
+    {
+      "name": "anything in hand can be awakened",
+      "file": "Assets/GameAssets/Core/Run/RunState.cs",
+      "find": "return Rules.Stacks(id) && Count(id) > AwakenedCount(id);",
+      "replace": "return Count(id) > 0;"
+    },
+    {
+      "name": "a Debt of Flesh does not stack after all",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "{ RelicId.DebtOfFlesh, true },",
+      "replace": ""
+    },
+    {
+      "name": "the source's rules stack it too",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "return new RunRules(new Dictionary<RelicId, bool>());",
+      "replace": "return new RunRules(new Dictionary<RelicId, bool> { { RelicId.DebtOfFlesh, true } });"
+    },
+    {
+      "name": "an event grant draws from the whole table",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "run.Hero.IsVersus ? GameModes.Versus : GameModes.Delve",
+      "replace": "GameModes.Delve | GameModes.Versus"
+    },
+    {
+      "name": "luck does not weigh on a gamble",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "return rng.Next() < baseChance + (10 + run.Hero.LuckBonus) / 200.0;",
+      "replace": "return rng.Next() < baseChance;"
+    },
+    {
+      "name": "the Glimmering Pool heals seven",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "run.Php += 8;",
+      "replace": "run.Php += 7;"
+    },
+    {
+      "name": "duplicates are not thinned out",
+      "file": "Assets/GameAssets/Core/Run/RelicDraft.cs",
+      "find": "w[i] = System.Math.Pow(0.5, CountOf(owned, avail[i]));",
+      "replace": "w[i] = 1.0;"
+    },
+    {
+      "name": "dead relics are still offered",
+      "file": "Assets/GameAssets/Core/Run/RelicDraft.cs",
+      "find": "if (!IsLive(def.Id, owned)) continue;",
+      "replace": ""
+    },
+    {
+      "name": "an Ox Heart is worth twelve",
+      "file": "Assets/GameAssets/Core/Run/Pickup.cs",
+      "find": "run.Pmax += 13;",
+      "replace": "run.Pmax += 12;"
+    },
+    {
+      "name": "the Flesh set can fire twice",
+      "file": "Assets/GameAssets/Core/Run/Pickup.cs",
+      "find": "&& !run.Hero.FleshSetApplied",
+      "replace": ""
+    },
+    {
+      "name": "two stars start a little lower",
+      "file": "Assets/GameAssets/Core/Run/RunOutcome.cs",
+      "find": "reached >= 0.72",
+      "replace": "reached >= 0.70"
+    },
+    {
+      "name": "two stars start meaningfully lower",
+      "file": "Assets/GameAssets/Core/Run/RunOutcome.cs",
+      "find": "reached >= 0.72",
+      "replace": "reached >= 0.65"
+    },
+    {
+      "name": "an awakened Piggy Bank takes the same cut",
+      "file": "Assets/GameAssets/Core/Run/RunOutcome.cs",
+      "find": "run.IsAwake(RelicId.PiggyBank) ? 1.5 : 1.25",
+      "replace": "1.25"
+    },
+    {
+      "name": "a duel counts kills too",
+      "file": "Assets/GameAssets/Core/Run/RunOutcome.cs",
+      "find": "if (!versus) baseScore += kills * PerKill;",
+      "replace": "baseScore += kills * PerKill;"
+    }
+  ]
+}
