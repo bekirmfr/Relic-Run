@@ -122,8 +122,10 @@ function places(seed, level, want) {
  * outcome by index so the choices a greedy line never takes are recorded too.
  */
 function play(id, seed, profile) {
+  const tier = profile.tier || 1;
+
   api.Store.set("dd.xp", xpForLevel(profile.level));
-  api.Store.set("dd.unlocked", 1);
+  api.Store.set("dd.unlocked", tier);
   api.Store.set("dd.runs", 0);
   api.Store.set("dd.clears", 0);
   api.Store.set("dd.goldLife", 0);
@@ -131,7 +133,7 @@ function play(id, seed, profile) {
 
   const engine = new api.Engine();
   engine.state = { sparks: profile.revive ? 150 : 0, supporter: false };
-  engine.startRun(seed, false, 1);
+  engine.startRun(seed, false, tier);
   engine.drain();
 
   const G = engine.G;
@@ -143,6 +145,7 @@ function play(id, seed, profile) {
     set: profile.name,
     seed: seed >>> 0,
     level: profile.level | 0,
+    tier,
     eventFloors,
     start: snap(G),
     steps: [],
@@ -334,6 +337,15 @@ const SETS = [
      that can pay for three pieces of business in one visit, which is the only way an awakened
      Merchant's Thumb ever buys a deal: the Thumb has to be woken by the FIRST deal, and the
      allowance is read again before the second. */
+  /* The deeper halls. Every foe in them is scaled by the hall's own multiplier — a table, not
+     a power — and every boss carries that hall's relic kit, so a delve there is fighting a very
+     different pack from the same seed at tier 1. Tiers 7 and 8 replace their bosses with the
+     Ghoolem below the first floor, which is a branch of its own. */
+  { name: "tomb", runs: 24, level: 8, tier: 3, wants: ["iron", "heart", "thorns"], deal: "buy", event: 0 },
+  { name: "jaguar", runs: 24, level: 14, tier: 5, wants: ["heart", "iron", "tollplate"], deal: "awaken", event: 1, revive: true },
+  { name: "forge", runs: 24, level: 20, tier: 7, wants: ["heart", "iron", "marrow"], deal: "buy", event: 2, revive: true },
+  { name: "court", runs: 24, level: 20, tier: 10, wants: ["heart", "iron", "thorns", "marrow"], deal: "awaken", event: 0, revive: true },
+
   { name: "waker", runs: 40, level: 20, wants: ["merchantthumb", "stomach", "hollowidol", "heart"], deal: "awaken", event: 0 },
   { name: "sworn", runs: 40, level: 20, wants: ["duelist", "stomach", "tooth"], deal: "awaken", event: 1 },
 ];

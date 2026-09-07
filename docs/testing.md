@@ -210,10 +210,18 @@ recorded and the port replays it through `IRunChoices`; everything around a deci
 out of the port. An offer is compared as a SET — which relics `weightedRelic` drew is a rule, the
 order they are shown in is presentation.
 
-Runs are shaped by the delver's LEVEL, because that is the only dial `startRun` has: level sets
-the purse, the stat bonuses, the breath, the third draft choice at ten and the second bazaar deal
-at fifteen. Nine profiles spread across levels 1 to 20, each with its own relic preferences,
+Runs are shaped by the delver's LEVEL and by the HALL, which are the two dials `startRun` has.
+Level sets the purse, the stat bonuses, the breath, the third draft choice at ten and the second
+bazaar deal at fifteen. The hall scales every foe by its own multiplier and hands every boss
+that hall's relic kit — and two halls replace their bosses with the Ghoolem. Thirteen profiles
+spread across levels 1 to 20 and halls 1, 3, 5, 7 and 10, each with its own relic preferences,
 bazaar policy and event choice, so every branch of the loop is walked by somebody.
+
+A hall's multiplier is a TABLE and not a formula, which is worth knowing because it does not
+look like one: the first five entries are exact powers of 1.1 and the rest are rounded to four
+places — 1.6105 where 1.1^5 is 1.61051. The port scored runs with the power for a while and got
+the deep halls a point out; `DungeonCatalog` is generated from the table instead. The source
+defines the formula too, as `META.tierMult`, and never calls it.
 
 Two things worth knowing about how the corpus reaches what it reaches:
 
@@ -287,7 +295,7 @@ says so, rather than quietly leaving runs to sink past a floor that used to be t
 
 ### The five mutations that survive
 
-Fifty-one mutations of the run layer, forty-six die.
+Fifty-six mutations of the run layer, fifty-one die.
 
 | survives | why |
 | --- | --- |
@@ -408,7 +416,7 @@ node Tools/extract/validate.mjs
 | Gate | Corpus | Status |
 |---|---|---|
 | Phase 0 — content | `Tools/out/` | passing, 4 tracked content gaps |
-| Phase 0 — corpus | `Tools/corpus/` | passing, 1557 cases replay exactly |
+| Phase 0 — corpus | `Tools/corpus/` | passing, 1653 cases replay exactly |
 | Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 raw draws bit-exact |
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
 | Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |
@@ -418,8 +426,8 @@ node Tools/extract/validate.mjs
 | Phase 4b — sockets | `mixed.json` | passing, 120 fights with duplicates, sockets and awakenings |
 | Phase 5a — enemy packs | `packs.json` | passing, 360 packs regenerate exactly |
 | Phase 5b — progression | `corpus/progression.json` | passing, levels, perks and the reward table |
-| Phase 5c — the delve loop | `delve.json` | passing, 420 runs and 11,058 steps replay exactly |
-| Phase 5d — scoring | `outcomes.json` | passing, 307 finished runs |
+| Phase 5c — the delve loop | `delve.json` | passing, 516 runs and 13,472 steps replay exactly |
+| Phase 5d — scoring | `outcomes.json` | passing, 637 finished runs across all ten halls |
 | Phase 6a — duels | `duel.json` | passing, 132 duels replay event-for-event |
 | Phase 6b — the versus match | `versus.json` | passing, 120 matches and 710 rounds |
 | Phase 6c — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |

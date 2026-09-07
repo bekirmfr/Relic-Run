@@ -306,6 +306,36 @@
       "file": "Assets/GameAssets/Core/Run/RunState.cs",
       "find": "kept.Add(awake > slot ? awake - 1 : awake);",
       "replace": "kept.Add(awake);"
+    },
+    {
+      "name": "the hall's multiplier is a power of 1.1",
+      "file": "Assets/GameAssets/Core/Run/RunOutcome.cs",
+      "find": "* DungeonCatalog.Get(tier).Multiplier);",
+      "replace": "* Progression.TierMultiplier(tier));"
+    },
+    {
+      "name": "the hall does not scale its foes",
+      "file": "Assets/GameAssets/Core/Run/EnemyPackGenerator.cs",
+      "find": "if (dungeon.Multiplier > 1)",
+      "replace": "if (false)"
+    },
+    {
+      "name": "a drop is not scaled by the hall",
+      "file": "Assets/GameAssets/Core/Run/EnemyPackGenerator.cs",
+      "find": "foe.Drop = JsMath.RoundToInt(foe.Drop * dungeon.Multiplier);",
+      "replace": ""
+    },
+    {
+      "name": "the Ghoolem never takes a hall",
+      "file": "Assets/GameAssets/Core/Run/EnemyPackGenerator.cs",
+      "find": "bool ghoolemHall = dungeon.GhoolemBoss && floor > 1;",
+      "replace": "bool ghoolemHall = false;"
+    },
+    {
+      "name": "the hall's boss carries nothing",
+      "file": "Assets/GameAssets/Core/Run/EnemyPackGenerator.cs",
+      "find": "var relics = new List<RelicId>(dungeon.BossRelics);",
+      "replace": "var relics = new List<RelicId>();"
     }
   ]
 }

@@ -215,7 +215,15 @@ namespace RelicRun.Core.Run
             }
         }
 
-        /// <summary>Score multiplier for a dungeon's depth. Applies to score, never to XP.</summary>
+        /// <summary>
+        /// The source's own depth multiplier, <c>META.tierMult</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nothing calls it — not in the source, and not here. Scoring reads the hall's
+        /// multiplier out of <see cref="DungeonCatalog"/>, which is a table rather than this
+        /// formula and disagrees with it past the fifth hall. Kept because the corpus records
+        /// it, so removing it would lose a recorded fact rather than tidy one away.
+        /// </remarks>
         public static double TierMultiplier(int tier)
         {
             return Math.Pow(1.1, Math.Max(1, tier) - 1);

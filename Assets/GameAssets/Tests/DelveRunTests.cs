@@ -462,8 +462,10 @@ namespace RelicRun.Tests
                     // rules. Where the port deliberately differs — a Debt of Flesh stacks here,
                     // and the bazaar rolls the pack for the floor beyond it — the difference is
                     // RunRules and nothing else.
-                    DelveRun.Resolve(seed, RunSetup.ForLevel(token["level"].Value<int>()),
-                        new Driver(replay), replay, RunRules.AsRecorded());
+                    RunSetup setup = RunSetup.ForLevel(token["level"].Value<int>());
+                    setup.Dungeon = DungeonConfig.ForTier(token["tier"].Value<int>());
+
+                    DelveRun.Resolve(seed, setup, new Driver(replay), replay, RunRules.AsRecorded());
                 }
                 catch (ReplayEnded)
                 {

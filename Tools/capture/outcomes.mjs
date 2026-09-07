@@ -113,6 +113,20 @@ for (let tier = 1; tier <= 10; tier++) {
   }
 }
 
+/* The dungeon's multiplier is a TABLE, not a formula. Past the fifth hall its entries are
+   rounded to four places — 1.6105 where 1.1^5 is 1.61051 — so a port that computes the power
+   scores a few of these differently. One case per tier could not tell: the difference only
+   shows when the product lands within a twentieth of a rounding boundary. This sweeps the
+   purse so that it does. */
+for (let tier = 1; tier <= 10; tier++) {
+  for (let gold = 0; gold < 1200; gold += 37) {
+    cases.push(outcome(`mult/t${tier}/g${gold}`, {
+      how: "cleared", mode: "delve", gold, floor: 13, kills: 41,
+      items: [], awake: [], tier, unlocked: 10, xp: 0,
+    }));
+  }
+}
+
 /* A duel scores on depth and the crown alone — kills do not count, and neither does a
    Piggy Bank, because there is no cash-out to take a cut of. */
 for (const how of HOWS) {

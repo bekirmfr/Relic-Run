@@ -25,6 +25,7 @@ const GEN = join(ROOT, "Assets", "GameAssets", "Core", "Content");
 const load = (f) => JSON.parse(readFileSync(join(OUT, f), "utf8"));
 
 const relics = load("relics.json");
+const dungeons = load("dungeons.json");
 const kinds = load("kinds.json");
 const sockets = load("sockets.json");
 
@@ -288,5 +289,92 @@ ${rows}
 }
 `);
 
+/* ---------- DungeonCatalog ---------- */
+
+/* The multiplier is a TABLE and not a formula. Its first five entries are exact powers of 1.1
+   and the rest are rounded to four places, so anything that computes the power scores the deep
+   halls a point out. Emitting the literals is what keeps that from being re-derived. */
+const halls = dungeons.map((d) => {
+  const boss = d.bossRelics.length
+    ? `new[] { ${d.bossRelics.map((r) => `RelicId.${names.get(r)}`).join(", ")} }`
+    : "NoRelics";
+  return `            new DungeonDef(${d.id}, ${d.lvl}, "${d.name}", "${d.art}", ` +
+         `${d.mult}, ${boss}, ${d.ghoolemBoss ? "true" : "false"}),`;
+}).join("\n");
+
+write("DungeonCatalog.cs", header(`${dungeons.length} halls`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>One hall of the Hoard: what it is worth, and what its boss carries.</summary>
+    public sealed class DungeonDef
+    {
+        /// <summary>Which hall this is, counting from one.</summary>
+        public readonly int Tier;
+
+        /// <summary>The delver level at which this hall is meant to be attempted.</summary>
+        public readonly int Level;
+
+        public readonly string Name;
+
+        public readonly string Art;
+
+        /// <summary>
+        /// What a run in this hall is worth, applied to the foes inside it and to the score.
+        /// </summary>
+        /// <remarks>
+        /// A table, not a formula. The first five entries are exact powers of 1.1 and the rest
+        /// are rounded to four places — 1.6105 where the power is 1.61051 — so computing the
+        /// power instead of reading this scores the deep halls a point out.
+        /// </remarks>
+        public readonly double Multiplier;
+
+        /// <summary>The relic kit every boss in this hall carries.</summary>
+        public readonly IReadOnlyList<RelicId> BossRelics;
+
+        /// <summary>When set, the Ghoolem replaces this hall's bosses below the first floor.</summary>
+        public readonly bool GhoolemBoss;
+
+        public DungeonDef(int tier, int level, string name, string art, double multiplier,
+            IReadOnlyList<RelicId> bossRelics, bool ghoolemBoss)
+        {
+            Tier = tier;
+            Level = level;
+            Name = name;
+            Art = art;
+            Multiplier = multiplier;
+            BossRelics = bossRelics;
+            GhoolemBoss = ghoolemBoss;
+        }
+    }
+
+    /// <summary>The halls, in order.</summary>
+    public static class DungeonCatalog
+    {
+        private static readonly RelicId[] NoRelics = new RelicId[0];
+
+        public static readonly IReadOnlyList<DungeonDef> All = new List<DungeonDef>
+        {
+${halls}
+        };
+
+        /// <summary>
+        /// The hall at this tier, clamped to the ones that exist — which is what the source
+        /// does everywhere it reads the table, so a saved tier past the end still resolves.
+        /// </summary>
+        public static DungeonDef Get(int tier)
+        {
+            int i = tier - 1;
+            if (i < 0) i = 0;
+            if (i >= All.Count) i = All.Count - 1;
+            return All[i];
+        }
+    }
+}
+`);
+
 console.log(`\n  ${relics.length} relics, ${Object.keys(kinds).length} kinds, ` +
-            `${channels.length} channels, ${trigList.length} triggers, ${emitList.length} emitters\n`);
+            `${channels.length} channels, ${trigList.length} triggers, ${emitList.length} emitters, ` +
+            `${dungeons.length} halls\n`);

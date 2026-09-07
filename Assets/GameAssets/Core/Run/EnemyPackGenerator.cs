@@ -18,6 +18,18 @@ namespace RelicRun.Core.Run
 
         /// <summary>When set, the Ghoolem replaces this dungeon's boss.</summary>
         public bool GhoolemBoss;
+
+        /// <summary>What a delve into the hall at this tier fights.</summary>
+        public static DungeonConfig ForTier(int tier)
+        {
+            DungeonDef hall = DungeonCatalog.Get(tier);
+            return new DungeonConfig
+            {
+                Multiplier = hall.Multiplier,
+                BossRelics = hall.BossRelics,
+                GhoolemBoss = hall.GhoolemBoss,
+            };
+        }
     }
 
     /// <summary>

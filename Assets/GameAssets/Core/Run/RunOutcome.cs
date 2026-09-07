@@ -65,8 +65,12 @@ namespace RelicRun.Core.Run
             if (!versus) baseScore += kills * PerKill;
 
             // Half the purse counts toward the score, so gold is the spread beyond a clear.
+            //
+            // The hall's own multiplier, read from the table rather than computed. The two are
+            // not the same number past the fifth hall — the table rounds to four places, and
+            // 1.6105 is not 1.1^5 — and the difference is worth a point of score.
             reward.Score = JsMath.RoundToInt(
-                (baseScore + reward.Banked / 2.0) * Progression.TierMultiplier(tier));
+                (baseScore + reward.Banked / 2.0) * DungeonCatalog.Get(tier).Multiplier);
 
             double relevance = versus ? 1.0 : Progression.RewardMultiplier(tier, frontier);
             reward.Xp = Math.Max(reward.Score > 0 ? 1 : 0,
