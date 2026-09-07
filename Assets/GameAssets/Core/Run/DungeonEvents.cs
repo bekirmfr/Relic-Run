@@ -74,7 +74,7 @@ namespace RelicRun.Core.Run
             var avail = new List<RelicId>(pool.Count);
             for (int i = 0; i < pool.Count; i++)
             {
-                if (!RelicCatalog.Get(pool[i]).Stackable && run.Has(pool[i])) continue;
+                if (!run.Rules.Stacks(pool[i]) && run.Has(pool[i])) continue;
                 if (!RelicDraft.IsLive(pool[i], run.Items)) continue;
                 avail.Add(pool[i]);
             }

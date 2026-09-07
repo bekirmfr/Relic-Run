@@ -133,12 +133,13 @@ namespace RelicRun.Core.Run
         public const uint EventSeedMix = 0x9E3779B9;
 
         public static RunState Resolve(uint seed, RunSetup setup, IRunChoices choices,
-            IRunObserver observer = null)
+            IRunObserver observer = null, RunRules rules = null)
         {
             if (setup == null) throw new ArgumentNullException(nameof(setup));
             if (choices == null) throw new ArgumentNullException(nameof(choices));
 
             var run = new RunState();
+            run.Rules = rules ?? RunRules.Shipped();
             run.Hero.Php = setup.Hp;
             run.Hero.Pmax = setup.Hp;
             run.Hero.Gold = setup.Gold;
@@ -159,12 +160,7 @@ namespace RelicRun.Core.Run
             {
                 run.Floor = floor;
 
-                // A breather between floors. An Iron Stomach makes it count double.
-                if (floor > 1)
-                {
-                    int breath = setup.Breath * (run.Has(RelicId.SecondStomach) ? 2 : 1);
-                    run.Php = Math.Min(run.Pmax, run.Php + breath);
-                }
+                run.Php = Math.Min(run.Pmax, run.Php + Breather(setup, run, floor));
 
                 int index;
                 if (placed.TryGetValue(floor, out index))
@@ -211,6 +207,21 @@ namespace RelicRun.Core.Run
         }
 
         /// <summary>
+        /// The breather taken BETWEEN floors, which a Second Stomach makes count double.
+        /// </summary>
+        /// <remarks>
+        /// There is no breather before the first floor, because there is no floor before it to
+        /// have come up from. That the hero also happens to start whole is a coincidence of the
+        /// starting state rather than the reason, which is why this answers the question
+        /// directly instead of leaning on the health being full.
+        /// </remarks>
+        public static int Breather(RunSetup setup, RunState run, int floor)
+        {
+            if (floor <= 1) return 0;
+            return setup.Breath * (run.Has(RelicId.SecondStomach) ? 2 : 1);
+        }
+
+        /// <summary>
         /// Scatters two to four events through the gaps between floors 2 and 11.
         /// </summary>
         /// <remarks>
@@ -250,10 +261,11 @@ namespace RelicRun.Core.Run
         private static void Bazaar(RunState run, int floor, Mulberry32 rng, IRunChoices choices,
             IRunObserver observer)
         {
-            List<RelicId> offer = RelicDraft.RollOffer(run.Items, BazaarChoices, rng);
+            List<RelicId> offer = RelicDraft.RollOffer(run.Items, BazaarChoices, rng, run.Rules);
             BazaarDeal deal = choices.Bazaar(run, offer);
 
-            if (deal.Kind == DealKind.Awaken)
+            // The shelf only ever offers a relic that stacks, and never a copy already awake.
+            if (deal.Kind == DealKind.Awaken && run.CanAwaken(deal.Relic))
             {
                 run.Awaken(deal.Relic);
                 run.Gold -= AwakenPrice;
@@ -273,7 +285,7 @@ namespace RelicRun.Core.Run
         private static void Draft(RunState run, int floor, RunSetup setup, Mulberry32 rng,
             IRunChoices choices, IRunObserver observer)
         {
-            List<RelicId> offer = RelicDraft.RollOffer(run.Items, setup.DraftChoices, rng);
+            List<RelicId> offer = RelicDraft.RollOffer(run.Items, setup.DraftChoices, rng, run.Rules);
             int rerolls = 0;
 
             while (true)
@@ -285,7 +297,7 @@ namespace RelicRun.Core.Run
                 run.Rerolls++;
                 rerolls++;
                 PayTheDebt(run);
-                offer = RelicDraft.RollOffer(run.Items, setup.DraftChoices, rng);
+                offer = RelicDraft.RollOffer(run.Items, setup.DraftChoices, rng, run.Rules);
             }
 
             RelicId pick = choices.Draft(run, offer);
@@ -305,18 +317,24 @@ namespace RelicRun.Core.Run
         /// <summary>
         /// A Debt of Flesh pays out in health every time gold leaves the purse at a counter.
         /// </summary>
+        /// <summary>
+        /// What a Debt of Flesh pays out when gold leaves the purse at a counter, in health.
+        /// </summary>
         /// <remarks>
-        /// The awakened half is unreachable. A relic is awakened only at the bazaar, which
-        /// offers none that do not stack, and a Debt of Flesh does not — so it always pays ten.
-        /// Ported as written rather than folded to a constant, because what is unreachable is
-        /// the awakening, not this rule.
+        /// The awakened rate is unreachable in the source: a relic is only awakened at the
+        /// bazaar, which offers none that do not stack, and there a Debt of Flesh does not. It
+        /// stacks under this port's own rules, which is what makes the awakened half real —
+        /// see <see cref="RunRules"/>.
         /// </remarks>
+        public static int DebtPayment(RunState run)
+        {
+            if (!run.Has(RelicId.DebtOfFlesh)) return 0;
+            return run.IsAwake(RelicId.DebtOfFlesh) ? 20 : 10;
+        }
+
         private static void PayTheDebt(RunState run)
         {
-            if (!run.Has(RelicId.DebtOfFlesh)) return;
-
-            int heal = run.IsAwake(RelicId.DebtOfFlesh) ? 20 : 10;
-            run.Php = Math.Min(run.Pmax, run.Php + heal);
+            run.Php = Math.Min(run.Pmax, run.Php + DebtPayment(run));
         }
 
         /// <summary>The floor's pack, the fight, and the one chance to be brought back.</summary>

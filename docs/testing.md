@@ -212,17 +212,33 @@ write a corpus containing one.
 
 ### What the run gate cannot reach
 
-Thirty-six mutations of the run layer; thirty-two die. The four that live are worth naming,
-because none of them is a coverage gap that more cases would close.
+A corpus only catches what its own runs happen to do, and three rules sat outside that. Rather
+than wait for a run to stumble into them, `RunRuleTests` asks each one directly:
+
+- **The breather** is invisible on the first floor, because a run starts whole and healing a
+  full pool changes nothing. It is now a function that can be asked what floor 1 is worth, and
+  the answer is nought — not because the health is full, but because there is no floor before it.
+- **An event grant's pool** is invisible while no relic is versus-only. Asked from the versus
+  side it is not: a duel must never be handed a Greedy Curse, a Second Stomach or a Merchant's
+  Thumb. A companion test fails if the pools ever stop differing, so the first test cannot go
+  blind without saying so.
+- **A Debt of Flesh** pays double once awakened, and in the source that could never happen: the
+  bazaar only awakens a relic that STACKS, and this one did not. It stacks under this port's own
+  rules — see `RunRules` — which is what makes the rule real. The bazaar's own rule, that a
+  relic must stack and have a copy not yet awake, is ported alongside it.
+
+`RunRules` is where the port's answers deliberately differ from the source's, the same
+arrangement as `CombatRules.DuelAsRecorded`: `Shipped()` is what the game plays and
+`AsRecorded()` is what the corpus replays, so the diff between them IS the design change.
+
+Two mutations still survive, and both are unreachable rather than untested:
 
 | survives | why |
 | --- | --- |
-| the breather also heals before floor 1 | a run starts at full health, so the heal is a no-op |
-| an event grant draws from the whole table | no relic is versus-only, so in a delve the two pools are the same list |
-| an awakened Debt of Flesh pays 10, not 20 | the bazaar only awakens relics that STACK, and this one does not — unreachable in the source too |
-| the defence floor is one lower | events can cost at most one defence in a run, and the floor is two |
+| the defence floor is one lower (−2 → −3) | only one event costs defence, one point, and no event repeats in a run — so the total can never pass −1, let alone −2 |
+| two stars start at 0.70 rather than 0.72 | depth is a fraction of thirteen floors, so a threshold is pinned only as tightly as the gap it sits in; 0.72 lies between floor 10 (0.6923) and floor 11 (0.7692). 0.65 fails |
 
-The last two are dead branches in the source, ported as written and commented where they sit.
+Both are ported as written and commented where they sit.
 
 ## Scoring a finished run
 

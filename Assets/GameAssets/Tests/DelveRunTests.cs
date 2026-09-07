@@ -388,8 +388,11 @@ namespace RelicRun.Tests
 
                 try
                 {
+                    // The recording is the SOURCE's run, so it is replayed under the source's
+                    // rules. Where the port deliberately differs — a Debt of Flesh stacks here
+                    // and does not there — the difference is RunRules and nothing else.
                     DelveRun.Resolve(seed, SetupFrom((JObject)token["params"]),
-                        new RerollCounter(replay), replay);
+                        new RerollCounter(replay), replay, RunRules.AsRecorded());
                 }
                 catch (ReplayEnded)
                 {

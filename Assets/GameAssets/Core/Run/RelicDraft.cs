@@ -18,13 +18,13 @@ namespace RelicRun.Core.Run
         /// Relics that may be offered: everything not already held, unless it stacks, and
         /// nothing whose trigger this loadout could never pull.
         /// </summary>
-        public static List<RelicId> Available(IReadOnlyList<RelicId> owned)
+        public static List<RelicId> Available(IReadOnlyList<RelicId> owned, RunRules rules)
         {
             var avail = new List<RelicId>(RelicCatalog.All.Count);
             for (int i = 0; i < RelicCatalog.All.Count; i++)
             {
                 RelicDef def = RelicCatalog.All[i];
-                if (!def.Stackable && Contains(owned, def.Id)) continue;
+                if (!rules.Stacks(def.Id) && Contains(owned, def.Id)) continue;
                 if (!IsLive(def.Id, owned)) continue;
                 avail.Add(def.Id);
             }
@@ -59,9 +59,10 @@ namespace RelicRun.Core.Run
         }
 
         /// <summary>Rolls one offer of up to <paramref name="choices"/> distinct relics.</summary>
-        public static List<RelicId> RollOffer(IReadOnlyList<RelicId> owned, int choices, Mulberry32 rng)
+        public static List<RelicId> RollOffer(IReadOnlyList<RelicId> owned, int choices,
+            Mulberry32 rng, RunRules rules)
         {
-            List<RelicId> avail = Available(owned);
+            List<RelicId> avail = Available(owned, rules);
             var offer = new List<RelicId>(choices);
             int want = System.Math.Min(choices, avail.Count);
 

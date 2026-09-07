@@ -43,6 +43,9 @@ namespace RelicRun.Core.Run
         /// <summary>Whether the one revive this run allows has been spent.</summary>
         public bool Revived;
 
+        /// <summary>Where this run's rules differ from the source's.</summary>
+        public RunRules Rules = RunRules.Shipped();
+
         public int Floor
         {
             get { return Hero.Floor; }
@@ -92,11 +95,26 @@ namespace RelicRun.Core.Run
             return Awakened.TryGetValue(id, out n) && n > 0;
         }
 
+        /// <summary>How many copies of this relic are awake.</summary>
+        public int AwakenedCount(RelicId id)
+        {
+            int n;
+            return Awakened.TryGetValue(id, out n) ? n : 0;
+        }
+
         /// <summary>Awakens one more copy. The bazaar's only lasting purchase.</summary>
         public void Awaken(RelicId id)
         {
-            int n;
-            Awakened[id] = (Awakened.TryGetValue(id, out n) ? n : 0) + 1;
+            Awakened[id] = AwakenedCount(id) + 1;
+        }
+
+        /// <summary>
+        /// Whether the bazaar could awaken another copy of this relic: it has to stack, and
+        /// there has to be a copy in hand that is not awake already.
+        /// </summary>
+        public bool CanAwaken(RelicId id)
+        {
+            return Rules.Stacks(id) && Count(id) > AwakenedCount(id);
         }
 
         /// <summary>How many relics of a kind are in hand. A Hollow Idol counts toward every set.</summary>
