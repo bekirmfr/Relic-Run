@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
 using RelicRun.Core.Run;
 using RelicRun.Tests.Support;
@@ -141,19 +142,6 @@ namespace RelicRun.Tests
                 {
                     Fail(where + ": recorded " + (want["won"].Value<bool>() ? "a win" : "a loss") +
                          ", replayed the other");
-                }
-
-                if (System.Environment.GetEnvironmentVariable("DUMP_MATCH") == _id)
-                {
-                    var mine = new List<string>();
-                    for (int i = 0; i < match.Items.Count; i++) mine.Add(RelicCatalog.KeyOf(match.Items[i]));
-                    Console.WriteLine("  r" + match.Round + " foe " + foe + " won " + won +
-                        " php " + match.Php + "/" + match.Pmax + " gold " + match.Gold +
-                        " strikeTot " + match.Hero.StrikeTotal + " defB " + match.Hero.DefBonus +
-                        " kills " + match.Hero.Kills + " adr " + match.Hero.Adrenaline +
-                        " | " + string.Join(",", mine) +
-                        " | rivals " + string.Join(" ", match.Roster.ConvertAll(r =>
-                            r.Name.Split(' ')[0] + ":" + r.Lives + ":" + r.Relics.Count)));
                 }
 
                 CheckHero((JObject)want["hero"], match, where);
@@ -330,19 +318,7 @@ namespace RelicRun.Tests
             return lobby;
         }
 
-        /// <remarks>
-        /// NOT PASSING YET — 82 of 120 matches replay exactly, and the rest diverge inside the
-        /// duel by a point or two of health, or by a single strike, from round four onward.
-        /// Everything around the fight already agrees: the rival met, their statline, the gold,
-        /// the kills, the defence, the loadout, and every rival's lives and relics.
-        ///
-        /// Ignored rather than deleted so the work is visible and one flag from running. Set
-        /// DUMP_MATCH to a match id to print the port's round-by-round state beside the
-        /// recording; the next step is to diff a single round's duel events against the lifted
-        /// original, which is what will name the rule that differs.
-        /// </remarks>
         [Test]
-        [Ignore("38 of 120 matches still diverge inside the duel; see the remarks above.")]
         public void RecordedMatchesReplayExactly()
         {
             JArray cases = Corpus.Array("versus.json");
@@ -359,7 +335,11 @@ namespace RelicRun.Tests
 
                 try
                 {
-                    VersusRun.Resolve(match["seed"].Value<uint>(), LobbyFrom(match), replay, replay);
+                    // The recording is the SOURCE's match, so its duels are fought under the
+                    // source's rules. Where the port deliberately differs, the difference is
+                    // CombatRules and nothing else.
+                    VersusRun.Resolve(match["seed"].Value<uint>(), LobbyFrom(match), replay, replay,
+                        CombatRules.DuelAsRecorded());
                 }
                 catch (ReplayEnded)
                 {

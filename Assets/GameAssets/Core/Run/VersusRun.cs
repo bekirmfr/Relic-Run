@@ -562,7 +562,12 @@ namespace RelicRun.Core.Run
                 !match.AwakenedIds().ContainsKey(RelicId.DuelistsOath))
             {
                 match.OathCarried++;
-                if (match.OathCarried >= OathLasts) match.Items.Remove(RelicId.DuelistsOath);
+                // Every copy shatters, not just the first — the oath is one promise however
+                // many times it was sworn.
+                if (match.OathCarried >= OathLasts)
+                {
+                    match.Items.RemoveAll(id => id == RelicId.DuelistsOath);
+                }
             }
 
             // The arena heals whole between rounds, however deep the last one cut.
@@ -578,11 +583,19 @@ namespace RelicRun.Core.Run
         }
 
         /// <summary>Plays a match out of a lobby that has already been made.</summary>
+        /// <param name="rules">
+        /// The duel's rules. Defaults to what the game ships. The corpus gate passes
+        /// <see cref="CombatRules.DuelAsRecorded"/> instead, because the recording predates the
+        /// seven rules versus took from the delve and a duel fought under the new ones comes out
+        /// differently — armor meeting relic damage is enough on its own to move a Blood Altar
+        /// from four damage to three.
+        /// </param>
         public static VersusMatch Resolve(uint seed, VersusLobby lobby, IVersusChoices choices,
-            IVersusObserver observer = null)
+            IVersusObserver observer = null, CombatRules rules = null)
         {
             if (lobby == null) throw new ArgumentNullException(nameof(lobby));
             if (choices == null) throw new ArgumentNullException(nameof(choices));
+            rules = rules ?? CombatRules.Duel();
 
             var match = new VersusMatch { Hall = lobby.Hall, Round = 1 };
             match.Hero.Php = lobby.HeroPool;
@@ -613,9 +626,16 @@ namespace RelicRun.Core.Run
                 DuelSide other = RivalSide(rival, foe);
                 int poolBefore = match.Pmax;
 
-                CombatResult fight = new DuelEngine().Resolve(hero, other, rng);
+                CombatResult fight = new DuelEngine(rules).Resolve(hero, other, rng);
                 Commit(match, hero, fight, poolBefore);
                 rival.Carry = other;
+
+                // A Stutterstep slows a rival for the REST OF THE MATCH, not just the round.
+                // In the source that falls out of aliasing — the duellist's stat block is the
+                // roster entry itself, so slowing it writes through — but accident or not, it
+                // is what a rematch is fought against, and it is the whole difference in the
+                // two matches where a hero carried one into a return bout.
+                rival.Base.Spd = other.BaseSpd;
 
                 bool won = match.Php > 0;
                 if (won)

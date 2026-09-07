@@ -46,6 +46,7 @@ namespace RelicRun.Core.Determinism
         /// </remarks>
         public uint NextRaw()
         {
+
             unchecked
             {
                 _state += 0x6d2b79f5u;

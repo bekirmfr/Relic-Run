@@ -109,7 +109,10 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "  later(fn, ms) { (this._pending || (this._pending = [])).push(fn); }",
     "  drain() {",
     "    let guard = 0;",
-    "    while (this._pending && this._pending.length && guard++ < 500) {",
+    // The guard is a stop against a callback that reschedules itself forever, not a
+    // budget. A long fight defers a sweep per event and can queue thousands; cutting it
+    // short leaves the fight unfinished and the recorder walks straight past the round.
+    "    while (this._pending && this._pending.length && guard++ < 2000000) {",
     "      const fn = this._pending.shift();",
     "      fn();",
     "    }",
