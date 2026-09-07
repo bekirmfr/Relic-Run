@@ -452,7 +452,9 @@ namespace RelicRun.Tests.Support
         /// <summary>Replays a case and returns the first divergence, or null if it matches.</summary>
         public static string Replay(Case c)
         {
-            var engine = new CombatEngine();
+            // As recorded, not as shipped: the corpus predates an awakened Hollow Idol backing
+            // the family a delver leans on, and three of its cases carry one.
+            var engine = new CombatEngine(CombatRules.DelveAsRecorded());
             CombatResult result = engine.ResolveFloor(c.Hero, c.Pack, new Mulberry32(c.FightSeed));
 
             int n = System.Math.Min(c.Events.Count, result.Events.Count);

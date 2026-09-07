@@ -310,6 +310,65 @@ that is written, is reachable from the code, and can never fire because the only
 awakens anything refuses relics that do not stack. Making any of them stack would make its
 awakened half real, and the mutant would start dying. Each is commented where it sits.
 
+## Four relics the port rewrote
+
+Three relics had an awakened half that was written down and could never fire: the bazaar only
+wakes what STACKS, and a Merchant's Thumb, a Second Stomach and a Hollow Idol do not. Mutating
+those branches proved it — nothing could kill them, because nothing could reach them. Rather
+than delete rules the game clearly wanted, each was given a way to happen.
+
+### The flag that was asked two questions
+
+The source's `stack` decides both whether a draft may offer a second copy AND whether the bazaar
+may wake one. Those are different questions, and the Merchant's Thumb is the case that forces
+them apart: it is worth exactly one copy — a second discounts nothing further — and yet its
+awakened half buys a second deal at the very counter that could never have sold it.
+
+So `RunRules` now answers them separately. `Stacks` is the draft's question and `Wakeable` is the
+bazaar's; unstated, the second follows the first, which is the source's behaviour. The Thumb is
+the only relic where they differ, and the discount is half rather than a fifth, because one relic
+slot spent entirely on prices has to be worth the slot.
+
+### What the other three became
+
+- **A Second Stomach stacks, and each copy doubles the breather.** Awakened, a breather that
+  would overheal is not wasted: the surplus stretches the pool instead, a point per copy held,
+  and the breather then fills what it just made. That fixes the relic getting *weaker* the more
+  you invest in it — doubling nothing is nothing — and it revives, in a form that can fire, the
+  flat point of max HP the source granted at every gate and could never reach.
+- **A Hollow Idol stacks.** Awakened, it stops hedging: instead of counting once toward all
+  eight families, it throws three more behind the one the delver leans on, which is usually the
+  difference between a tier and the next one up. Ties go to whichever family comes first in the
+  enum — arbitrary, but it must not depend on the order relics were drafted in.
+
+The Idol's rule lives in `SetCounts` and is read by BOTH the fight and the stat ledger, on
+purpose: a set tier the fight granted and the sheet did not show would be a lie on the character
+sheet. The source has exactly that lie — its engine credits an awakened Idol twice and its
+ledger credits it once — and `CombatRules.DelveAsRecorded` is what keeps the corpus replaying it.
+
+### Where the gates could not follow
+
+A corpus can only ever pin the answer that was recorded, so every one of these is asked directly
+as well. Two needed the code opened up before they could be asked at all:
+
+- **`DelveRun.Rest`** was pulled out of the gate. The order is the whole rule — the room is read
+  before the stretch, or the stretch measures the space it just made and every gate grows the
+  pool — and a private method walked only by whole runs could not be asked about ordering.
+- **`HollowIdolTests`** reads the Flesh set, because it announces itself: reaching three of a
+  kind thickens the hero and says so in the log, so whether a tier was reached is visible in the
+  event stream rather than inferred from a total. One hand proves a woken Idol OPENS a set the
+  hand could not reach; another proves it backs one family rather than all of them, which is the
+  only thing separating the shipped rule from the source's.
+
+Twenty-two mutations of the four, all twenty-two die.
+
+### Still to do
+
+The relic descriptions are extracted from the source and still describe the source: the Thumb's
+says twenty per cent, the Stomach's says nothing about stacking. Nothing reads them yet, so
+nothing is wrong today — but they are display text, and display text that contradicts the rules
+is worse than none. They want an override layer, which lands with localisation.
+
 ## What a run leaves behind
 
 Scoring says what a run was WORTH; banking is what then happens to it, and the two are apart

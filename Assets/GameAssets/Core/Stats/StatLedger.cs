@@ -60,6 +60,16 @@ namespace RelicRun.Core.Stats
 
         public bool IsVersus;
 
+        /// <summary>
+        /// Whether an awakened Hollow Idol backs the dominant family. See <see cref="SetCounts"/>.
+        /// </summary>
+        /// <remarks>
+        /// The fight and the sheet have to answer this the same way, or a set bonus the delver
+        /// is actually getting would not appear in their stat breakdown. The engine passes its
+        /// own rule in; a caller with no engine gets the shipped answer.
+        /// </remarks>
+        public bool IdolBacksTheDominantKind = true;
+
         public int BaseAtk = 5;
         public int BaseDef;
         public int BaseSpd = 25;
@@ -97,6 +107,10 @@ namespace RelicRun.Core.Stats
     /// Rows for the 28 cut relics are deliberately absent — see docs/relics-cut.md. The source's
     /// Awakener's Loop, which would have made awakened copies count as three, is one of them, so
     /// an awakened relic counts as exactly one extra copy here.
+    ///
+    /// The Hollow Idol is the exception, and deliberately so: awakened, it backs the family the
+    /// delver leans on by three. The rule is shared with the fight (see <see cref="SetCounts"/>)
+    /// precisely so the sheet and the fight cannot disagree about which set tiers are reached.
     /// </remarks>
     public static class StatLedger
     {
@@ -288,6 +302,9 @@ namespace RelicRun.Core.Stats
             private readonly int[] _kindCounts;
             private readonly int _hollowIdols;
 
+            /// <summary>The family an awakened Hollow Idol backs, or <see cref="SetCounts.NoKind"/>.</summary>
+            private readonly int _idolBackedKind;
+
             public Counter(StatContext ctx)
             {
                 _ctx = ctx;
@@ -302,6 +319,23 @@ namespace RelicRun.Core.Stats
                 }
 
                 _hollowIdols = idols;
+                // Delve only, as the Idol's own set-counting is: it gives a duellist nothing,
+                // so waking one there backs nothing either.
+                _idolBackedKind = ctx.IdolBacksTheDominantKind && !ctx.IsVersus && idols > 0 &&
+                                  Awake(ctx, RelicId.HollowIdol)
+                    ? SetCounts.Dominant(_kindCounts)
+                    : SetCounts.NoKind;
+            }
+
+            /// <summary>Read before the struct is finished, so it cannot use an instance method.</summary>
+            private static bool Awake(StatContext ctx, RelicId id)
+            {
+                foreach (RelicId awake in ctx.Awakened)
+                {
+                    if (awake == id) return true;
+                }
+
+                return false;
             }
 
             public int Count(RelicId id)
@@ -334,7 +368,8 @@ namespace RelicRun.Core.Stats
             /// <summary>Relics of a kind. Hollow Idol counts itself toward every set.</summary>
             public int SetCount(RelicKind kind)
             {
-                return _kindCounts[(int)kind] + _hollowIdols;
+                int backed = (int)kind == _idolBackedKind ? SetCounts.IdolBacksTheDominant : 0;
+                return _kindCounts[(int)kind] + _hollowIdols + backed;
             }
         }
     }

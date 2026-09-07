@@ -138,7 +138,7 @@ namespace RelicRun.Core.Run
 
             for (int slot = 0; slot < Items.Count; slot++)
             {
-                if (!Rules.Stacks(Items[slot])) continue;
+                if (!Rules.Wakeable(Items[slot])) continue;
                 if (AwakenedSlots.Contains(slot)) continue;
                 if (!seen.Add(Items[slot])) continue;
 

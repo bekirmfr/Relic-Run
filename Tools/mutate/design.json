@@ -1,0 +1,137 @@
+{
+  "name": "the rules the port chose for itself",
+  "mutants": [
+    {
+      "name": "a Merchant's Thumb still shaves only a fifth",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "public double ThumbDiscount = 0.5;",
+      "replace": "public double ThumbDiscount = 0.8;"
+    },
+    {
+      "name": "the corpus is replayed at the shipped discount",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "                ThumbDiscount = 0.8,\n",
+      "replace": ""
+    },
+    {
+      "name": "a Merchant's Thumb stacks after all",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "{ RelicId.MerchantsThumb, false },",
+      "replace": "{ RelicId.MerchantsThumb, true },"
+    },
+    {
+      "name": "a unique relic cannot reach the awakening shelf",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "{ RelicId.MerchantsThumb, true },\n                });",
+      "replace": "});"
+    },
+    {
+      "name": "the shelf asks whether a relic stacks, as the source does",
+      "file": "Assets/GameAssets/Core/Run/RunState.cs",
+      "find": "if (!Rules.Wakeable(Items[slot])) continue;",
+      "replace": "if (!Rules.Stacks(Items[slot])) continue;"
+    },
+    {
+      "name": "a Second Stomach does not stack",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "{ RelicId.SecondStomach, true },",
+      "replace": "{ RelicId.SecondStomach, false },"
+    },
+    {
+      "name": "only the first Second Stomach doubles the breather",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "for (int i = run.Count(RelicId.SecondStomach); i > 0; i--) amount *= 2;",
+      "replace": "if (run.Has(RelicId.SecondStomach)) amount *= 2;"
+    },
+    {
+      "name": "an awakened Second Stomach stretches whether or not anything spilled",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "            int wasted = breath - room;\n            if (wasted <= 0) return 0;\n            return Math.Min(wasted, run.Count(RelicId.SecondStomach));",
+      "replace": "            return run.Count(RelicId.SecondStomach);"
+    },
+    {
+      "name": "an awakened Second Stomach stretches by the whole surplus",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "return Math.Min(wasted, run.Count(RelicId.SecondStomach));",
+      "replace": "return wasted;"
+    },
+    {
+      "name": "a sleeping Second Stomach stretches too",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (!run.Has(RelicId.SecondStomach) || !run.IsAwake(RelicId.SecondStomach)) return 0;",
+      "replace": "if (!run.Has(RelicId.SecondStomach)) return 0;"
+    },
+    {
+      "name": "the stretch is measured after the pool has already grown",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (stomachAwake) run.Pmax += Stretch(run, breath, run.Pmax - run.Php);",
+      "replace": "if (stomachAwake) { run.Pmax += 1; run.Pmax += Stretch(run, breath, run.Pmax - run.Php); }"
+    },
+    {
+      "name": "a Hollow Idol does not stack",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "{ RelicId.HollowIdol, true },",
+      "replace": "{ RelicId.HollowIdol, false },"
+    },
+    {
+      "name": "an awakened Hollow Idol backs its family by two",
+      "file": "Assets/GameAssets/Core/Stats/SetCounts.cs",
+      "find": "public const int IdolBacksTheDominant = 3;",
+      "replace": "public const int IdolBacksTheDominant = 2;"
+    },
+    {
+      "name": "the dominant family is the one held least",
+      "file": "Assets/GameAssets/Core/Stats/SetCounts.cs",
+      "find": "if (kindCounts[kind] <= most) continue;",
+      "replace": "if (kindCounts[kind] >= most) continue;"
+    },
+    {
+      "name": "a tie goes to the last family rather than the first",
+      "file": "Assets/GameAssets/Core/Stats/SetCounts.cs",
+      "find": "if (kindCounts[kind] <= most) continue;",
+      "replace": "if (kindCounts[kind] < most) continue;"
+    },
+    {
+      "name": "an empty hand still leans on Guard",
+      "file": "Assets/GameAssets/Core/Stats/SetCounts.cs",
+      "find": "int best = NoKind;\n            int most = 0;",
+      "replace": "int best = 0;\n            int most = 0;"
+    },
+    {
+      "name": "the sheet does not show what the Idol backs",
+      "file": "Assets/GameAssets/Core/Stats/StatLedger.cs",
+      "find": "int backed = (int)kind == _idolBackedKind ? SetCounts.IdolBacksTheDominant : 0;",
+      "replace": "int backed = 0;"
+    },
+    {
+      "name": "the fight does not grant what the Idol backs",
+      "file": "Assets/GameAssets/Core/Combat/CombatEngine.cs",
+      "find": "int backed = (int)kind == _idolBackedKind ? SetCounts.IdolBacksTheDominant : 0;",
+      "replace": "int backed = 0;"
+    },
+    {
+      "name": "a sleeping Hollow Idol backs a family too",
+      "file": "Assets/GameAssets/Core/Combat/CombatEngine.cs",
+      "find": "if (_hollowIdols > 0 && IsAwake(RelicId.HollowIdol))",
+      "replace": "if (_hollowIdols > 0)"
+    },
+    {
+      "name": "an awakened Hollow Idol still counts twice everywhere as well",
+      "file": "Assets/GameAssets/Core/Combat/CombatEngine.cs",
+      "find": "                _hollowIdols = CountItem(RelicId.HollowIdol);\n                if (_hollowIdols > 0 && IsAwake(RelicId.HollowIdol))",
+      "replace": "                _hollowIdols = EffectiveCount(RelicId.HollowIdol);\n                if (_hollowIdols > 0 && IsAwake(RelicId.HollowIdol))"
+    },
+    {
+      "name": "the corpus is replayed under the shipped Idol",
+      "file": "Assets/GameAssets/Core/Combat/CombatRules.cs",
+      "find": "return new CombatRules { IdolBacksTheDominantKind = false };",
+      "replace": "return new CombatRules { IdolBacksTheDominantKind = true };"
+    },
+    {
+      "name": "a duellist's Hollow Idol backs a family",
+      "file": "Assets/GameAssets/Core/Stats/StatLedger.cs",
+      "find": "ctx.IdolBacksTheDominantKind && !ctx.IsVersus && idols > 0 &&",
+      "replace": "ctx.IdolBacksTheDominantKind && idols > 0 &&"
+    }
+  ]
+}

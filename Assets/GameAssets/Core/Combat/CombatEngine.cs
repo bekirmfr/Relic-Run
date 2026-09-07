@@ -31,7 +31,23 @@ namespace RelicRun.Core.Combat
     public sealed partial class CombatEngine : ICombatBus, IAdrenalineReporter
     {
 
-        private readonly CombatRules _rules = CombatRules.Delve();
+        private readonly CombatRules _rules;
+
+        /// <summary>
+        /// A delve fought under the rules the game ships.
+        /// </summary>
+        public CombatEngine() : this(null)
+        {
+        }
+
+        /// <summary>
+        /// A delve fought under stated rules — <see cref="CombatRules.DelveAsRecorded"/> for the
+        /// corpus gate, which predates the shipped answer in one place.
+        /// </summary>
+        public CombatEngine(CombatRules rules)
+        {
+            _rules = rules ?? CombatRules.Delve();
+        }
 
         /// <summary>Chain depth beyond which effects fizzle rather than continue.</summary>
         private int ChainCap { get { return _rules.ChainCap; } }
@@ -60,6 +76,9 @@ namespace RelicRun.Core.Combat
         // once per floor rather than per event.
         private int[] _kindCounts;
         private int _hollowIdols;
+
+        /// <summary>The family an awakened Hollow Idol backs, or <see cref="SetCounts.NoKind"/>.</summary>
+        private int _idolBackedKind = SetCounts.NoKind;
         private double _chainDecay;
 
         // In-fight stat boosts. These are what DynamicMods surfaces to the ledger; nothing
@@ -1064,14 +1083,31 @@ namespace RelicRun.Core.Combat
                 _kindCounts[(int)RelicCatalog.KindOf(_hero.Items[i])]++;
             }
 
-            // Hollow Idol counts itself toward every set, when the mode says it does. The
-            // engine credits an awakened copy twice while the stat ledger credits it once — the
-            // two disagree in the source, and both are reproduced as written rather than
-            // reconciled, because "fixing" it here would silently change which set bonuses a
-            // real loadout reaches.
-            _hollowIdols = RelicTuning.For(RelicId.HollowIdol, _rules.Mode).CountsTowardEverySet
-                ? EffectiveCount(RelicId.HollowIdol)
-                : 0;
+            // Hollow Idol counts itself toward every set, when the mode says it does — and an
+            // awakened one throws three more behind the family the delver leans on. See
+            // Stats.SetCounts; the ledger reads the same rule, so the sheet cannot disagree
+            // with the fight.
+            bool idolCounts = RelicTuning.For(RelicId.HollowIdol, _rules.Mode).CountsTowardEverySet;
+            _idolBackedKind = SetCounts.NoKind;
+
+            if (!idolCounts)
+            {
+                _hollowIdols = 0;
+            }
+            else if (_rules.IdolBacksTheDominantKind)
+            {
+                _hollowIdols = CountItem(RelicId.HollowIdol);
+                if (_hollowIdols > 0 && IsAwake(RelicId.HollowIdol))
+                {
+                    _idolBackedKind = SetCounts.Dominant(_kindCounts);
+                }
+            }
+            else
+            {
+                // The source's answer: an awakened copy simply counted twice, everywhere. The
+                // stat ledger credited it once, so the two disagreed; both are kept as written.
+                _hollowIdols = EffectiveCount(RelicId.HollowIdol);
+            }
 
             _chainDecay = ChainContext.DecayFor(SetCount(RelicKind.Chain));
         }
@@ -1079,7 +1115,8 @@ namespace RelicRun.Core.Combat
         /// <summary>Relics of a kind. Hollow Idol counts itself toward every set.</summary>
         private int SetCount(RelicKind kind)
         {
-            return _kindCounts[(int)kind] + _hollowIdols;
+            int backed = (int)kind == _idolBackedKind ? SetCounts.IdolBacksTheDominant : 0;
+            return _kindCounts[(int)kind] + _hollowIdols + backed;
         }
 
         private bool IsAwake(RelicId id)
@@ -1125,6 +1162,7 @@ namespace RelicRun.Core.Combat
         {
             return new StatContext
             {
+                IdolBacksTheDominantKind = _rules.IdolBacksTheDominantKind,
                 Items = _hero.Items,
                 Awakened = _hero.Awakened,
                 IsVersus = _hero.IsVersus,

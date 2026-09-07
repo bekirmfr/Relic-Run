@@ -52,13 +52,47 @@ namespace RelicRun.Tests
             Assert.That(DelveRun.Breather(setup, run), Is.EqualTo(5), "and at a gate it would");
         }
 
+        /// <summary>Each Second Stomach doubles the breather, so a second one doubles it again.</summary>
         [Test]
-        public void ASecondStomachDoublesTheBreather()
+        public void EverySecondStomachDoublesTheBreather()
         {
             var setup = new RunSetup { Breath = 5 };
+            RelicId stomach = RelicId.SecondStomach;
 
             Assert.That(DelveRun.Breather(setup, Holding()), Is.EqualTo(5));
-            Assert.That(DelveRun.Breather(setup, Holding(RelicId.SecondStomach)), Is.EqualTo(10));
+            Assert.That(DelveRun.Breather(setup, Holding(stomach)), Is.EqualTo(10));
+            Assert.That(DelveRun.Breather(setup, Holding(stomach, stomach)), Is.EqualTo(20));
+            Assert.That(DelveRun.Breather(setup, Holding(stomach, stomach, stomach)), Is.EqualTo(40));
+        }
+
+        /// <summary>
+        /// An awakened Second Stomach turns a wasted breather into pool, a point per copy.
+        /// </summary>
+        /// <remarks>
+        /// The rule only bites where a doubled breather is worth nothing, which is exactly the
+        /// case that made stacking the relic feel bad — so this is written from a delver who is
+        /// already full, then one who is nearly full, then one who is not.
+        /// </remarks>
+        [Test]
+        public void AnAwakenedSecondStomachStretchesWhatWouldBeWasted()
+        {
+            RelicId stomach = RelicId.SecondStomach;
+
+            RunState asleep = Holding(stomach);
+            Assert.That(DelveRun.Stretch(asleep, 10, 0), Is.Zero, "asleep it wastes it as before");
+
+            RunState one = Holding(stomach);
+            one.Awaken(0);
+            Assert.That(DelveRun.Stretch(one, 10, 0), Is.EqualTo(1), "full: the whole breather spills");
+            Assert.That(DelveRun.Stretch(one, 10, 9), Is.EqualTo(1), "one point over is still over");
+            Assert.That(DelveRun.Stretch(one, 10, 10), Is.Zero, "exactly enough room wastes nothing");
+            Assert.That(DelveRun.Stretch(one, 10, 40), Is.Zero, "and a hurt delver just heals");
+
+            RunState two = Holding(stomach, stomach);
+            two.Awaken(0);
+            Assert.That(DelveRun.Stretch(two, 20, 0), Is.EqualTo(2), "a point per copy held");
+            Assert.That(DelveRun.Stretch(two, 20, 19), Is.EqualTo(1),
+                "and never more than the breather actually wasted");
         }
 
         /// <summary>An awakened Ox Heart adds two on top, and the Stomach still doubles first.</summary>
@@ -76,7 +110,40 @@ namespace RelicRun.Tests
             RunState both = Holding(RelicId.SecondStomach, RelicId.OxHeart);
             both.Awaken(1);
             Assert.That(DelveRun.Breather(setup, both), Is.EqualTo(12),
-                "the stomach doubles the base, and the heart is added after");
+                "the stomachs double the base, and the heart is added after");
+        }
+
+        /// <summary>
+        /// A gate reads the room BEFORE stretching it, or every rest would grow the pool.
+        /// </summary>
+        /// <remarks>
+        /// The order is the entire rule. Stretch first and the pool has already grown by the
+        /// time the room is measured, so the breather always looks like it spilled and an
+        /// awakened Second Stomach becomes a point of max HP per floor, unconditionally — which
+        /// is the source's own answer, and the one this replaces.
+        /// </remarks>
+        [Test]
+        public void AGateStretchesOnlyWhatWouldHaveSpilled()
+        {
+            RunState full = Holding(RelicId.SecondStomach);
+            full.Awaken(0);
+            full.Pmax = 100;
+            full.Php = 100;
+
+            DelveRun.Rest(full, 10, stomachAwake: true);
+            Assert.That(full.Pmax, Is.EqualTo(101), "the whole breather spilled, so one point of it kept");
+            Assert.That(full.Php, Is.EqualTo(101), "and the breather fills what it just made");
+            Assert.That(full.BreathHealed, Is.EqualTo(1));
+
+            RunState hurt = Holding(RelicId.SecondStomach);
+            hurt.Awaken(0);
+            hurt.Pmax = 100;
+            hurt.Php = 60;
+
+            DelveRun.Rest(hurt, 10, stomachAwake: true);
+            Assert.That(hurt.Pmax, Is.EqualTo(100), "nothing spilled, so nothing was stretched");
+            Assert.That(hurt.Php, Is.EqualTo(70));
+            Assert.That(hurt.BreathHealed, Is.EqualTo(10));
         }
 
         // ---- the mode's pool ----
@@ -225,26 +292,113 @@ namespace RelicRun.Tests
                 "deliberately.");
         }
 
-        // ---- the Debt of Flesh ----
+        // ---- what stacks, and what the bazaar will wake ----
 
         /// <summary>
-        /// A Debt of Flesh stacks here and does not in the source, which is what lets the
-        /// bazaar awaken it and makes its awakened rate reachable at all.
+        /// Every relic whose stacking the port deliberately changed, and why.
         /// </summary>
-        [Test]
-        public void ADebtOfFleshStacksOnlyUnderTheShippedRules()
+        /// <remarks>
+        /// Three were changed to make a written rule reachable at all: the source's bazaar only
+        /// wakes what stacks, so the awakened half of anything unique was a rule that existed
+        /// and could never fire. The fourth goes the other way — a Merchant's Thumb is bought
+        /// for its prices and a second copy discounts nothing further, so it is made unique and
+        /// paid for with a deeper cut instead.
+        /// </remarks>
+        private static readonly (RelicId Id, bool Stacks)[] Moved =
         {
-            Assert.That(RunRules.Shipped().Stacks(RelicId.DebtOfFlesh), Is.True);
-            Assert.That(RunRules.AsRecorded().Stacks(RelicId.DebtOfFlesh), Is.False,
-                "the source's answer must stay the source's, or the corpus gate is meaningless");
+            (RelicId.DebtOfFlesh, true),
+            (RelicId.SecondStomach, true),
+            (RelicId.HollowIdol, true),
+            (RelicId.MerchantsThumb, false),
+        };
+
+        [Test]
+        public void OnlyTheStatedRelicsStackDifferentlyFromTheSource()
+        {
+            RunRules shipped = RunRules.Shipped(), recorded = RunRules.AsRecorded();
+
+            foreach ((RelicId id, bool stacks) in Moved)
+            {
+                Assert.That(shipped.Stacks(id), Is.EqualTo(stacks), RelicCatalog.KeyOf(id));
+                Assert.That(recorded.Stacks(id), Is.EqualTo(RelicCatalog.Get(id).Stackable),
+                    "the source's answer must stay the source's, or the corpus gate is meaningless");
+            }
 
             // Nothing else moves.
             foreach (RelicDef def in RelicCatalog.All)
             {
-                if (def.Id == RelicId.DebtOfFlesh) continue;
-                Assert.That(RunRules.Shipped().Stacks(def.Id), Is.EqualTo(def.Stackable), def.Key);
-                Assert.That(RunRules.AsRecorded().Stacks(def.Id), Is.EqualTo(def.Stackable), def.Key);
+                bool moved = false;
+                foreach ((RelicId id, bool _) in Moved) moved |= id == def.Id;
+                if (moved) continue;
+
+                Assert.That(shipped.Stacks(def.Id), Is.EqualTo(def.Stackable), def.Key);
+                Assert.That(recorded.Stacks(def.Id), Is.EqualTo(def.Stackable), def.Key);
             }
+        }
+
+        /// <summary>
+        /// A unique relic can still be woken, which is the whole point of splitting the two.
+        /// </summary>
+        /// <remarks>
+        /// The source asks one flag both questions. A Merchant's Thumb is the case that forces
+        /// them apart: it is worth exactly one copy, and its awakened half buys a second deal at
+        /// the very counter that — under the source's rule — could never have sold it.
+        /// </remarks>
+        [Test]
+        public void AUniqueRelicCanStillReachTheAwakeningShelf()
+        {
+            RunRules shipped = RunRules.Shipped();
+
+            Assert.That(shipped.Stacks(RelicId.MerchantsThumb), Is.False, "one is enough");
+            Assert.That(shipped.Wakeable(RelicId.MerchantsThumb), Is.True, "and it can be woken");
+
+            RunState run = Holding(RelicId.MerchantsThumb);
+            Assert.That(run.Awakenable(), Is.EqualTo(new[] { 0 }));
+
+            // Everything else answers the second question with the first, as the source does.
+            foreach (RelicDef def in RelicCatalog.All)
+            {
+                if (def.Id == RelicId.MerchantsThumb) continue;
+                Assert.That(shipped.Wakeable(def.Id), Is.EqualTo(shipped.Stacks(def.Id)), def.Key);
+                Assert.That(RunRules.AsRecorded().Wakeable(def.Id), Is.EqualTo(def.Stackable), def.Key);
+            }
+        }
+
+        /// <summary>A Merchant's Thumb halves a price here, where the source shaved a fifth.</summary>
+        [Test]
+        public void AMerchantsThumbHalvesAPrice()
+        {
+            RunState none = Holding();
+            RunState thumb = Holding(RelicId.MerchantsThumb);
+
+            Assert.That(DelveRun.PriceOf(none, DelveRun.BuyPrice), Is.EqualTo(40));
+            Assert.That(DelveRun.PriceOf(thumb, DelveRun.BuyPrice), Is.EqualTo(20));
+            Assert.That(DelveRun.PriceOf(thumb, DelveRun.AwakenPrice), Is.EqualTo(30));
+            Assert.That(DelveRun.RerollPrice(thumb), Is.EqualTo(5));
+
+            RunState asRecorded = Holding(RelicId.MerchantsThumb);
+            asRecorded.Rules = RunRules.AsRecorded();
+            Assert.That(DelveRun.PriceOf(asRecorded, DelveRun.BuyPrice), Is.EqualTo(32),
+                "a fifth, which is what the corpus replays");
+        }
+
+        /// <summary>
+        /// An awakened Merchant's Thumb buys a second deal — the rule that forced the split.
+        /// </summary>
+        [Test]
+        public void AnAwakenedMerchantsThumbBuysASecondDeal()
+        {
+            var setup = new RunSetup { BazaarDeals = 1 };
+
+            RunState asleep = Holding(RelicId.MerchantsThumb);
+            Assert.That(DelveRun.DealsAllowed(asleep, setup), Is.EqualTo(1));
+
+            RunState awake = Holding(RelicId.MerchantsThumb);
+            awake.Awaken(0);
+            Assert.That(DelveRun.DealsAllowed(awake, setup), Is.EqualTo(2));
+
+            // And the level-fifteen perk is still worth its own deal on top.
+            Assert.That(DelveRun.DealsAllowed(awake, new RunSetup { BazaarDeals = 2 }), Is.EqualTo(3));
         }
 
         [Test]

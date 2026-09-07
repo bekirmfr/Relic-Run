@@ -197,14 +197,20 @@ namespace RelicRun.Core.Run
         /// <summary>Derives the event stream's seed from the run's. Knuth's golden ratio.</summary>
         public const uint EventSeedMix = 0x9E3779B9;
 
+        /// <param name="combat">
+        /// The fight's rules. Defaults to what the game ships; the corpus gate passes
+        /// <see cref="CombatRules.DelveAsRecorded"/>, because a recorded run was fought before
+        /// an awakened Hollow Idol started backing the family the delver leans on.
+        /// </param>
         public static RunState Resolve(uint seed, RunSetup setup, IRunChoices choices,
-            IRunObserver observer = null, RunRules rules = null)
+            IRunObserver observer = null, RunRules rules = null, CombatRules combat = null)
         {
             if (setup == null) throw new ArgumentNullException(nameof(setup));
             if (choices == null) throw new ArgumentNullException(nameof(choices));
 
             var run = new RunState();
             run.Rules = rules ?? RunRules.Shipped();
+            combat = combat ?? CombatRules.Delve();
             run.Hero.Php = setup.Hp;
             run.Hero.Pmax = setup.Hp;
             run.Hero.Gold = setup.Gold;
@@ -233,7 +239,7 @@ namespace RelicRun.Core.Run
                     nextPack ?? EnemyPackGenerator.Build(run.Floor, rng, setup.Dungeon);
                 nextPack = null;
 
-                bool fell = Fight(run, pack, rng, choices, observer, setup);
+                bool fell = Fight(run, pack, rng, choices, observer, setup, combat);
                 if (fell) break;
 
                 if (run.Floor >= MaxFloor)
@@ -283,9 +289,33 @@ namespace RelicRun.Core.Run
         /// </remarks>
         public static int Breather(RunSetup setup, RunState run)
         {
-            int amount = setup.Breath * (run.Has(RelicId.SecondStomach) ? 2 : 1);
+            int amount = setup.Breath;
+            for (int i = run.Count(RelicId.SecondStomach); i > 0; i--) amount *= 2;
             if (run.Has(RelicId.OxHeart) && run.IsAwake(RelicId.OxHeart)) amount += 2;
             return amount;
+        }
+
+        /// <summary>
+        /// What an awakened Second Stomach makes of a breather that would have been wasted.
+        /// </summary>
+        /// <remarks>
+        /// A doubled breather is worth nothing to a delver who is already close to full, and
+        /// worth less the more Stomachs they hold — the relic gets weaker exactly as you invest
+        /// in it. Awakened, the surplus is not thrown away: it stretches the pool instead, by a
+        /// point per copy held, and the breather then fills what it just made.
+        ///
+        /// The source's own answer here was a flat point of max HP at every gate, awake or not,
+        /// and it could never fire: a Second Stomach does not stack there, and the bazaar only
+        /// wakes what stacks. This is the shipped rule that takes its place, and it is why the
+        /// relic is worth a second copy.
+        /// </remarks>
+        public static int Stretch(RunState run, int breath, int room)
+        {
+            if (!run.Has(RelicId.SecondStomach) || !run.IsAwake(RelicId.SecondStomach)) return 0;
+
+            int wasted = breath - room;
+            if (wasted <= 0) return 0;
+            return Math.Min(wasted, run.Count(RelicId.SecondStomach));
         }
 
         /// <summary>How many pieces of business one visit allows.</summary>
@@ -398,13 +428,24 @@ namespace RelicRun.Core.Run
                 }
             }
 
-            // An awakened Second Stomach turns every walk into a little more room — and, in
-            // the source, never does: a Stomach does not stack, so the bazaar cannot wake one.
-            if (stomachAwake && run.Has(RelicId.SecondStomach)) run.Pmax += 1;
+            Rest(run, breath, stomachAwake);
+            run.Floor++;
+        }
+
+        /// <summary>
+        /// The rest itself: stretch what would spill, then take the breather.
+        /// </summary>
+        /// <remarks>
+        /// Apart from <see cref="Gate"/> so the arithmetic can be asked directly. The ORDER is
+        /// the whole of it — the room is read before the stretch, or the stretch would be
+        /// measuring the space it just made and every gate would grow the pool.
+        /// </remarks>
+        public static void Rest(RunState run, int breath, bool stomachAwake)
+        {
+            if (stomachAwake) run.Pmax += Stretch(run, breath, run.Pmax - run.Php);
 
             run.BreathHealed = Math.Min(breath, run.Pmax - run.Php);
             run.Php += run.BreathHealed;
-            run.Floor++;
 
             if (run.Php > run.Pmax)
             {
@@ -497,7 +538,7 @@ namespace RelicRun.Core.Run
         /// <summary>What a counter charges. A Merchant's Thumb shaves a fifth off it.</summary>
         public static int PriceOf(RunState run, int list)
         {
-            double price = list * (run.Has(RelicId.MerchantsThumb) ? 0.8 : 1.0);
+            double price = list * (run.Has(RelicId.MerchantsThumb) ? run.Rules.ThumbDiscount : 1.0);
             return JsMath.RoundToInt(price);
         }
 
@@ -534,7 +575,7 @@ namespace RelicRun.Core.Run
         public static int RerollPrice(RunState run)
         {
             double price = 10 * Math.Pow(2, run.Rerolls);
-            if (run.Has(RelicId.MerchantsThumb)) price *= 0.8;
+            if (run.Has(RelicId.MerchantsThumb)) price *= run.Rules.ThumbDiscount;
             return JsMath.RoundToInt(price);
         }
 
@@ -575,7 +616,7 @@ namespace RelicRun.Core.Run
         /// The floor's fight, and the one chance to be brought back. True if the hero stayed down.
         /// </summary>
         private static bool Fight(RunState run, IReadOnlyList<EnemyState> pack, Mulberry32 rng,
-            IRunChoices choices, IRunObserver observer, RunSetup setup)
+            IRunChoices choices, IRunObserver observer, RunSetup setup, CombatRules combat)
         {
             // Gold an earlier event promised for this floor arrives as the fight opens.
             if (run.Pending.HasValue && run.Pending.Value.Floor == run.Floor)
@@ -590,7 +631,7 @@ namespace RelicRun.Core.Run
             bool fleshSet = run.Hero.FleshSetApplied;
             if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = false;
 
-            CombatResult result = new CombatEngine().ResolveFloor(run.Hero, pack, rng);
+            CombatResult result = new CombatEngine(combat).ResolveFloor(run.Hero, pack, rng);
             run.BreathHealed = 0;
             if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = fleshSet;
 
@@ -606,7 +647,7 @@ namespace RelicRun.Core.Run
 
             if (!run.Revived && choices.Revive(run, run.Floor))
             {
-                Revive(run, pack, result, rng, observer, setup);
+                Revive(run, pack, result, rng, observer, setup, combat);
                 if (run.Php > 0) return false;
             }
 
@@ -625,7 +666,8 @@ namespace RelicRun.Core.Run
         /// as it died gets a fresh pack instead, rolled for the same floor.
         /// </remarks>
         private static void Revive(RunState run, IReadOnlyList<EnemyState> pack,
-            CombatResult fell, Mulberry32 rng, IRunObserver observer, RunSetup setup)
+            CombatResult fell, Mulberry32 rng, IRunObserver observer, RunSetup setup,
+            CombatRules combat)
         {
             run.Revived = true;
             run.Php = Math.Max(1, (int)Math.Floor(run.Pmax / 2.0));
@@ -644,7 +686,7 @@ namespace RelicRun.Core.Run
             if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = false;
 
             run.Hero.Carry = fell.Carry;
-            CombatResult result = new CombatEngine().ResolveFloor(run.Hero, remaining, rng);
+            CombatResult result = new CombatEngine(combat).ResolveFloor(run.Hero, remaining, rng);
             run.Hero.Carry = null;
             if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = fleshSet;
             run.Php = Math.Min(run.Php, ceiling);

@@ -83,6 +83,10 @@ namespace RelicRun.Tests
                 Items = items,
                 Awakened = awakened,
                 IsVersus = c["mode"].Value<string>() == "versus",
+
+                // As recorded: the ledger predates an awakened Hollow Idol backing the family
+                // a delver leans on, and several of its cases carry one.
+                IdolBacksTheDominantKind = false,
                 BaseAtk = b["atk"].Value<int>(),
                 BaseDef = b["def"].Value<int>(),
                 BaseSpd = b["spd"].Value<int>(),
@@ -164,6 +168,72 @@ namespace RelicRun.Tests
         {
             var ctx = new StatContext { BaseAtk = 0, Items = new List<RelicId> { RelicId.MillstonePendant } };
             Assert.That(StatLedger.Of(ctx, Stat.Atk), Is.GreaterThanOrEqualTo(1));
+        }
+
+        // ---- the Hollow Idol, awakened ----
+
+        /// <summary>The family a loadout leans on, and what happens when nothing leads.</summary>
+        [Test]
+        public void TheDominantKindIsTheOneHeldMost()
+        {
+            Assert.That(SetCounts.Dominant(new int[8]), Is.EqualTo(SetCounts.NoKind),
+                "an empty hand leans on nothing");
+
+            var counts = new int[8];
+            counts[(int)RelicKind.Greed] = 3;
+            counts[(int)RelicKind.Pace] = 1;
+            Assert.That(SetCounts.Dominant(counts), Is.EqualTo((int)RelicKind.Greed));
+
+            // A tie goes to whichever comes first in the enum — arbitrary, but it has to be
+            // something, and it must not depend on the order the relics were drafted in.
+            var tied = new int[8];
+            tied[(int)RelicKind.Pace] = 2;
+            tied[(int)RelicKind.Curse] = 2;
+            Assert.That(SetCounts.Dominant(tied), Is.EqualTo((int)RelicKind.Pace));
+        }
+
+        /// <summary>
+        /// An awakened Hollow Idol throws three behind the family the delver leans on, and the
+        /// SHEET says so — the set tiers it reaches are the ones the fight will grant.
+        /// </summary>
+        /// <remarks>
+        /// Three Greed relics and an Idol come to four of a kind, which reaches nothing. Awake,
+        /// the Idol backs Greed with three more and the seven-tier opens, which is a share of
+        /// the purse as attack. The source's answer — an extra count toward EVERY set — is a
+        /// smaller thing and does not reach it.
+        /// </remarks>
+        [Test]
+        public void AnAwakenedHollowIdolBacksTheFamilyTheDelverLeansOn()
+        {
+            var greed = new List<RelicId>
+            {
+                RelicId.CoinMagnet, RelicId.PiggyBank, RelicId.CutpurseHook, RelicId.HollowIdol,
+            };
+
+            int asleep = Attack(greed, awake: false, versus: false, shipped: true);
+            int awake = Attack(greed, awake: true, versus: false, shipped: true);
+
+            Assert.That(awake - asleep, Is.EqualTo(5),
+                "the Greed seven-tier pays a hundredth of the purse as attack, and 500 gold is 5");
+
+            Assert.That(Attack(greed, awake: true, versus: false, shipped: false), Is.EqualTo(asleep),
+                "under the source's answer the tier is still out of reach");
+
+            Assert.That(Attack(greed, awake: true, versus: true, shipped: true), Is.EqualTo(asleep),
+                "and an Idol gives a duellist nothing, awake or not");
+        }
+
+        private static int Attack(List<RelicId> items, bool awake, bool versus, bool shipped)
+        {
+            return StatLedger.Of(new StatContext
+            {
+                Items = items,
+                Awakened = awake ? new List<RelicId> { RelicId.HollowIdol } : new List<RelicId>(),
+                IsVersus = versus,
+                IdolBacksTheDominantKind = shipped,
+                BaseAtk = 5,
+                Gold = 500,
+            }, Stat.Atk);
         }
 
         [Test]

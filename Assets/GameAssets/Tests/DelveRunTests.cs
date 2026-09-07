@@ -465,7 +465,8 @@ namespace RelicRun.Tests
                     RunSetup setup = RunSetup.ForLevel(token["level"].Value<int>());
                     setup.Dungeon = DungeonConfig.ForTier(token["tier"].Value<int>());
 
-                    DelveRun.Resolve(seed, setup, new Driver(replay), replay, RunRules.AsRecorded());
+                    DelveRun.Resolve(seed, setup, new Driver(replay), replay,
+                        RunRules.AsRecorded(), CombatRules.DelveAsRecorded());
                 }
                 catch (ReplayEnded)
                 {

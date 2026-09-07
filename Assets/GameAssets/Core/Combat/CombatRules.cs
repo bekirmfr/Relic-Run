@@ -63,6 +63,16 @@ namespace RelicRun.Core.Combat
         /// </remarks>
         public bool ReactionsStopWhenTheStrikerFalls;
 
+        /// <summary>
+        /// Whether an awakened Hollow Idol backs the dominant family instead of counting twice.
+        /// </summary>
+        /// <remarks>
+        /// See <see cref="Stats.SetCounts"/>. The source's answer — a second count toward every
+        /// set — is unreachable there, because the bazaar only wakes what stacks and a Hollow
+        /// Idol does not. It is kept for the corpus and nothing else.
+        /// </remarks>
+        public bool IdolBacksTheDominantKind;
+
         /// <summary>Whether the Edge set sharpens permanently with every kill.</summary>
         public bool EdgeSetSharpensOnKill = true;
 
@@ -121,7 +131,20 @@ namespace RelicRun.Core.Combat
 
         public static CombatRules Delve()
         {
-            return new CombatRules();
+            return new CombatRules { IdolBacksTheDominantKind = true };
+        }
+
+        /// <summary>
+        /// The delve as the corpus recorded it. Nothing but the gate should ask for these.
+        /// </summary>
+        /// <remarks>
+        /// The counterpart of <see cref="DuelAsRecorded"/>, and for now it differs in one place:
+        /// an awakened Hollow Idol counted twice toward every set rather than backing the family
+        /// the delver leans on.
+        /// </remarks>
+        public static CombatRules DelveAsRecorded()
+        {
+            return new CombatRules { IdolBacksTheDominantKind = false };
         }
 
         public static CombatRules Duel()
