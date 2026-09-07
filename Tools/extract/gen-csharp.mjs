@@ -470,6 +470,34 @@ ${familyRows}
 ${soloRows}
         };
 
+        /// <summary>The colour the automatic silhouette outline is drawn in.</summary>
+        public const char OutlineKey = '\\u0001';
+
+        /// <summary>
+        /// Keys that are not families but are painted anyway: the outline, and a dark default.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<char, string> Extras =
+            new Dictionary<char, string>
+        {
+            { 'd', "#191510" },
+            { OutlineKey, "#0E0C08" },
+        };
+
+        /// <summary>
+        /// Tokens in older art that mean a role which has since been renamed or merged away.
+        /// </summary>
+        /// <remarks>
+        /// Art drawn before a role existed still carries the old letter, so the palette answers
+        /// both. Dropping these would not fail loudly — the pixels would simply come out
+        /// unpainted, which is why they are listed rather than left to be noticed.
+        /// </remarks>
+        public static readonly IReadOnlyDictionary<char, char> Aliases =
+            new Dictionary<char, char>
+        {
+            { 'f', 'N' }, { 'i', 'E' }, { 'j', 'E' }, { 'm', 'y' },
+            { 'S', 'W' }, { 's', 'w' }, { '7', '6' },
+        };
+
         /// <summary>
         /// The whole palette, as the shader wants it: every role key against its colour.
         /// </summary>
@@ -501,9 +529,22 @@ ${soloRows}
                     shade.LightHue, shade.LightSaturation);
             }
 
+            foreach (KeyValuePair<char, string> extra in Extras)
+            {
+                roles[extra.Key] = Rgb.Parse(extra.Value);
+            }
+
             foreach (KeyValuePair<char, string> solo in Fixed)
             {
                 roles[solo.Key] = Rgb.Parse(solo.Value);
+            }
+
+            // Aliases resolve against the finished palette, so an alias of a family key picks up
+            // whatever the delver chose for it.
+            foreach (KeyValuePair<char, char> alias in Aliases)
+            {
+                Rgb target;
+                if (roles.TryGetValue(alias.Value, out target)) roles[alias.Key] = target;
             }
 
             return roles;

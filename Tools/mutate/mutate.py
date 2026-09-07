@@ -96,19 +96,23 @@ def main():
         if not passed:
             sys.exit("the unmutated copy does not pass" + ("" if built else " (and did not build)"))
 
+        # Line endings are normalised in the copy, and every write below puts them back the
+        # same way. Generated files are written CRLF and hand-written ones LF, so without this
+        # a multi-line anchor would match in one file and silently miss in another — which
+        # reads exactly like a mutant that could not be applied.
         originals = {}
         for mutant in mutants:
             path = os.path.join(staged, mutant["file"].replace("/", os.sep))
             if path not in originals:
                 with open(path, encoding="utf-8", newline="") as handle:
-                    originals[path] = handle.read()
+                    originals[path] = handle.read().replace("\r\n", "\n")
 
         for mutant in mutants:
             name = mutant["name"]
             path = os.path.join(staged, mutant["file"].replace("/", os.sep))
 
             for other, text in originals.items():
-                with open(other, "w", encoding="utf-8", newline="") as handle:
+                with open(other, "w", encoding="utf-8", newline="\n") as handle:
                     handle.write(text)
 
             source = originals[path]
@@ -117,7 +121,7 @@ def main():
                 survivors.append(name + " (anchor)")
                 continue
 
-            with open(path, "w", encoding="utf-8", newline="") as handle:
+            with open(path, "w", encoding="utf-8", newline="\n") as handle:
                 handle.write(source.replace(mutant["find"], mutant["replace"], 1))
 
             passed, built = run_tests(staged)

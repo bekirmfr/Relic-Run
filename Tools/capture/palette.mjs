@@ -67,35 +67,51 @@ for (const hex of HEXES) {
   }
 }
 
-/* The palette a delver gets when they have chosen nothing: every family's three keys derived
-   from its own base, plus the fixed colours. This pins the family table and the shade defaults
-   together with the maths. */
-const roles = [];
-for (const f of api.FAMILIES) {
-  const p = api.famParams(f.base);
-  roles.push({ key: f.base, family: f.name, kind: "base", hex: f.hex });
-  roles.push({
-    key: f.dark, family: f.name, kind: "dark",
-    hex: api.applyShade(f.hex, p.darkMult, p.darkHue, p.darkSat),
-  });
-  roles.push({
-    key: f.light, family: f.name, kind: "light",
-    hex: api.applyShade(f.hex, p.lightMult, p.lightHue, p.lightSat),
-  });
+/* Compositing one colour over another, which is how a shadow or a highlight tints whatever it
+   is laid on. Recorded because the alpha maths rounds, and rounding is where ports disagree. */
+const overs = [];
+for (const below of HEXES) {
+  for (const top of ["#000000", "#FFFFFF", "#3A3328", "#F2ECDD", "#C4593C"]) {
+    for (const alpha of [0, 150, 300, 450, 1000]) {
+      overs.push({ below, top, alpha, out: api.hexOver(below, top, alpha / 1000) });
+    }
+  }
 }
 
-for (const key of Object.keys(api.SOLOS)) {
-  roles.push({ key, family: "fixed", kind: "solo", hex: api.SOLOS[key] });
+/* THE PALETTE ITSELF, recorded from the source's own paletteFor rather than re-derived here.
+   That distinction cost something to learn: the first version of this recorder walked the
+   family table and applied the shades itself, which produced a corpus the port agreed with by
+   construction and said nothing about the nine keys paletteFor adds on top — a couple of fixed
+   extras, and seven legacy aliases mapping tokens in old art onto the roles that replaced them.
+   A recorder that re-implements what it is recording is not a gate. */
+const palettes = [];
+
+function palette(id, famHex) {
+  const built = api.paletteFor(famHex);
+  const roles = Object.keys(built).map((key) => ({ key, hex: built[key] }));
+  palettes.push({ id, famHex, roles });
 }
+
+palette("default", {});
+
+/* A delver who has chosen colours, which is the path every rival in a lobby takes. The overrides
+   are keyed by a family's BASE key, and everything unstated keeps its default. */
+palette("chosen", {
+  H: "#5B4A7A", T: "#191510", C: "#9B8BD0", A: "#4A6A8A", E: "#191510",
+  Z: "#2C1710", F: "#191510", O: "#E3B341", K: "#E3B08A", R: "#8B8172",
+});
+
+palette("one", { H: "#2E7ED9" });
+palette("greys", { H: "#000000", K: "#FFFFFF", T: "#7F7F7F" });
 
 mkdirSync(OUT, { recursive: true });
-const json = JSON.stringify({ shades, shifts, roles });
+const json = JSON.stringify({ shades, shifts, overs, palettes });
 writeFileSync(join(OUT, "palette.json"), json, "utf8");
 
-const distinct = new Set(roles.map((r) => r.hex));
 console.log("\npalette corpus");
-console.log("  → palette.json       " + String(roles.length).padStart(4) + " roles  " +
+console.log("  → palette.json       " + String(palettes.length).padStart(4) + " palettes  " +
             (Buffer.byteLength(json) / 1024).toFixed(0) + " KB");
-console.log("  " + shades.length + " flat shades · " + shifts.length + " hue-and-lightness shifts");
-console.log("  " + api.FAMILIES.length + " families, " + Object.keys(api.SOLOS).length +
-            " fixed, " + distinct.size + " distinct colours");
+console.log("  " + shades.length + " flat shades · " + shifts.length + " shifts · " +
+            overs.length + " composites");
+console.log("  " + palettes[0].roles.length + " role keys · " + api.FAMILIES.length +
+            " families · " + Object.keys(api.SOLOS).length + " fixed");

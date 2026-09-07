@@ -80,47 +80,127 @@ namespace RelicRun.Tests
             Report(failures, cases.Count, "shifts");
         }
 
-        /// <summary>
-        /// The palette a delver gets before they have chosen anything.
-        /// </summary>
-        /// <remarks>
-        /// This is the one that pins the whole thing together: the family table, the fixed
-        /// colours, the shade defaults and the maths all have to agree at once for eighty-five
-        /// keys to come out right.
-        /// </remarks>
         [Test]
-        public void TheDefaultPaletteIsBuiltExactly()
+        public void RecordedCompositesMatchExactly()
         {
             JObject corpus = Corpus.Object("palette.json");
-            var cases = (JArray)corpus["roles"];
+            var cases = (JArray)corpus["overs"];
+            Assert.That(cases.Count, Is.GreaterThan(0), "palette corpus is empty");
 
-            Dictionary<char, Rgb> built = HeroPalette.Build();
             var failures = new List<string>();
-
-            Assert.That(built.Count, Is.EqualTo(cases.Count),
-                "the palette holds " + built.Count + " keys and the recording holds " + cases.Count);
 
             foreach (JToken token in cases)
             {
-                string key = token["key"].Value<string>();
-                char role = key[0];
+                string below = token["below"].Value<string>();
+                string top = token["top"].Value<string>();
+                int alpha = token["alpha"].Value<int>();
 
-                Rgb got;
-                if (!built.TryGetValue(role, out got))
-                {
-                    failures.Add(token["family"] + " " + token["kind"] + ": no key '" + key + "'");
-                    continue;
-                }
+                string got = HeroColour
+                    .Over(Rgb.Parse(below), Rgb.Parse(top), alpha / 1000.0).ToString();
+                string want = token["out"].Value<string>();
 
-                string want = token["hex"].Value<string>();
-                if (!string.Equals(got.ToString(), want, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(got, want, StringComparison.OrdinalIgnoreCase))
                 {
-                    failures.Add(token["family"] + " " + token["kind"] + " ('" + key +
-                                 "'): recorded " + want + ", built " + got);
+                    failures.Add(top + " over " + below + " at " + alpha + "/1000: recorded " +
+                                 want + ", replayed " + got);
                 }
             }
 
-            Report(failures, cases.Count, "roles");
+            Report(failures, cases.Count, "composites");
+        }
+
+        /// <summary>
+        /// The palettes the source builds, key for key.
+        /// </summary>
+        /// <remarks>
+        /// This is the one that pins the whole thing together: the family table, the fixed
+        /// colours, the shade defaults, the maths and the odds and ends all have to agree at
+        /// once for ninety-four keys to come out right.
+        ///
+        /// Recorded from the source's own builder rather than re-derived, which is not a detail.
+        /// The first version of this gate walked the family table and applied the shades in the
+        /// recorder — a corpus the port agreed with by construction, and which said nothing
+        /// about the nine keys the real builder adds on top. It passed, and the port was wrong.
+        /// </remarks>
+        [Test]
+        public void RecordedPalettesAreBuiltExactly()
+        {
+            JObject corpus = Corpus.Object("palette.json");
+            var cases = (JArray)corpus["palettes"];
+            Assert.That(cases.Count, Is.GreaterThan(0), "palette corpus is empty");
+
+            var failures = new List<string>();
+
+            foreach (JToken token in cases)
+            {
+                string id = token["id"].Value<string>();
+
+                var chosen = new Dictionary<char, string>();
+                foreach (JProperty pick in ((JObject)token["famHex"]).Properties())
+                {
+                    chosen[pick.Name[0]] = pick.Value.Value<string>();
+                }
+
+                Dictionary<char, Rgb> built = HeroPalette.Build(chosen);
+                var roles = (JArray)token["roles"];
+
+                if (built.Count != roles.Count)
+                {
+                    failures.Add(id + ": the palette holds " + built.Count +
+                                 " keys and the recording holds " + roles.Count);
+                    continue;
+                }
+
+                foreach (JToken role in roles)
+                {
+                    char key = role["key"].Value<string>()[0];
+                    string want = role["hex"].Value<string>();
+
+                    Rgb got;
+                    if (!built.TryGetValue(key, out got))
+                    {
+                        failures.Add(id + ": no key U+" + ((int)key).ToString("X4"));
+                        continue;
+                    }
+
+                    if (!string.Equals(got.ToString(), want, StringComparison.OrdinalIgnoreCase))
+                    {
+                        failures.Add(id + " U+" + ((int)key).ToString("X4") + ": recorded " +
+                                     want + ", built " + got);
+                    }
+                }
+            }
+
+            Report(failures, cases.Count, "palettes");
+        }
+
+        /// <summary>
+        /// An alias answers with whatever the role it points at is currently painted.
+        /// </summary>
+        /// <remarks>
+        /// Art drawn before a role existed still carries the old letter. Resolving an alias
+        /// against the FINISHED palette rather than against the family default is what makes a
+        /// delver's own colour reach those pixels too — otherwise choosing a hair colour would
+        /// leave the old eyebrow token painted in the default.
+        /// </remarks>
+        [Test]
+        public void AnAliasFollowsWhateverItPointsAt()
+        {
+            Assert.That(HeroPalette.Aliases, Is.Not.Empty);
+
+            foreach (KeyValuePair<char, char> alias in HeroPalette.Aliases)
+            {
+                Dictionary<char, Rgb> plain = HeroPalette.Build();
+                Assert.That(plain[alias.Key].ToString(), Is.EqualTo(plain[alias.Value].ToString()),
+                    "'" + alias.Key + "' is meant to mean '" + alias.Value + "'");
+            }
+
+            // The eye family, whose base key two aliases point at.
+            Dictionary<char, Rgb> chosen = HeroPalette.Build(
+                new Dictionary<char, string> { { 'E', "#2E7ED9" } });
+
+            Assert.That(chosen['i'].ToString(), Is.EqualTo("#2e7ed9"));
+            Assert.That(chosen['j'].ToString(), Is.EqualTo("#2e7ed9"));
         }
 
         /// <summary>
@@ -149,6 +229,14 @@ namespace RelicRun.Tests
             foreach (KeyValuePair<char, Rgb> role in before)
             {
                 if (role.Key == hair.Base || role.Key == hair.Dark || role.Key == hair.Light) continue;
+
+                // An alias of a hair key follows it, which is the point of the aliases.
+                char points;
+                if (HeroPalette.Aliases.TryGetValue(role.Key, out points) &&
+                    (points == hair.Base || points == hair.Dark || points == hair.Light))
+                {
+                    continue;
+                }
 
                 Assert.That(after[role.Key].ToString(), Is.EqualTo(role.Value.ToString()),
                     "'" + role.Key + "' moved, and only the hair was chosen");

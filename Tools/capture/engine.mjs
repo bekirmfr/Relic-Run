@@ -28,7 +28,10 @@ const CONSTS = [
   "HERO_LAYERS", "PACK", "FAMILIES", "DRESS_SWATCHES", "Studio",
   // The palette: the fixed colours that are never recoloured, and how a family's base hex
   // derives its dark and light companions.
-  "SOLOS", "SHADE_DEFAULTS",
+  "SOLOS", "SHADE_DEFAULTS", "MODS",
+  // The synthetic-token registry the shadow and highlight modifiers fill in as a hero is
+  // composed. Empty until something composes; paletteFor reads it either way.
+  "SYNTH",
   // The merchant's greeting is picked with a SEEDED draw, from inside a callback the
   // animation defers. It is one line of flavour that moves every number after it.
   "MERCHANT_LINES",
@@ -46,6 +49,7 @@ const FUNCTIONS = [
   // The colour maths behind the palette swap: forty lines, and the whole of what the
   // Changing Room needs in order to recolour a delver live.
   "shade", "hexToHsl", "hslToHex", "applyShade", "famParams", "shadeParams",
+  "hexOver", "paletteFor",
 ];
 
 const METHODS = ["simulateFloor", "simulateDuel"];
@@ -146,7 +150,8 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "  compileFormula, evRelic, awakeById, luckRoll, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
     "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, REVIVE_SPARKS, Store,",
     "  slotList, Studio, FAMILIES, relicSynergy, dailySeed,",
-  "  SOLOS, SHADE_DEFAULTS, shade, hexToHsl, hslToHex, applyShade, famParams,",
+  "  SOLOS, SHADE_DEFAULTS, MODS, shade, hexToHsl, hslToHex, applyShade, famParams,",
+  "  hexOver, paletteFor,",
   "  setReducedMotion: v => { __env.reducedMotion = !!v; } };",
   ];
 

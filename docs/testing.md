@@ -412,9 +412,27 @@ from it, so the twenty-six families and their role keys are never typed by hand.
 checks the one thing that would be silent and fatal: role keys must be UNIQUE across the whole
 palette, because a pixel carries a key and nothing else says which family it belonged to.
 
+### A gate that agreed with the port by construction
+
+The first version of this recorder walked the family table and applied the shades ITSELF, then
+compared the port against that. It passed. It was also worthless: the recorder and the port were
+two implementations of the same idea, so of course they agreed, and neither of them was the
+source. The real builder adds nine keys on top of the families and the fixed colours — a dark
+default, the silhouette outline, and seven legacy aliases mapping tokens in older art onto the
+roles that replaced them — and the port had none of them. Pixels drawn with an old token would
+have come out unpainted, silently.
+
+The corpus records `paletteFor` now, which is the source's own builder, and the port is ninety-
+four keys rather than eighty-five. **A recorder that re-implements what it is recording is not a
+gate**, and the only reliable tell is asking what the recorder would have to get wrong for the
+test to fail.
+
+Aliases resolve against the FINISHED palette rather than against a family's default, so a delver
+who picks an eye colour gets it on the old tokens too.
+
 ### Three mutations that were equivalent, and what replaced them
 
-Eighteen mutations, all eighteen die — but three had to be rewritten first, and each was
+Twenty-five mutations, all twenty-five die — but three had to be rewritten first, and each was
 equivalent for a reason worth knowing:
 
 - **Not clamping lightness** changes nothing, because whenever lightness exceeds one both ends of
@@ -606,6 +624,16 @@ and a resumed fight that meets the foe that felled the hero with its wounds inta
 starting the floor over. That is weaker than a corpus and is called out here so it is not
 mistaken for one. The numbers came off the source by reading, not by diffing.
 
+## A footgun in the mutation harness
+
+A mutant is reported as `NO ANCHOR` when its search text is not in the file, which normally means
+the code moved and the mutant needs updating. It also happened to mean something else for a
+while: generated files are written with CRLF and hand-written ones with LF, so any anchor
+spanning more than one line matched in some files and silently missed in others.
+
+`mutate.py` normalises line endings in its copy now. The tell was a mutant that looked
+well-formed, matched when checked by hand, and reported `NO ANCHOR` anyway.
+
 ## Running mutations
 
     python Tools/mutate/mutate.py Tools/mutate/run-layer.json
@@ -694,4 +722,4 @@ node Tools/extract/validate.mjs
 | Phase 6c — the versus lobby | `versus.json` | passing, 120 lobbies made from a seed |
 | Phase 6d — the versus match | `versus.json` | passing, 120 matches and 733 rounds |
 | Phase 6e — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |
-| Phase 8a — the palette | `palette.json` | passing, 11,585 colours and 85 role keys |
+| Phase 8a — the palette | `palette.json` | passing, 12,650 colours and four 94-key palettes |

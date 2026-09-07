@@ -80,6 +80,21 @@ namespace RelicRun.Core.Content
     /// </remarks>
     public static class HeroColour
     {
+        /// <summary>
+        /// One colour laid over another at a given opacity.
+        /// </summary>
+        /// <remarks>
+        /// How a shadow or a highlight tints whatever it lands on: the modifier's own colour is
+        /// painted over the pixel below as transparent paint, at fifteen, thirty or forty-five
+        /// per cent depending on how strong the modifier is.
+        /// </remarks>
+        public static Rgb Over(Rgb below, Rgb top, double alpha)
+        {
+            return new Rgb(Channel(top.R * alpha + below.R * (1 - alpha)),
+                Channel(top.G * alpha + below.G * (1 - alpha)),
+                Channel(top.B * alpha + below.B * (1 - alpha)));
+        }
+
         /// <summary>Every channel multiplied, and clamped. The flat shade.</summary>
         public static Rgb Shade(Rgb colour, double multiplier)
         {

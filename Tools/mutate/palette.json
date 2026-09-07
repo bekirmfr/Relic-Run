@@ -108,6 +108,48 @@
       "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
       "find": "                if (chosen == null || !chosen.TryGetValue(family.Base, out picked))",
       "replace": "                if (true)"
+    },
+    {
+      "name": "older art is left unpainted",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "                if (roles.TryGetValue(alias.Value, out target)) roles[alias.Key] = target;",
+      "replace": ""
+    },
+    {
+      "name": "an alias points at the wrong role",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "{ 'f', 'N' }, { 'i', 'E' }, { 'j', 'E' }, { 'm', 'y' },",
+      "replace": "{ 'f', 'E' }, { 'i', 'E' }, { 'j', 'E' }, { 'm', 'y' },"
+    },
+    {
+      "name": "an alias is resolved before a delver's choice reaches it",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "            foreach (KeyValuePair<char, char> alias in Aliases)\n            {\n                Rgb target;\n                if (roles.TryGetValue(alias.Value, out target)) roles[alias.Key] = target;\n            }",
+      "replace": "            foreach (KeyValuePair<char, char> alias in Aliases)\n            {\n                for (int i = 0; i < Families.Count; i++)\n                {\n                    if (Families[i].Base == alias.Value) roles[alias.Key] = Rgb.Parse(Families[i].DefaultHex);\n                }\n            }"
+    },
+    {
+      "name": "the outline has no colour of its own",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "            { OutlineKey, \"#0E0C08\" },",
+      "replace": ""
+    },
+    {
+      "name": "the outline is drawn in the dark default",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "{ OutlineKey, \"#0E0C08\" },",
+      "replace": "{ OutlineKey, \"#191510\" },"
+    },
+    {
+      "name": "a composite ignores what is beneath it",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "            return new Rgb(Channel(top.R * alpha + below.R * (1 - alpha)),\n                Channel(top.G * alpha + below.G * (1 - alpha)),\n                Channel(top.B * alpha + below.B * (1 - alpha)));",
+      "replace": "            return new Rgb(Channel(top.R * alpha), Channel(top.G * alpha), Channel(top.B * alpha));"
+    },
+    {
+      "name": "a composite reads its opacity the wrong way round",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "Channel(top.R * alpha + below.R * (1 - alpha)),",
+      "replace": "Channel(below.R * alpha + top.R * (1 - alpha)),"
     }
   ]
 }
