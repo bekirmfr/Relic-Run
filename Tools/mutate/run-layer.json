@@ -38,12 +38,6 @@
       "replace": "MinSpdBonus = -11;"
     },
     {
-      "name": "an event's defence floor is one lower",
-      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
-      "find": "MinDefBonus = -2;",
-      "replace": "MinDefBonus = -3;"
-    },
-    {
       "name": "the bazaar sits on floor 8",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
       "find": "BazaarFloor = 7;",
@@ -168,6 +162,24 @@
       "file": "Assets/GameAssets/Core/Run/RunOutcome.cs",
       "find": "if (!versus) baseScore += kills * PerKill;",
       "replace": "baseScore += kills * PerKill;"
+    },
+    {
+      "name": "the chest costs two defence",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "run.Hero.DefBonus -= 1;",
+      "replace": "run.Hero.DefBonus -= 2;"
+    },
+    {
+      "name": "the spike trap costs defence too",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "Free((run, rng) => { run.Hero.SpdBonus -= 5; }),",
+      "replace": "Free((run, rng) => { run.Hero.SpdBonus -= 5; run.Hero.DefBonus -= 1; }),"
+    },
+    {
+      "name": "the speed floor is gone entirely",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "run.Hero.SpdBonus = Math.Max(MinSpdBonus, run.Hero.SpdBonus);",
+      "replace": ""
     }
   ]
 }

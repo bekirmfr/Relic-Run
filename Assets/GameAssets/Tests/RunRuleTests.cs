@@ -114,6 +114,60 @@ namespace RelicRun.Tests
                 "no relic is exclusive to a mode any more, so nothing distinguishes the pools");
         }
 
+        // ---- the floor that was removed ----
+
+        /// <summary>
+        /// The source floors an event's defence loss at -2 and this port does not, because
+        /// nothing can reach it. This is what keeps that true.
+        /// </summary>
+        /// <remarks>
+        /// Events are drawn without replacement, so each appears at most once in a run: the
+        /// worst a run can lose is the sum of each event's own worst case. Only the unclaimed
+        /// chest costs defence at all, and only one point, so that sum is -1 and a floor at -2
+        /// could never fire.
+        ///
+        /// Add an event that costs defence and this fails, which is the point — the guard was
+        /// removed because it was unreachable, not because runs are allowed to sink past it.
+        /// </remarks>
+        [Test]
+        public void NoRunCanLoseEnoughDefenceToNeedAFloor()
+        {
+            int worstRun = 0;
+            var costly = new List<string>();
+
+            foreach (DungeonEvent ev in DungeonEvents.All)
+            {
+                int worstEvent = 0;
+
+                foreach (EventChoice choice in ev.Choices)
+                {
+                    // Enough seeds to see both sides of any roll the outcome makes.
+                    for (uint seed = 1; seed <= 200; seed++)
+                    {
+                        var run = new RunState();
+                        run.Pmax = 100;
+                        run.Php = 100;
+                        run.Gold = 1000;
+
+                        choice.Resolve(run, new Mulberry32(seed));
+                        if (run.Hero.DefBonus < worstEvent) worstEvent = run.Hero.DefBonus;
+                    }
+                }
+
+                if (worstEvent < 0) costly.Add(ev.Key + " " + worstEvent);
+                worstRun += worstEvent;
+            }
+
+            Assert.That(costly.Count, Is.GreaterThan(0),
+                "no event costs defence at all any more, so this guard is watching nothing");
+
+            Assert.That(worstRun, Is.GreaterThanOrEqualTo(-1),
+                "a run can now lose " + worstRun + " defence through events (" +
+                string.Join(", ", costly) + "), which is past the -2 floor the source keeps and " +
+                "this port dropped as unreachable. Restore the floor, or raise this bound " +
+                "deliberately.");
+        }
+
         // ---- the Debt of Flesh ----
 
         /// <summary>

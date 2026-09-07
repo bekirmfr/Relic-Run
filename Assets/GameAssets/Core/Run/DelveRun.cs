@@ -118,16 +118,18 @@ namespace RelicRun.Core.Run
         /// <summary>Floors an event can land between.</summary>
         private static readonly int[] EventGaps = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 
-        /// <summary>How far an event may drag a stat down before the floor holds.</summary>
+        /// <summary>
+        /// How far an event may drag speed down before the floor holds. The Ghost's locket and
+        /// the Spike Trap cost five each and a failed robbery three more, so it is reached.
+        /// </summary>
         /// <remarks>
-        /// Only the speed floor is ever reached: the Ghost's locket and the Spike Trap cost
-        /// five each and a failed robbery three more, which is thirteen. Nothing can spend more
-        /// than one point of defence in a run — only the unclaimed chest costs any, and no
-        /// event repeats — so the defence floor is unreachable. It is ported because the source
-        /// has it, not because it can bite.
+        /// The source floors defence at -2 as well. That is not ported: only the unclaimed
+        /// chest costs any defence, one point, and no event repeats within a run, so nothing
+        /// can reach -2 and the clamp could never fire. NoRunCanLoseEnoughDefenceToNeedAFloor
+        /// asserts that is still true, so adding an event that costs defence says so rather
+        /// than quietly removing a guard that used to be there.
         /// </remarks>
         private const int MinSpdBonus = -10;
-        private const int MinDefBonus = -2;
 
         /// <summary>Derives the event stream's seed from the run's. Knuth's golden ratio.</summary>
         public const uint EventSeedMix = 0x9E3779B9;
@@ -171,7 +173,6 @@ namespace RelicRun.Core.Run
 
                     // An event can hurt, but only so far.
                     run.Hero.SpdBonus = Math.Max(MinSpdBonus, run.Hero.SpdBonus);
-                    run.Hero.DefBonus = Math.Max(MinDefBonus, run.Hero.DefBonus);
                     run.Pmax = Math.Max(1, run.Pmax);
                     run.Php = Math.Min(run.Pmax, run.Php);
 

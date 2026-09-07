@@ -231,15 +231,32 @@ than wait for a run to stumble into them, `RunRuleTests` asks each one directly:
 arrangement as `CombatRules.DuelAsRecorded`: `Shipped()` is what the game plays and
 `AsRecorded()` is what the corpus replays, so the diff between them IS the design change.
 
-Twenty-eight mutations of the run layer, twenty-six die. Two survive, and both are unreachable
-rather than untested:
+### A guard removed on purpose
+
+The source floors an event's defence loss at −2 as well as its speed loss at −10. Only the
+speed floor is reachable: the Ghost's locket and the Spike Trap cost five each and a failed
+robbery three more. Nothing can spend more than ONE defence in a run — only the unclaimed chest
+costs any, and events are drawn without replacement — so the defence floor could never fire, and
+it is not ported. All 400 recorded runs replay unchanged without it, which is what proves it was
+dead rather than merely untested.
+
+Removing a guard silently is how a guard comes to be missing when it is needed, so
+`NoRunCanLoseEnoughDefenceToNeedAFloor` holds the assumption open. It resolves every choice of
+every event over many seeds, sums each event's worst case — one appearance each, so that sum is
+the worst a run can do — and fails if it passes −1. Making the chest cost two, or giving the
+Spike Trap a defence cost as well, both fail it. Adding such an event therefore says so, rather
+than quietly leaving runs to sink past a floor that used to be there.
+
+### The one mutation that survives
+
+Thirty mutations of the run layer, twenty-nine die.
 
 | survives | why |
 | --- | --- |
-| the defence floor is one lower (−2 → −3) | only one event costs defence, one point, and no event repeats in a run — so the total can never pass −1, let alone −2 |
-| two stars start at 0.70 rather than 0.72 | depth is a fraction of thirteen floors, so a threshold is pinned only as tightly as the gap it sits in; 0.72 lies between floor 10 (0.6923) and floor 11 (0.7692). 0.65 fails |
+| two stars start at 0.70 rather than 0.72 | depth is a fraction of thirteen floors, so a threshold is pinned only as tightly as the gap it sits in; 0.72 lies between floor 10 (0.6923) and floor 11 (0.7692), and every value in that range is the same rule. 0.65 crosses floor 10 and fails |
 
-Both are ported as written and commented where they sit.
+That one is a limit of the arithmetic, not of the tests: only a move past 0.6923 or 0.7692 is a
+real change to that threshold.
 
 ## Scoring a finished run
 
