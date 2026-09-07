@@ -113,7 +113,7 @@ namespace RelicRun.Core.Combat
         public int HitCount;
         public int HideLearned;
         public int MartyrCount;
-        public int BootsUsedOnStrike = -1;
+        public int BootsUsedOnStrike { get; set; } = -1;
 
         /// <summary>Set by an awakened Stutterstep on the opponent: the next swing hits itself.</summary>
         public bool Staggered;

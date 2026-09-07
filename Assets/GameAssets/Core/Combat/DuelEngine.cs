@@ -241,8 +241,8 @@ namespace RelicRun.Core.Combat
                 Alive = () => _a.Php > 0,
                 Act = () => CombatTurn.Strike(_a, this, _rules, null),
                 Speed = () => _a.StatOf(Stat.Spd),
-                WantsFreeAction = () => FreeAction(_a),
-                WantsRiposte = () => Riposte(_a),
+                WantsFreeAction = () => CombatTurn.FreeAction(_a),
+                WantsRiposte = () => CombatTurn.Riposte(_a, this, _rules),
             };
 
             var rivalSlot = new AtbSlot
@@ -251,8 +251,8 @@ namespace RelicRun.Core.Combat
                 Alive = () => _b.Php > 0,
                 Act = () => CombatTurn.Strike(_b, this, _rules, null),
                 Speed = () => _b.StatOf(Stat.Spd),
-                WantsFreeAction = () => FreeAction(_b),
-                WantsRiposte = () => Riposte(_b),
+                WantsFreeAction = () => CombatTurn.FreeAction(_b),
+                WantsRiposte = () => CombatTurn.Riposte(_b, this, _rules),
             };
 
             // The Pace set starts a gauge a quarter filled.
@@ -325,24 +325,8 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>Hare's Drum: a dodge lets that side answer immediately.</summary>
-        private bool Riposte(DuelSide side)
-        {
-            if (!side.InstantRiposte) return false;
-            side.InstantRiposte = false;
-            Line(side, RelicId.HaresDrum, side.Label(RelicId.HaresDrum) + " — instant riposte!", 0);
-            return true;
-        }
 
         /// <summary>Awakened Swift Boots skip the wait on every fourth strike.</summary>
-        private static bool FreeAction(DuelSide side)
-        {
-            if (!side.IsAwake(RelicId.SwiftBoots) || side.Effective(RelicId.SwiftBoots) == 0) return false;
-            if (side.Strikes <= 0 || side.Strikes % 4 != 0) return false;
-            if (side.BootsUsedOnStrike == side.Strikes) return false;
-
-            side.BootsUsedOnStrike = side.Strikes;
-            return true;
-        }
 
         // ---------- chains ----------
 

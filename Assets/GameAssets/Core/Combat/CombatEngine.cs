@@ -334,6 +334,12 @@ namespace RelicRun.Core.Combat
                 set { _engine._instantRiposte = value; }
             }
 
+            public int BootsUsedOnStrike
+            {
+                get { return _engine._bootsUsedOnStrike; }
+                set { _engine._bootsUsedOnStrike = value; }
+            }
+
             public int Kills
             {
                 get { return _engine._hero.Kills; }
@@ -569,6 +575,8 @@ namespace RelicRun.Core.Combat
 
             public bool InstantRiposte { get; set; }
 
+            public int BootsUsedOnStrike { get; set; }
+
             public int Kills { get; set; }
 
             public int ItemCount { get { return 0; } }
@@ -746,8 +754,8 @@ namespace RelicRun.Core.Combat
                     Alive = () => _hero.Php > 0,
                     Act = () => CombatTurn.Strike(_actor, this, _rules, null),
                     Speed = () => HeroStat(Stat.Spd),
-                    WantsFreeAction = AwakenedBootsReady,
-                    WantsRiposte = TakeRiposte,
+                    WantsFreeAction = () => CombatTurn.FreeAction(_actor),
+                    WantsRiposte = () => CombatTurn.Riposte(_actor, this, _rules),
                 };
 
                 var enemySlot = new AtbSlot
@@ -805,31 +813,8 @@ namespace RelicRun.Core.Combat
         // ---------- turns ----------
 
         /// <summary>Hare's Drum: a dodge lets the hero answer immediately.</summary>
-        private bool TakeRiposte()
-        {
-            if (!_instantRiposte) return false;
-            _instantRiposte = false;
-
-            if (IsAwake(RelicId.HaresDrum) && _enemyHp > 0)
-            {
-                DealDamage(2, RelicCatalog.KeyOf(RelicId.HaresDrum), 1, RelicId.HaresDrum, NewChain());
-            }
-
-            Snap(CombatEventType.First, 0, relic: RelicId.HaresDrum,
-                source: RelicCatalog.KeyOf(RelicId.HaresDrum) + " — instant riposte!");
-            return true;
-        }
 
         /// <summary>Awakened Swift Boots skip the wait on every fourth strike.</summary>
-        private bool AwakenedBootsReady()
-        {
-            if (!IsAwake(RelicId.SwiftBoots) || EffectiveCount(RelicId.SwiftBoots) == 0) return false;
-            if (_fightStrikes <= 0 || _fightStrikes % 4 != 0) return false;
-            if (_bootsUsedOnStrike == _fightStrikes) return false;
-
-            _bootsUsedOnStrike = _fightStrikes;
-            return true;
-        }
 
         // ---------- the defender's answer ----------
 

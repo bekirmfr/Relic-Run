@@ -465,19 +465,24 @@ for (const floor of [10, 11, 12, 13]) {
       floor, dungeon: 4, level,
       items: ["clover", "clover", "clover", "clover", "haredrum", "catwhisker", "sentinel"],
     }));
+    cases.push(delveCase(`edge/dodge/drum-awake/f${floor}/l${level}`, "mixed", {
+      floor, dungeon: 4, level,
+      items: ["clover", "clover", "clover", "clover", "haredrum", "catwhisker", "sentinel"],
+      awake: { haredrum: 1 },
+    }));
   }
 }
 
 for (let i = 0; i < 12; i++) {
   const shared = ["clover", "clover", "clover", "clover"];
   cases.push(duelCase(`duel/dodge/${i}`, {
-    itemsA: shared.concat([["catwhisker"], ["sentinel", "sentinel"],
+    itemsA: shared.concat([["catwhisker", "haredrum"], ["sentinel", "sentinel", "haredrum"],
                            ["stutter", "stutter", "stutter", "stutter", "stutter", "stutter"],
                            ["haredrum", "catwhisker"]][i % 4]),
-    itemsB: shared.concat([["sentinel"], ["catwhisker"],
+    itemsB: shared.concat([["sentinel", "haredrum"], ["catwhisker", "haredrum"],
                            ["horseshoe", "stutter"], ["stutter", "stutter", "stutter"]][i % 4]),
-    awakeA: i % 3 === 0 ? {} : { catwhisker: 1, sentinel: 1, stutter: 1 },
-    awakeB: i % 2 === 0 ? {} : { stutter: 1 },
+    awakeA: i % 3 === 0 ? {} : { catwhisker: 1, sentinel: 1, stutter: 1, haredrum: 1 },
+    awakeB: i % 2 === 0 ? {} : { stutter: 1, haredrum: 1 },
     hp: [60, 90, 140][i % 3],
   }));
 }

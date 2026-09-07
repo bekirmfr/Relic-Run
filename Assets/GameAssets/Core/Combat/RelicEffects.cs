@@ -117,6 +117,9 @@ namespace RelicRun.Core.Combat
         /// <summary>The Hare's Drum handing back the next action.</summary>
         bool InstantRiposte { get; set; }
 
+        /// <summary>Which strike an awakened Swift Boots already skipped the wait on.</summary>
+        int BootsUsedOnStrike { get; set; }
+
         // ---- inventory, walked by slot because a socket belongs to one copy ----
 
         int ItemCount { get; }

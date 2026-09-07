@@ -17,6 +17,37 @@ namespace RelicRun.Core.Combat
     /// </remarks>
     public static class CombatTurn
     {
+        /// <summary>
+        /// The Hare's Drum: a dodge hands the next action straight back. Returns whether one
+        /// was owed, so the scheduler can zero the gauge.
+        /// </summary>
+        public static bool Riposte(ICombatActor actor, ICombatBus bus, CombatRules rules)
+        {
+            if (!actor.InstantRiposte) return false;
+            actor.InstantRiposte = false;
+
+            if (actor.IsAwake(RelicId.HaresDrum) &&
+                RelicTuning.For(RelicId.HaresDrum, rules.Mode).RiposteStrikesWhenAwakened)
+            {
+                bus.DealDamage(actor, 2, actor.Label(RelicId.HaresDrum), 1,
+                    RelicId.HaresDrum, bus.NewChain());
+            }
+
+            bus.Line(actor, RelicId.HaresDrum, actor.Label(RelicId.HaresDrum) + " — instant riposte!", 0);
+            return true;
+        }
+
+        /// <summary>Awakened Swift Boots skip the wait on every fourth strike.</summary>
+        public static bool FreeAction(ICombatActor actor)
+        {
+            if (!actor.IsAwake(RelicId.SwiftBoots) || actor.Effective(RelicId.SwiftBoots) == 0) return false;
+            if (actor.Strikes <= 0 || actor.Strikes % 4 != 0) return false;
+            if (actor.BootsUsedOnStrike == actor.Strikes) return false;
+
+            actor.BootsUsedOnStrike = actor.Strikes;
+            return true;
+        }
+
         public static void Strike(ICombatActor attacker, ICombatBus bus, CombatRules rules, IChain unusedChain)
         {
             bus.BeginBeat(attacker);

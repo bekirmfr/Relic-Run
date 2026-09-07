@@ -72,6 +72,9 @@ namespace RelicRun.Core.Content
         /// <summary>Whether this relic swells the loot a corpse drops.</summary>
         public bool AmplifiesLoot = true;
 
+        /// <summary>Whether an awakened riposte also lands a blow of its own.</summary>
+        public bool RiposteStrikesWhenAwakened = true;
+
         private static readonly RelicTuning Default = new RelicTuning();
 
         /// <summary>
@@ -146,6 +149,14 @@ namespace RelicRun.Core.Content
                     RelicId.TollkeepersRing, Pair(
                         delve: new RelicTuning(),
                         versus: new RelicTuning { AnswersOnKill = false })
+                },
+
+                // The Hare's Drum hands back the next action after a dodge. A delve lets an
+                // awakened Drum strike for 2 with it; a duel gives awakening nothing here.
+                {
+                    RelicId.HaresDrum, Pair(
+                        delve: new RelicTuning(),
+                        versus: new RelicTuning { RiposteStrikesWhenAwakened = false })
                 },
 
                 // Sentinel Bell rings defence on a dodge. A duel is long enough to let an
