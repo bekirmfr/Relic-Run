@@ -237,7 +237,7 @@ namespace RelicRun.Core.Combat
 
             var heroSlot = new AtbSlot
             {
-                Gauge = (dashA && !dashB) ? 0 : AtbScheduler.Gauge,
+                Gauge = AtbScheduler.OpeningGauge(dashA, dashB, _a.SetCount(RelicKind.Pace) >= 5),
                 Alive = () => _a.Php > 0,
                 Act = () => CombatTurn.Strike(_a, this, _rules, null),
                 Speed = () => _a.StatOf(Stat.Spd),
@@ -247,24 +247,13 @@ namespace RelicRun.Core.Combat
 
             var rivalSlot = new AtbSlot
             {
-                Gauge = (dashB && !dashA) ? 0 : AtbScheduler.Gauge,
+                Gauge = AtbScheduler.OpeningGauge(dashB, dashA, _b.SetCount(RelicKind.Pace) >= 5),
                 Alive = () => _b.Php > 0,
                 Act = () => CombatTurn.Strike(_b, this, _rules, null),
                 Speed = () => _b.StatOf(Stat.Spd),
                 WantsFreeAction = () => CombatTurn.FreeAction(_b),
                 WantsRiposte = () => CombatTurn.Riposte(_b, this, _rules),
             };
-
-            // The Pace set starts a gauge a quarter filled.
-            if (heroSlot.Gauge > 0 && _a.SetCount(RelicKind.Pace) >= 5)
-            {
-                heroSlot.Gauge = Math.Max(0, heroSlot.Gauge - 25);
-            }
-
-            if (rivalSlot.Gauge > 0 && _b.SetCount(RelicKind.Pace) >= 5)
-            {
-                rivalSlot.Gauge = Math.Max(0, rivalSlot.Gauge - 25);
-            }
 
             if (dashA && dashB)
             {

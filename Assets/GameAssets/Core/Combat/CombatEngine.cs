@@ -750,7 +750,7 @@ namespace RelicRun.Core.Combat
 
                 var heroSlot = new AtbSlot
                 {
-                    Gauge = (heroDash && !enemyDash) ? 0 : AtbScheduler.Gauge,
+                    Gauge = AtbScheduler.OpeningGauge(heroDash, enemyDash, SetCount(RelicKind.Pace) >= 5),
                     Alive = () => _hero.Php > 0,
                     Act = () => CombatTurn.Strike(_actor, this, _rules, null),
                     Speed = () => HeroStat(Stat.Spd),
@@ -765,12 +765,6 @@ namespace RelicRun.Core.Combat
                     Act = EnemyHits,
                     Speed = () => Math.Max(10, _cur.Spd),
                 };
-
-                // The Pace set starts the hero's gauge a quarter filled.
-                if (heroSlot.Gauge > 0 && SetCount(RelicKind.Pace) >= 5)
-                {
-                    heroSlot.Gauge = Math.Max(0, heroSlot.Gauge - 25);
-                }
 
 
                 if (heroDash && enemyDash)

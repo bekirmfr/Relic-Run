@@ -53,6 +53,17 @@ namespace RelicRun.Core.Combat
         public const int MaxIterations = 600;
 
         /// <param name="onTick">Advances the clock by the given number of ticks.</param>
+        /// <summary>
+        /// The gauge a side opens on. A Battle Dash the other side does not answer hands over
+        /// the first action outright; the Pace set only starts a full gauge a quarter filled,
+        /// so it never stacks with a dash.
+        /// </summary>
+        public static int OpeningGauge(bool dashes, bool foeDashes, bool paceSet)
+        {
+            if (dashes && !foeDashes) return 0;
+            return paceSet ? System.Math.Max(0, Gauge - 25) : Gauge;
+        }
+
         public static void Run(AtbSlot first, AtbSlot second, Action<int> onTick)
         {
             if (first == null) throw new ArgumentNullException(nameof(first));

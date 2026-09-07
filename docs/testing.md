@@ -68,6 +68,36 @@ the duel corpus alone say `altar`. Changing pool membership would also change wh
 draft samples, moving the RNG stream and invalidating the recordings the port is verified
 against.
 
+## What is actually shared
+
+`CombatEngine` and `DuelEngine` still exist as two classes, but neither holds a combat rule
+any more. Both are adapters: they bind one mode's state to the shared layer and implement
+`ICombatBus`. Everything a relic does lives once —
+
+| shared | file |
+| --- | --- |
+| every relic activation | `RelicEffects.Apply` |
+| heal, gold, luck, the Rabbit's reaction | `CombatPrimitives` |
+| a side's whole turn, the riposte, the free action | `CombatTurn` |
+| landing a blow, the dodge, the kill, the execution, refusing death, the defender's answers | `CombatDamage` |
+| sockets: emitter strength, firing a copy, firing a trigger | `SocketFiring` |
+| the ATB gauges and the opening | `AtbScheduler` |
+
+Four things are still written per engine, and each is a real difference rather than a
+duplicate:
+
+- **`Mitigate`** — a delve foe is a stat block, so a blow meets armor and nothing else, at
+  every depth. A duellist is a full defender, so a genuine strike meets a Guard set, a
+  stagger, a Martyr's Knot, armor and Padded Hide, while relic damage lands raw.
+- **`CanDeal`** — a duel refuses a blow from a fallen striker; a delve does not. Making the
+  delve adopt the duel's guard fails the corpus, so this is recorded behaviour.
+- **the fight loop** — the delve walks a pack with per-fight resets, carry state and revives;
+  the duel resolves one symmetric pair. The scheduler underneath is the same.
+- **`EnemyHits`** — the delve's foe has no relics and no turn of its own to take.
+
+Everything else in both files is a one-line `ICombatBus` member reading or writing that mode's
+state.
+
 ## Single-sourcing
 
 The relic layer and the shared bus primitives exist once and are used by both modes, with
