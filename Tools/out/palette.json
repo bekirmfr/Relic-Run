@@ -1,0 +1,203 @@
+{
+  "families": [
+    {
+      "name": "Hair",
+      "base": "H",
+      "dark": "h",
+      "light": "1",
+      "hex": "#8A5A2B"
+    },
+    {
+      "name": "Skin",
+      "base": "K",
+      "dark": "k",
+      "light": "2",
+      "hex": "#F0C8A0"
+    },
+    {
+      "name": "Outfit",
+      "base": "T",
+      "dark": "t",
+      "light": "3",
+      "hex": "#C4593C"
+    },
+    {
+      "name": "Cape",
+      "base": "C",
+      "dark": "c",
+      "light": "4",
+      "hex": "#4A6A8A"
+    },
+    {
+      "name": "Face",
+      "base": "A",
+      "dark": "a",
+      "light": "5",
+      "hex": "#8A5A2B"
+    },
+    {
+      "name": "Steel",
+      "base": "W",
+      "dark": "w",
+      "light": "6",
+      "hex": "#D7DCE3"
+    },
+    {
+      "name": "Leather",
+      "base": "B",
+      "dark": "e",
+      "light": "8",
+      "hex": "#5A4429"
+    },
+    {
+      "name": "Gold",
+      "base": "G",
+      "dark": "g",
+      "light": "9",
+      "hex": "#E3B341"
+    },
+    {
+      "name": "Accent",
+      "base": "R",
+      "dark": "r",
+      "light": "0",
+      "hex": "#E3B341"
+    },
+    {
+      "name": "Eye",
+      "base": "E",
+      "dark": "y",
+      "light": "Y",
+      "hex": "#5C4632"
+    },
+    {
+      "name": "Eyebrow",
+      "base": "N",
+      "dark": "n",
+      "light": "M",
+      "hex": "#4A3620"
+    },
+    {
+      "name": "Highlight",
+      "base": "L",
+      "dark": "l",
+      "light": "J",
+      "hex": "#F2ECDD"
+    },
+    {
+      "name": "Shadow",
+      "base": "D",
+      "dark": "u",
+      "light": "U",
+      "hex": "#3A3328"
+    },
+    {
+      "name": "Backdrop",
+      "base": "Z",
+      "dark": "z",
+      "light": "X",
+      "hex": "#3A3A3E"
+    },
+    {
+      "name": "Wood",
+      "base": "V",
+      "dark": "v",
+      "light": "q",
+      "hex": "#8A5A2B"
+    },
+    {
+      "name": "Legs",
+      "base": "F",
+      "dark": "b",
+      "light": "x",
+      "hex": "#4A4436"
+    },
+    {
+      "name": "Boots",
+      "base": "O",
+      "dark": "o",
+      "light": "°",
+      "hex": "#5A4429"
+    },
+    {
+      "name": "Red",
+      "base": "!",
+      "dark": "(",
+      "light": ")",
+      "hex": "#D93A2B"
+    },
+    {
+      "name": "Orange",
+      "base": "@",
+      "dark": "[",
+      "light": "]",
+      "hex": "#E8842C"
+    },
+    {
+      "name": "Yellow",
+      "base": "#",
+      "dark": "{",
+      "light": "}",
+      "hex": "#F2C230"
+    },
+    {
+      "name": "Green",
+      "base": "$",
+      "dark": "<",
+      "light": ">",
+      "hex": "#4FA23C"
+    },
+    {
+      "name": "Blue",
+      "base": "%",
+      "dark": ";",
+      "light": ":",
+      "hex": "#2E7ED9"
+    },
+    {
+      "name": "Teal",
+      "base": "^",
+      "dark": ",",
+      "light": "'",
+      "hex": "#28B5AD"
+    },
+    {
+      "name": "Purple",
+      "base": "&",
+      "dark": "~",
+      "light": "|",
+      "hex": "#8B5AC2"
+    },
+    {
+      "name": "Pink",
+      "base": "*",
+      "dark": "=",
+      "light": "+",
+      "hex": "#E06AA3"
+    },
+    {
+      "name": "Brown",
+      "base": "I",
+      "dark": "p",
+      "light": "µ",
+      "hex": "#7A4A26"
+    }
+  ],
+  "solos": {
+    "P": "#FFFFFF",
+    "Q": "#000000",
+    "-": "#2E2E2E",
+    "_": "#585858",
+    "?": "#8A8A8A",
+    "/": "#BDBDBD",
+    "`": "#E8E8E8"
+  },
+  "shade": {
+    "darkMult": 0.7,
+    "darkHue": -12,
+    "darkSat": 1.12,
+    "lightMult": 1.32,
+    "lightHue": 10,
+    "lightSat": 0.9
+  }
+}

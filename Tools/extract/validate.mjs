@@ -113,6 +113,30 @@ for (const t of sockets.unsocketableBusTriggers) {
     `hold it and the call is a permanent no-op. Port decision needed: add the socket, or drop the call.`);
 }
 
+/* ---------- the palette ---------- */
+
+const palette = load("palette.json");
+
+console.log("\npalette");
+check("26 colour families", palette.families.length === 26);
+check("every family has a base colour", palette.families.every((f) =>
+  /^#[0-9A-Fa-f]{6}$/.test(f.hex)));
+check("every family names its three roles", palette.families.every((f) =>
+  f.base && f.dark && f.light));
+
+/* Every role key has to be unique across the whole palette, families and fixed colours alike:
+   a pixel carries one key and nothing else says which family it belonged to. A collision would
+   silently paint one family's pixels in another's colour. */
+const roleKeys = palette.families.flatMap((f) => [f.base, f.dark, f.light])
+  .concat(Object.keys(palette.solos));
+check("role keys are unique", new Set(roleKeys).size === roleKeys.length);
+check("role keys are single characters", roleKeys.every((k) => [...k].length === 1));
+check("7 fixed colours", Object.keys(palette.solos).length === 7);
+check("every fixed colour is a hex", Object.values(palette.solos).every((h) =>
+  /^#[0-9A-Fa-f]{6}$/.test(h)));
+check("the dark shade darkens and the light shade lightens",
+  palette.shade.darkMult < 1 && palette.shade.lightMult > 1);
+
 /* ---------- dungeons ---------- */
 
 console.log("\ndungeons");

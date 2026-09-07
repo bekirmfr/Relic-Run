@@ -388,6 +388,46 @@ says twenty per cent, the Stomach's says nothing about stacking. Nothing reads t
 nothing is wrong today — but they are display text, and display text that contradicts the rules
 is worse than none. They want an override layer, which lands with localisation.
 
+## The palette, which is the one part of Phase 8 that is Core
+
+A hero is drawn as a stack of images whose pixels are not colours but ROLE KEYS: one letter
+meaning "hair", or "the dark side of the outfit". A palette turns keys into colours and a shader
+looks them up, which is what lets the Changing Room recolour a delver live without touching a
+single sprite. Twenty-six families give three keys each, and seven fixed colours — white, black
+and five greys — are never recoloured at all.
+
+A family states one colour and derives the other two through HSL and back: the dark side has its
+lightness multiplied down, its hue rotated a little and its saturation pushed up; the light side
+is the same in reverse. That is float arithmetic landing on a byte, so it is gated rather than
+trusted — nearly always the rounding absorbs any difference between two languages, and
+occasionally it does not. Rounding goes through `JsMath`, because a value landing exactly on a
+half is the one place the two disagree by default.
+
+The multipliers are recorded as THOUSANDTHS, so `palette.json` holds no float literals — the rule
+everywhere else in the corpus, and the reason none of it has ever diverged on a parsed decimal.
+Both sides divide by a thousand, which is exact.
+
+The family table itself is extracted like any other content, and `HeroPalette.cs` is generated
+from it, so the twenty-six families and their role keys are never typed by hand. `validate.mjs`
+checks the one thing that would be silent and fatal: role keys must be UNIQUE across the whole
+palette, because a pixel carries a key and nothing else says which family it belonged to.
+
+### Three mutations that were equivalent, and what replaced them
+
+Eighteen mutations, all eighteen die — but three had to be rewritten first, and each was
+equivalent for a reason worth knowing:
+
+- **Not clamping lightness** changes nothing, because whenever lightness exceeds one both ends of
+  the hue ramp exceed one too, and every channel clamps to white either way.
+- **Not wrapping a red hue below green** changes nothing, because the conversion back wraps the
+  hue anyway: −x/6 and (6−x)/6 are the same angle.
+- **Skipping the grey shortcut** changes nothing, because at zero saturation the hue ramp is flat
+  and returns the lightness on every channel — which is what the shortcut returns.
+
+All three are still worth writing the way the source writes them, so each was replaced with a
+neighbouring mutation that is observable: half a turn instead of a full one, a grey threshold
+instead of an exact zero, and a lightness that is halved rather than merely unclamped.
+
 ## What a run leaves behind
 
 Scoring says what a run was WORTH; banking is what then happens to it, and the two are apart
@@ -654,3 +694,4 @@ node Tools/extract/validate.mjs
 | Phase 6c — the versus lobby | `versus.json` | passing, 120 lobbies made from a seed |
 | Phase 6d — the versus match | `versus.json` | passing, 120 matches and 733 rounds |
 | Phase 6e — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |
+| Phase 8a — the palette | `palette.json` | passing, 11,585 colours and 85 role keys |

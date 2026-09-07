@@ -1,0 +1,113 @@
+{
+  "name": "the colour maths behind a delver",
+  "mutants": [
+    {
+      "name": "a channel rounds to even rather than up",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "double rounded = Determinism.JsMath.Round(value);",
+      "replace": "double rounded = System.Math.Round(value);"
+    },
+    {
+      "name": "a channel is truncated rather than rounded",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "double rounded = Determinism.JsMath.Round(value);",
+      "replace": "double rounded = System.Math.Floor(value);"
+    },
+    {
+      "name": "a channel is not held inside a byte",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "            if (rounded >= 255) return 255;",
+      "replace": ""
+    },
+    {
+      "name": "lightness is clamped to the wrong end",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "double toned = Clamp01(l * lightness);",
+      "replace": "double toned = Clamp01(l * lightness) * 0.5;"
+    },
+    {
+      "name": "saturation is not clamped",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "double sat = Clamp01(s * saturation);",
+      "replace": "double sat = s * saturation;"
+    },
+    {
+      "name": "a hue rotation is read as turns rather than degrees",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "return FromHsl(h + hueDegrees / 360.0, sat, toned);",
+      "replace": "return FromHsl(h + hueDegrees, sat, toned);"
+    },
+    {
+      "name": "a hue past the turn is clamped rather than wrapped",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "            h -= Math.Floor(h);",
+      "replace": "            if (h > 1) h = 1;"
+    },
+    {
+      "name": "lightness is the midpoint of the extremes rather than their mean",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "l = (max + min) / 2.0;",
+      "replace": "l = max;"
+    },
+    {
+      "name": "saturation uses one formula either side of the midpoint",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "s = l > 0.5 ? d / (2 - max - min) : d / (max + min);",
+      "replace": "s = d / (max + min);"
+    },
+    {
+      "name": "a red hue wraps by half a turn",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "if (max == r) h = (g - b) / d + (g < b ? 6 : 0);",
+      "replace": "if (max == r) h = (g - b) / d + (g < b ? 3 : 0);"
+    },
+    {
+      "name": "green and blue swap their place on the wheel",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "            else if (max == g) h = (b - r) / d + 2;",
+      "replace": "            else if (max == g) h = (b - r) / d + 4;"
+    },
+    {
+      "name": "a nearly-grey colour is flattened to a grey",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "            if (s == 0)\n            {",
+      "replace": "            if (s < 0.5)\n            {"
+    },
+    {
+      "name": "the hue ramp holds its plateau a sixth too long",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "if (t < 1.0 / 2.0) return q;",
+      "replace": "if (t < 2.0 / 3.0) return q;"
+    },
+    {
+      "name": "red and blue are read off the same third of the wheel",
+      "file": "Assets/GameAssets/Core/Content/HeroColour.cs",
+      "find": "Channel(Hue(p, q, h - 1.0 / 3.0) * 255));",
+      "replace": "Channel(Hue(p, q, h + 1.0 / 3.0) * 255));"
+    },
+    {
+      "name": "the dark shade does not rotate its hue",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "shade.DarkHue, shade.DarkSaturation);",
+      "replace": "0, shade.DarkSaturation);"
+    },
+    {
+      "name": "the light shade is the dark one",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "roles[family.Light] = HeroColour.ApplyShade(baseColour, shade.LightMultiplier,",
+      "replace": "roles[family.Light] = HeroColour.ApplyShade(baseColour, shade.DarkMultiplier,"
+    },
+    {
+      "name": "a fixed colour can be chosen away",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "                roles[solo.Key] = Rgb.Parse(solo.Value);",
+      "replace": "                if (chosen == null || !chosen.ContainsKey(solo.Key)) roles[solo.Key] = Rgb.Parse(solo.Value);"
+    },
+    {
+      "name": "a delver's own colour is ignored",
+      "file": "Assets/GameAssets/Core/Content/HeroPalette.cs",
+      "find": "                if (chosen == null || !chosen.TryGetValue(family.Base, out picked))",
+      "replace": "                if (true)"
+    }
+  ]
+}

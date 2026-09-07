@@ -211,6 +211,20 @@ write("sockets.json", {
 console.log("\ndungeons");
 write("dungeons.json", evalLiteral("DUNGEONS"));
 
+/* ---------- 4b. the palette ---------- */
+
+/* A hero's pixels are ROLE KEYS rather than colours — one letter meaning "hair", or "the dark
+   side of the outfit" — and a palette turns keys into colours at draw time. That is what lets
+   the Changing Room recolour a delver without touching a sprite, so the table of families is
+   content in exactly the way the relic table is. */
+
+console.log("\npalette");
+write("palette.json", {
+  families: evalLiteral("FAMILIES"),
+  solos: evalLiteral("SOLOS"),
+  shade: evalLiteral("SHADE_DEFAULTS"),
+});
+
 /* ---------- 5. enemies ---------- */
 
 console.log("\nenemies");
@@ -271,6 +285,7 @@ const manifest = {
     relicsCut: cut.length,
     kinds: Object.keys(evalLiteral("KIND_META")).length,
     dungeons: evalLiteral("DUNGEONS").length,
+    colourFamilies: evalLiteral("FAMILIES").length,
     events: EVENTS.length,
     species: ENEMY_G.length,
     triggers: Object.keys(evalLiteral("TRIGGERS")).length,

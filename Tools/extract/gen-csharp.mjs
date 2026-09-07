@@ -26,6 +26,7 @@ const load = (f) => JSON.parse(readFileSync(join(OUT, f), "utf8"));
 
 const relics = load("relics.json");
 const dungeons = load("dungeons.json");
+const palette = load("palette.json");
 const kinds = load("kinds.json");
 const sockets = load("sockets.json");
 
@@ -375,6 +376,143 @@ ${halls}
 }
 `);
 
-console.log(`\n  ${relics.length} relics, ${Object.keys(kinds).length} kinds, ` +
+/* ---------- HeroPalette ---------- */
+
+/* Role keys are single characters and several of them are punctuation, so they are emitted as
+   escaped C# char literals rather than trusted to survive as source text. */
+const asChar = (k) => {
+  const c = [...k][0];
+  const code = c.codePointAt(0);
+  if (c === "'") return "'\\''";
+  if (c === "\\") return "'\\\\'";
+  return code >= 32 && code < 127 ? `'${c}'` : `'\\u${code.toString(16).padStart(4, "0")}'`;
+};
+
+const familyRows = palette.families.map((f) =>
+  `            new ColourFamily("${f.name}", ${asChar(f.base)}, ${asChar(f.dark)}, ` +
+  `${asChar(f.light)}, "${f.hex}"),`).join("\n");
+
+const soloRows = Object.keys(palette.solos).map((k) =>
+  `            { ${asChar(k)}, "${palette.solos[k]}" },`).join("\n");
+
+const sh = palette.shade;
+
+write("HeroPalette.cs", header(`${palette.families.length} colour families`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>One family of the palette: a base colour, and the two it derives.</summary>
+    /// <remarks>
+    /// The three keys are what a hero's pixels actually hold. A pixel saying <c>H</c> is hair,
+    /// <c>h</c> is hair in shadow and <c>1</c> is hair catching the light — so recolouring a
+    /// delver is a matter of handing the shader three different colours, not three sprites.
+    /// </remarks>
+    public sealed class ColourFamily
+    {
+        public readonly string Name;
+
+        /// <summary>The key a pixel of the base colour carries.</summary>
+        public readonly char Base;
+
+        /// <summary>The key for the shaded side, derived from the base.</summary>
+        public readonly char Dark;
+
+        /// <summary>The key for the lit side, derived from the base.</summary>
+        public readonly char Light;
+
+        /// <summary>What the family is when the delver has chosen nothing.</summary>
+        public readonly string DefaultHex;
+
+        public ColourFamily(string name, char baseKey, char dark, char light, string defaultHex)
+        {
+            Name = name;
+            Base = baseKey;
+            Dark = dark;
+            Light = light;
+            DefaultHex = defaultHex;
+        }
+    }
+
+    /// <summary>
+    /// How far a family's derived colours move from its base.
+    /// </summary>
+    /// <remarks>
+    /// Shared by every family unless one says otherwise, and exposed as data because the sprite
+    /// studio lets an artist tune it and watch the whole wardrobe follow.
+    /// </remarks>
+    public sealed class ShadeParams
+    {
+        public double DarkMultiplier = ${sh.darkMult};
+        public double DarkHue = ${sh.darkHue};
+        public double DarkSaturation = ${sh.darkSat};
+
+        public double LightMultiplier = ${sh.lightMult};
+        public double LightHue = ${sh.lightHue};
+        public double LightSaturation = ${sh.lightSat};
+    }
+
+    /// <summary>The families, the fixed colours, and the palette they make together.</summary>
+    public static class HeroPalette
+    {
+        public static readonly IReadOnlyList<ColourFamily> Families = new List<ColourFamily>
+        {
+${familyRows}
+        };
+
+        /// <summary>
+        /// Colours that are never recoloured: white, black and five greys between them.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<char, string> Fixed =
+            new Dictionary<char, string>
+        {
+${soloRows}
+        };
+
+        /// <summary>
+        /// The whole palette, as the shader wants it: every role key against its colour.
+        /// </summary>
+        /// <param name="chosen">
+        /// A delver's own colours, keyed by a family's BASE key. Anything unstated keeps the
+        /// family's default, which is how a half-dressed delver still comes out whole.
+        /// </param>
+        public static Dictionary<char, Rgb> Build(IReadOnlyDictionary<char, string> chosen = null,
+            ShadeParams shade = null)
+        {
+            shade = shade ?? new ShadeParams();
+            var roles = new Dictionary<char, Rgb>(Families.Count * 3 + Fixed.Count);
+
+            for (int i = 0; i < Families.Count; i++)
+            {
+                ColourFamily family = Families[i];
+
+                string picked;
+                if (chosen == null || !chosen.TryGetValue(family.Base, out picked))
+                {
+                    picked = family.DefaultHex;
+                }
+
+                Rgb baseColour = Rgb.Parse(picked);
+                roles[family.Base] = baseColour;
+                roles[family.Dark] = HeroColour.ApplyShade(baseColour, shade.DarkMultiplier,
+                    shade.DarkHue, shade.DarkSaturation);
+                roles[family.Light] = HeroColour.ApplyShade(baseColour, shade.LightMultiplier,
+                    shade.LightHue, shade.LightSaturation);
+            }
+
+            foreach (KeyValuePair<char, string> solo in Fixed)
+            {
+                roles[solo.Key] = Rgb.Parse(solo.Value);
+            }
+
+            return roles;
+        }
+    }
+}
+`);
+
+console.log(`
+  ${relics.length} relics, ${Object.keys(kinds).length} kinds, ` +
             `${channels.length} channels, ${trigList.length} triggers, ${emitList.length} emitters, ` +
-            `${dungeons.length} halls\n`);
+            `${dungeons.length} halls, ${palette.families.length} colour families\n`);

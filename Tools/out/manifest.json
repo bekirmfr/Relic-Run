@@ -1,11 +1,12 @@
 {
-  "generated": "2026-09-06T18:55:03.087Z",
+  "generated": "2026-09-07T21:50:58.978Z",
   "source": "Daily Delve.dc.html",
   "counts": {
     "relics": 50,
     "relicsCut": 28,
     "kinds": 8,
     "dungeons": 10,
+    "colourFamilies": 26,
     "events": 12,
     "species": 13,
     "triggers": 8,
