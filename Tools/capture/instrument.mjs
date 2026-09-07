@@ -32,12 +32,27 @@ export function instrumentBalanceRuns(src) {
      "for (let i = 0; i < nEv; i++) evAt[gaps[i]] = evIdx[i];\n" +
      "      if (P.onRun) P.onRun(run, st, evAt);");
 
-  // 2. A between-floor event resolved. The chosen index is what the port has to match,
-  //    so it is pulled into a name rather than left inline.
+  // 2. A between-floor event. The chosen index is what the port replays, so it is pulled
+  //    into a name rather than left inline — but the hook fires AFTER the outcome has run
+  //    and the stat floors have been applied, because what the port has to reproduce is
+  //    the state the choice left behind, not the state it was made in.
   at("const ch = def.choices[eventChoice(def, st)];",
      "const __ci = eventChoice(def, st);\n" +
-     "          const ch = def.choices[__ci];\n" +
-     "          if (P.onEvent) P.onEvent(run, f, evAt[f], __ci, st);");
+     "          const ch = def.choices[__ci];");
+
+  at("st.pmax = Math.max(1, st.pmax); st.php = Math.min(st.pmax, st.php);",
+     "st.pmax = Math.max(1, st.pmax); st.php = Math.min(st.pmax, st.php);\n" +
+     "          if (P.onEvent) P.onEvent(run, f, evAt[f], __ci, st, __evErr);");
+
+  // The source swallows anything an outcome throws. That is right for a game — a broken event
+  // should not end a run — but it is dangerous while lifting, because an identifier the lift
+  // forgot makes the outcome silently do NOTHING, and the corpus would record the no-op as
+  // truth. That is not hypothetical: luckRoll was missing at first, and four of the twelve
+  // events quietly stopped rolling. The catch stays, so control flow is untouched; the error
+  // is handed to the recorder, which refuses to write a corpus that contains one.
+  at("try { ch.run(st, er, this); } catch (e) { }",
+     "let __evErr = null;\n" +
+     "          try { ch.run(st, er, this); } catch (e) { __evErr = e; }");
 
   // 3. The bazaar, reported once with whichever of its three outcomes happened. The port
   //    replays the DECISION — awaken this, buy that, or walk away — because choosing is
@@ -69,7 +84,17 @@ export function instrumentBalanceRuns(src) {
      "applyPickup(st, pick); res.picks[pick] = (res.picks[pick] || 0) + 1;\n" +
      "        if (P.onPick) P.onPick(run, f, pick, offer, st);");
 
-  // 5. The floor's fight resolved.
+  // 5. The pack. balanceRuns prices its foes through the Balance Lab's editable formula
+  //    table, and the game does not — it calls packFor with a dungeon and no curve. The two
+  //    paths round differently, so recording the Lab's packs would gate the port against
+  //    numbers the game never produces. Left alone, floor 10 alone loots ten gold more.
+  //
+  //    So the recorder chooses. Passing {} takes the game's own default path; the Lab's
+  //    curve is still what balanceRuns computes for its own report, and is untouched.
+  at("const pk = packFor(f, rng, curve);",
+     "const pk = packFor(f, rng, P.packConfig || curve);");
+
+  // 6. The floor's fight resolved.
   at("const ev = this.simulateFloor(st, pk, rng);",
      "const ev = this.simulateFloor(st, pk, rng);\n" +
      "        if (P.onFight) P.onFight(run, f, pk, ev, st);");

@@ -27,7 +27,7 @@ const FUNCTIONS = [
   "currentAtk", "packFor", "packGold", "setOf", "prodSetOf", "liveFor", "poolFor",
   // The run loop proper.
   "freshRunState", "weightedRelic", "applyPickup", "breathHeal", "relicSynergy",
-  "compileFormula", "evRelic", "awakeById",
+  "compileFormula", "evRelic", "awakeById", "luckRoll",
 ];
 
 const METHODS = ["simulateFloor", "simulateDuel"];
@@ -71,7 +71,7 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     "  applyDef, count, ITEMS, POOL, DUNGEONS, TRIGGERS, EMITTERS, MAX_FLOOR, SHOP_FLOOR, poolFor, liveFor,",
     "  META, setUnlocked: n => { __store['dd.unlocked'] = n; },",
     "  EVENTS, freshRunState, weightedRelic, applyPickup, breathHeal, relicSynergy,",
-    "  compileFormula, evRelic, awakeById, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
+    "  compileFormula, evRelic, awakeById, luckRoll, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
     "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF };",
   ];
 

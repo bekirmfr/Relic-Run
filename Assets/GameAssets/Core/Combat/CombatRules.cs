@@ -91,6 +91,13 @@ namespace RelicRun.Core.Combat
         /// <summary>Whether an awakened Hare's Drum's riposte also lands a blow of its own.</summary>
         public bool RiposteStrikesWhenAwakened = true;
 
+        /// <summary>
+        /// Whether the defender's answers to a blow all run inside the chain of the blow, or
+        /// each open one of their own. It decides how far those answers decay: sharing one
+        /// chain means a relic that answers twice is worth less the second time.
+        /// </summary>
+        public bool ReactionsShareOneChain = true;
+
         /// <summary>Whether the Curse set detonates as its bearer falls.</summary>
         public bool CurseSetExplodes = true;
 
@@ -116,6 +123,7 @@ namespace RelicRun.Core.Combat
                 EdgeSetSharpensOnKill = false,
                 KillFiresTrigger = false,
                 KillSharesTheBlowsChain = true,
+                ReactionsShareOneChain = false,
             };
         }
 

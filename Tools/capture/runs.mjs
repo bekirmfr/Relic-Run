@@ -24,6 +24,13 @@
  * Combat is not re-recorded here — the fight corpus already gates it event for event. A run
  * records the state either side of each fight, which is what catches a fight that went
  * differently inside a run.
+ *
+ * Two things about the packs a run fights. balanceRuns hands packFor a stat CURVE rather than
+ * a dungeon, so these foes carry no boss relics and no dungeon-level scaling — the real game
+ * passes {bossRelics, ghoolemBoss} instead. That is deliberate here: pack COMPOSITION is
+ * gated by packs.json, which does use the dungeons, and keeping the two apart is what stops a
+ * run-loop failure from being a pack bug wearing a disguise. The Lab's dungeon-level
+ * multiplier is not exercised at all, because nothing in the game ever applies it.
  */
 
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -80,7 +87,7 @@ const SETS = [
   { name: "base", runs: 40, P: { seed: 0xBA1A } },
   { name: "frail", runs: 24, P: { seed: 0x5EED, baseHp: 60, breath: 2 } },
   { name: "rich", runs: 24, P: { seed: 0xC0FFEE, baseGold: 250, baseHp: 120 } },
-  { name: "deep", runs: 24, P: { seed: 0xDEE9, dlvl: 6, baseHp: 140, baseAtk: 8 } },
+  { name: "deep", runs: 24, P: { seed: 0xDEE9, baseHp: 140, baseAtk: 8, baseDef: 3 } },
   { name: "kitted", runs: 24, P: { seed: 0x1A2B, startKit: ["clover", "tooth", "boots"], baseGold: 80 } },
   { name: "wide", runs: 24, P: { seed: 0x7A17, draftChoices: 5, baseLck: 25 } },
 ];
@@ -92,6 +99,10 @@ for (const set of SETS) {
   let rerollsBefore = 0;
 
   const P = Object.assign({}, set.P, {
+    // Take the game's own pack path rather than the Balance Lab's formula table. See
+    // instrument.mjs; the two round differently and only this one is ever played.
+    packConfig: {},
+
     onRun(run, st, evAt) {
       const eventFloors = {};
       for (const k of Object.keys(evAt)) eventFloors[k] = evAt[k] | 0;
@@ -110,7 +121,14 @@ for (const set of SETS) {
       runs.push(cur);
     },
 
-    onEvent(run, f, ev, choice, st) {
+    onEvent(run, f, ev, choice, st, error) {
+      // An outcome that threw did nothing, and recording that as truth would gate the port
+      // against a hole in the lift rather than against the game.
+      if (error) {
+        throw new Error(`event ${ev} choice ${choice} threw while recording ${set.name}/${run} ` +
+                        `on floor ${f}: ${error && error.message}`);
+      }
+
       cur.steps.push({ f, kind: "event", ev: ev | 0, choice: choice | 0, state: snap(st) });
     },
 
@@ -130,7 +148,16 @@ for (const set of SETS) {
 
     onFight(run, f, pack, events, st) {
       cur.steps.push({
-        f, kind: "fight", foes: pack.length, events: events.length, state: snap(st),
+        f,
+        kind: "fight",
+        foes: pack.length,
+        events: events.length,
+        // What the pack was worth. Composition is gated by packs.json, but a run that loots
+        // a different amount needs to say so here rather than surfacing as a gold mismatch
+        // three steps later.
+        drop: pack.reduce((n, e) => n + (e.drop | 0), 0),
+        hp: pack.reduce((n, e) => n + (e.hp | 0), 0),
+        state: snap(st),
       });
     },
 

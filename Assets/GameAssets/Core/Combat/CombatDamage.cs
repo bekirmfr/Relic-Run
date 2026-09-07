@@ -470,40 +470,43 @@ namespace RelicRun.Core.Combat
 
         /// <summary>Runs the defender's answers in this mode's order.</summary>
         public static void React(ICombatActor defender, ICombatActor attacker, int damageDealt,
-            bool wasCrit, ICombatBus bus, CombatRules rules)
+            bool wasCrit, ICombatBus bus, CombatRules rules, IChain blow)
         {
             DefenderReaction[] order = rules.ReactionOrder;
             for (int i = 0; i < order.Length; i++)
             {
+                // A delve answers inside the chain of the blow itself, so a relic that answers
+                // twice is worth less the second time. A duel gives each answer a fresh chain.
+                IChain chain = rules.ReactionsShareOneChain ? blow : bus.NewChain();
+
                 switch (order[i])
                 {
-                    case DefenderReaction.MirrorScale: MirrorScale(defender, damageDealt, wasCrit, bus); break;
-                    case DefenderReaction.Marrow: Marrow(defender, bus, rules); break;
+                    case DefenderReaction.MirrorScale: MirrorScale(defender, damageDealt, wasCrit, bus, chain); break;
+                    case DefenderReaction.Marrow: Marrow(defender, bus, rules, chain); break;
                     case DefenderReaction.AttackerLifesteal: bus.AttackerLifesteal(attacker, defender); break;
-                    case DefenderReaction.Adrenaline: Adrenaline(defender, bus, rules); break;
-                    case DefenderReaction.Thorns: Thorns(defender, bus, rules); break;
-                    case DefenderReaction.PainCadence: PainCadence(defender, bus, rules); break;
+                    case DefenderReaction.Adrenaline: Adrenaline(defender, bus, rules, chain); break;
+                    case DefenderReaction.Thorns: Thorns(defender, bus, rules, chain); break;
+                    case DefenderReaction.PainCadence: PainCadence(defender, bus, rules, chain); break;
                 }
             }
         }
 
         /// <summary>Mirror Scale throws a critical hit back in full. Only a crit sets it off.</summary>
-        private static void MirrorScale(ICombatActor defender, int damageDealt, bool wasCrit, ICombatBus bus)
+        private static void MirrorScale(ICombatActor defender, int damageDealt, bool wasCrit,
+            ICombatBus bus, IChain chain)
         {
             if (!wasCrit || defender.Effective(RelicId.MirrorScale) == 0) return;
             if (defender.Php <= 0 || !bus.HasTarget(defender)) return;
 
             bus.DealDamage(defender, damageDealt, defender.Label(RelicId.MirrorScale), 1,
-                RelicId.MirrorScale, bus.NewChain());
+                RelicId.MirrorScale, chain);
         }
 
         /// <summary>Troll Marrow knits a bloodied defender back together.</summary>
-        private static void Marrow(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        private static void Marrow(ICombatActor defender, ICombatBus bus, CombatRules rules, IChain chain)
         {
             int marrow = defender.Effective(RelicId.TrollMarrow);
             if (marrow == 0 || defender.Php <= 0 || defender.Php >= defender.Pmax / 2.0) return;
-
-            IChain chain = bus.NewChain();
             CombatPrimitives.Heal(defender, bus, rules, 2 * marrow,
                 defender.Label(RelicId.TrollMarrow), 1, RelicId.TrollMarrow, chain);
 
@@ -516,7 +519,7 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>The Adrenaline Gland banks permanent attack the first time it is hurt.</summary>
-        private static void Adrenaline(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        private static void Adrenaline(ICombatActor defender, ICombatBus bus, CombatRules rules, IChain chain)
         {
             int adrenaline = CombatPrimitives.ReactionCount(
                 defender, RelicTuning.For(RelicId.AdrenalineGland, rules.Mode), RelicId.AdrenalineGland);
@@ -524,7 +527,6 @@ namespace RelicRun.Core.Combat
             if (adrenaline <= 0 || defender.Php <= 0 || bus.AdrenalineSpent(defender)) return;
 
             bus.SpendAdrenaline(defender);
-            IChain chain = bus.NewChain();
             double scale = chain.Scale(defender, RelicId.AdrenalineGland);
 
             defender.Adrenaline += adrenaline;
@@ -533,12 +535,10 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>Thorn Vest answers the blow that landed, not the one it threw.</summary>
-        private static void Thorns(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        private static void Thorns(ICombatActor defender, ICombatBus bus, CombatRules rules, IChain chain)
         {
             int thorns = defender.Effective(RelicId.ThornVest);
             if (thorns <= 0 || defender.Php <= 0) return;
-
-            IChain chain = bus.NewChain();
             double scale = chain.Scale(defender, RelicId.ThornVest);
 
             bus.DealDamage(defender,
@@ -549,13 +549,12 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>Only a hit the defender survived counts toward the pain cadence.</summary>
-        private static void PainCadence(ICombatActor defender, ICombatBus bus, CombatRules rules)
+        private static void PainCadence(ICombatActor defender, ICombatBus bus, CombatRules rules, IChain chain)
         {
             if (defender.Php <= 0) return;
 
             if (rules.GreedEmitterFiresOnPain && defender.CountRaw(RelicId.GreedyCurse) > 0)
             {
-                IChain chain = bus.NewChain();
                 bus.FireEmitter(defender, RelicId.GreedyCurse, 0, chain,
                     chain.Scale(defender, RelicId.GreedyCurse));
             }
@@ -565,7 +564,7 @@ namespace RelicRun.Core.Combat
             // Socketed pain triggers fire on every third hit taken.
             if (defender.PainCount % 3 == 0)
             {
-                bus.FireTrigger(defender, SocketTrigger.Hit, 0, RelicId.None, RelicId.None, bus.NewChain());
+                bus.FireTrigger(defender, SocketTrigger.Hit, 0, RelicId.None, RelicId.None, chain);
             }
         }
     }

@@ -89,7 +89,7 @@ namespace RelicRun.Core.Combat
         {
             if (depth != 0) return;
             var side = (DuelSide)attacker;
-            CombatDamage.React(Other(side), side, dealt, _critChain, this, _rules);
+            CombatDamage.React(Other(side), side, dealt, _critChain, this, _rules, chain);
         }
 
         private void FireEmitter(DuelSide side, RelicId id, int depth, DuelChain chain, double scale)

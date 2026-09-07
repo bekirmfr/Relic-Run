@@ -511,7 +511,7 @@ namespace RelicRun.Core.Combat
         {
             if (attacker != _actor)
             {
-                CombatDamage.React(_actor, _foe, dealt, _foeCrit, this, _rules);
+                CombatDamage.React(_actor, _foe, dealt, _foeCrit, this, _rules, chain);
                 return;
             }
 
