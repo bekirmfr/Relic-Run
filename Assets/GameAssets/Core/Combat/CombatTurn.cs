@@ -26,8 +26,7 @@ namespace RelicRun.Core.Combat
             if (!actor.InstantRiposte) return false;
             actor.InstantRiposte = false;
 
-            if (actor.IsAwake(RelicId.HaresDrum) &&
-                RelicTuning.For(RelicId.HaresDrum, rules.Mode).RiposteStrikesWhenAwakened)
+            if (actor.IsAwake(RelicId.HaresDrum) && rules.RiposteStrikesWhenAwakened)
             {
                 bus.DealDamage(actor, 2, actor.Label(RelicId.HaresDrum), 1,
                     RelicId.HaresDrum, bus.NewChain());

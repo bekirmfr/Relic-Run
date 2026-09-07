@@ -255,7 +255,7 @@ namespace RelicRun.Core.Combat
             // An awakened Iron Skin shrugs one blow off outright each fight.
             if (defender.IsAwake(RelicId.IronSkin) && defender.Effective(RelicId.IronSkin) > 0 &&
                 !defender.IronGlanced &&
-                RelicTuning.For(RelicId.IronSkin, rules.Mode).GlancesOneBlow)
+                rules.IronSkinGlancesOneBlow)
             {
                 defender.IronGlanced = true;
                 bus.Line(defender, RelicId.IronSkin,

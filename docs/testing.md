@@ -108,18 +108,45 @@ state.
 
 ## Where the modes disagree
 
-Each of these is one named flag with a corpus case behind it, not a second copy of the rule.
-Every one has been mutated in both directions, and both directions fail.
+Seven rules that once separated a duel from a delve have deliberately been settled on the
+delve's answer, so versus and delve now share them. `RelicTuning` lost its Iron Skin and Hare's
+Drum entries entirely — those relics no longer behave differently by mode, so there is nothing
+to tune.
 
-| rule | delve | versus |
+| rule | both modes now | versus, as the JS had it |
 | --- | --- | --- |
 | `ArmorMeetsRelicDamage` | every blow | genuine strikes only |
 | `StaggerTripsOnBeingHit` | the striker trips on its own turn | the struck side trips |
 | `WhetstoneSundersOnlyPlainStrikes` | crits and relics do not sunder | everything sunders |
 | `ReturnedBlowUsesTheStrikersAttack` | the striker's attack | the blow turned aside |
-| `ReturnedBlowDepth` | 0 — the foe's whole turn | 1 — a consequence |
-| `IronSkin.GlancesOneBlow` | yes | no |
-| `HaresDrum.RiposteStrikesWhenAwakened` | yes | no |
+| `ReturnedBlowDepth` | 0 — the whole of a turn | 1 — a consequence |
+| `IronSkinGlancesOneBlow` | yes | no |
+| `RiposteStrikesWhenAwakened` | yes | no |
+
+What still differs by mode lives in `CombatRules.Duel()` and is unchanged: the chain cap of 4,
+the reaction order, the Stone Emitter's floor, the Curse set, the Greed emitter's cadence,
+whether a kill sharpens the Edge set or fires a trigger, and whether it shares the blow's chain.
+
+### Keeping the gate alive across a deliberate change
+
+`Duel()` no longer reproduces the source, so the duel corpus would fail against it. That does
+not mean the gate is spent — the ENGINE is still exact, only the shipped configuration moved.
+`CombatRules.DuelAsRecorded()` is `Duel()` plus the seven old answers and nothing else, and the
+corpus replays under it. The diff between the two rulesets IS the design change, in one place,
+where it cannot silently drift.
+
+That leaves the shipped rules untested, which is the trap: put any one of the seven back and
+every corpus gate stays green. Two tests close it.
+
+`EveryAdoptedRuleChangesADuel` reverts each of the seven on its own and requires at least one
+recorded duel to play differently. A rule that can be put back with no visible effect was never
+really adopted. Reverting any of the seven in `Duel()` fails it — all seven are load-bearing.
+
+`EveryShippedDuelEndsInADeath` asserts no duel runs out the scheduler's 600 iterations with
+both sides alive. Adopting `ArmorMeetsRelicDamage` means relic damage is now reduced in a duel
+too, and the percentage curve floors at 1, so a chip-damage build against an armored rival is
+the shape that could stall. It does not. Cutting the cap to 40 stalls 46 of 116, so the test
+notices.
 
 ## Single-sourcing
 

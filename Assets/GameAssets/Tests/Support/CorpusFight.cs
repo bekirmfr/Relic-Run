@@ -255,6 +255,24 @@ namespace RelicRun.Tests.Support
             };
 
         /// <summary>
+        /// Whether two replayed events differ. Used to ask whether a rule change is visible at
+        /// all, rather than to check a recording, so it compares what a reader would see.
+        /// </summary>
+        public static bool Differs(CombatEvent a, CombatEvent b)
+        {
+            return a.Type != b.Type
+                || a.Depth != b.Depth
+                || a.Amount != b.Amount
+                || a.Source != b.Source
+                || a.Relic != b.Relic
+                || a.EnemyCrit != b.EnemyCrit
+                || a.State.Tick != b.State.Tick
+                || a.State.HeroHp != b.State.HeroHp
+                || a.State.EnemyHp != b.State.EnemyHp
+                || a.State.Gold != b.State.Gold;
+        }
+
+        /// <summary>
         /// Compares one replayed event against its recording, returning null when they agree or
         /// a description of the first field that differs.
         /// </summary>

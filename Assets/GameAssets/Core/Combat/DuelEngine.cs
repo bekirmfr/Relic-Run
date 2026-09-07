@@ -104,7 +104,18 @@ namespace RelicRun.Core.Combat
         }
 
         /// <summary>Chains die four levels deep here, against forty in a delve.</summary>
-        private readonly CombatRules _rules = CombatRules.Duel();
+        private readonly CombatRules _rules;
+
+        public DuelEngine() : this(CombatRules.Duel())
+        {
+        }
+
+        /// <summary>Only the corpus gate passes anything but the shipped rules.</summary>
+        public DuelEngine(CombatRules rules)
+        {
+            if (rules == null) throw new ArgumentNullException(nameof(rules));
+            _rules = rules;
+        }
 
         private int ChainCap { get { return _rules.ChainCap; } }
 

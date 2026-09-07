@@ -85,6 +85,12 @@ namespace RelicRun.Core.Combat
         /// </summary>
         public bool ReturnedBlowUsesTheStrikersAttack = true;
 
+        /// <summary>Whether an awakened Iron Skin shrugs one blow off outright each fight.</summary>
+        public bool IronSkinGlancesOneBlow = true;
+
+        /// <summary>Whether an awakened Hare's Drum's riposte also lands a blow of its own.</summary>
+        public bool RiposteStrikesWhenAwakened = true;
+
         /// <summary>Whether the Curse set detonates as its bearer falls.</summary>
         public bool CurseSetExplodes = true;
 
@@ -106,16 +112,38 @@ namespace RelicRun.Core.Combat
                 ReactionOrder = CombatDamage.DuelOrder,
                 CurseSetExplodes = false,
                 GreedEmitterFiresOnPain = false,
-                ArmorMeetsRelicDamage = false,
-                StaggerTripsOnBeingHit = true,
-                WhetstoneSundersOnlyPlainStrikes = false,
-                ReturnedBlowUsesTheStrikersAttack = false,
-                ReturnedBlowDepth = 1,
                 StoneEmitterFloorsBeforeFizzle = false,
                 EdgeSetSharpensOnKill = false,
                 KillFiresTrigger = false,
                 KillSharesTheBlowsChain = true,
             };
+        }
+
+        /// <summary>
+        /// The duel exactly as the JS recorded it, which is what the corpus replays.
+        /// </summary>
+        /// <remarks>
+        /// Seven rules that once separated a duel from a delve have been deliberately settled
+        /// on the delve's answer, so <see cref="Duel"/> no longer reproduces the source. The
+        /// gate that proves the port is still exact needs the old answers, and this is where
+        /// they live — the only difference between this and the shipped rules IS the change,
+        /// which makes it readable in one place and impossible to drift.
+        ///
+        /// Nothing but the corpus test should construct this.
+        /// </remarks>
+        public static CombatRules DuelAsRecorded()
+        {
+            CombatRules rules = Duel();
+
+            rules.ArmorMeetsRelicDamage = false;
+            rules.StaggerTripsOnBeingHit = true;
+            rules.WhetstoneSundersOnlyPlainStrikes = false;
+            rules.ReturnedBlowUsesTheStrikersAttack = false;
+            rules.ReturnedBlowDepth = 1;
+            rules.IronSkinGlancesOneBlow = false;
+            rules.RiposteStrikesWhenAwakened = false;
+
+            return rules;
         }
     }
 }
