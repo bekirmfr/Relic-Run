@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-07T16:11:33.287Z",
+  "generated": "2026-09-07T18:50:38.183Z",
   "masterSeed": 98693133,
   "engine": "lifted from .port/Daily Delve.dc.html",
   "tiers": {
@@ -29,7 +29,7 @@
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
-      "phase 5": "packs.json + progression.json + delve.json + outcomes.json",
+      "phase 5": "packs.json + progression.json + delve.json + outcomes.json + meta.json",
       "phase 6": "duel.json + duels.json + versus.json + synergy.json"
     }
   }

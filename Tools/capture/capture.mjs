@@ -627,7 +627,7 @@ const manifest = {
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
-      "phase 5": "packs.json + progression.json + delve.json + outcomes.json",
+      "phase 5": "packs.json + progression.json + delve.json + outcomes.json + meta.json",
       "phase 6": "duel.json + duels.json + versus.json + synergy.json",
     },
   },
@@ -640,5 +640,6 @@ console.log(`\n  ${cases.length} cases · ${totalEvents} events · ${packs.lengt
    or the two halves drift apart. */
 execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "delve.mjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "outcomes.mjs")], { stdio: "inherit" });
+execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "meta.mjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "synergy.mjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "versus.mjs")], { stdio: "inherit" });

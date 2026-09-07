@@ -1,0 +1,137 @@
+{
+  "name": "the save, and what a run leaves in it",
+  "mutants": [
+    {
+      "name": "a run that ends is not counted",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "save.Runs++;",
+      "replace": ""
+    },
+    {
+      "name": "a cash-out counts as a clear",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (run.Ending == RunEnding.Cleared)\n            {\n                save.Clears++;",
+      "replace": "if (run.Ending != RunEnding.Died)\n            {\n                save.Clears++;"
+    },
+    {
+      "name": "clearing a hall you have already opened opens another",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "else if (run.Tier >= save.Unlocked) save.Unlocked = run.Tier + 1;",
+      "replace": "else save.Unlocked = run.Tier + 1;"
+    },
+    {
+      "name": "a versus crown opens a hall too",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (run.Versus) save.VsCrowns++;\n                else if (run.Tier >= save.Unlocked) save.Unlocked = run.Tier + 1;",
+      "replace": "if (run.Versus) save.VsCrowns++;\n                if (run.Tier >= save.Unlocked) save.Unlocked = run.Tier + 1;"
+    },
+    {
+      "name": "the purse joins the wallet but not the lifetime total",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "save.GoldLife += reward.Banked;",
+      "replace": ""
+    },
+    {
+      "name": "the purse joins the lifetime total but not the wallet",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "save.Gold += reward.Banked;",
+      "replace": ""
+    },
+    {
+      "name": "a personal best is beaten by matching it",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (reward.Score > save.Best)\n            {\n                save.Best",
+      "replace": "if (reward.Score >= save.Best)\n            {\n                save.Best"
+    },
+    {
+      "name": "the day's best is the last run rather than the best one",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (run.Daily && reward.Score > save.DailyBestFor(run.Seed))",
+      "replace": "if (run.Daily)"
+    },
+    {
+      "name": "a delve that is not cleared still remembers the backdrop",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (run.Ending == RunEnding.Cleared && !run.Versus)\n            {\n                string art",
+      "replace": "if (!run.Versus)\n            {\n                string art"
+    },
+    {
+      "name": "a backdrop is remembered every time",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (!save.Arts.Contains(art)) save.Arts.Add(art);",
+      "replace": "save.Arts.Add(art);"
+    },
+    {
+      "name": "the board keeps nine",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "public const int BoardSize = 10;",
+      "replace": "public const int BoardSize = 9;"
+    },
+    {
+      "name": "a tie goes ahead of the run that set it",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "if (save.Scores[i].Score < row.Score) { at = i; break; }",
+      "replace": "if (save.Scores[i].Score <= row.Score) { at = i; break; }"
+    },
+    {
+      "name": "the board drops its best rather than its worst",
+      "file": "Assets/GameAssets/Core/Meta/RunBanking.cs",
+      "find": "while (save.Scores.Count > BoardSize) save.Scores.RemoveAt(save.Scores.Count - 1);",
+      "replace": "while (save.Scores.Count > BoardSize) save.Scores.RemoveAt(0);"
+    },
+    {
+      "name": "First Blood wants two runs",
+      "file": "Assets/GameAssets/Core/Meta/Achievements.cs",
+      "find": "s => s.Runs >= 1),",
+      "replace": "s => s.Runs >= 2),"
+    },
+    {
+      "name": "Deep Delver is earned by matching nothing",
+      "file": "Assets/GameAssets/Core/Meta/Achievements.cs",
+      "find": "s => s.Best >= 1000),",
+      "replace": "s => s.Best > 1000),"
+    },
+    {
+      "name": "Dynasty wants four crowns",
+      "file": "Assets/GameAssets/Core/Meta/Achievements.cs",
+      "find": "s => s.VsCrowns >= 5),",
+      "replace": "s => s.VsCrowns >= 4),"
+    },
+    {
+      "name": "Purse of Renown reads the wallet, not the lifetime purse",
+      "file": "Assets/GameAssets/Core/Meta/Achievements.cs",
+      "find": "s => s.GoldLife >= 1000),",
+      "replace": "s => s.Gold >= 1000),"
+    },
+    {
+      "name": "Deeper Doors wants a third hall",
+      "file": "Assets/GameAssets/Core/Meta/Achievements.cs",
+      "find": "s => s.Unlocked >= 2),",
+      "replace": "s => s.Unlocked >= 3),"
+    },
+    {
+      "name": "the Daily unlocks a level early",
+      "file": "Assets/GameAssets/Core/Meta/Achievements.cs",
+      "find": "s => s.Level >= 3),",
+      "replace": "s => s.Level >= 2),"
+    },
+    {
+      "name": "an offset clock is read off the wall rather than converted",
+      "file": "Assets/GameAssets/Core/Determinism/DailySeed.cs",
+      "find": "DateTime utc = instant.UtcDateTime;",
+      "replace": "DateTime utc = instant.DateTime;"
+    },
+    {
+      "name": "the day's seed puts the month where the day goes",
+      "file": "Assets/GameAssets/Core/Determinism/DailySeed.cs",
+      "find": "return (uint)(utc.Year * 10000 + utc.Month * 100 + utc.Day);\n        }\n\n        /// <summary>The day a UTC instant falls on.</summary>",
+      "replace": "return (uint)(utc.Year * 10000 + utc.Day * 100 + utc.Month);\n        }\n\n        /// <summary>The day a UTC instant falls on.</summary>"
+    },
+    {
+      "name": "a DateTime with no zone is guessed at",
+      "file": "Assets/GameAssets/Core/Determinism/DailySeed.cs",
+      "find": "            if (utc.Kind != DateTimeKind.Utc)\n            {",
+      "replace": "            if (false)\n            {"
+    }
+  ]
+}

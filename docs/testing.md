@@ -310,6 +310,52 @@ that is written, is reachable from the code, and can never fire because the only
 awakens anything refuses relics that do not stack. Making any of them stack would make its
 awakened half real, and the mutant would start dying. Each is commented where it sits.
 
+## What a run leaves behind
+
+Scoring says what a run was WORTH; banking is what then happens to it, and the two are apart
+because a sandbox run is scored and deliberately not banked — the number is shown and nothing
+persists. `RunOutcome` does the first, `RunBanking` the second, and both halves come out of the
+same recorded call to `finishRun`, so `outcomes.json` carries the whole save store either side
+of it.
+
+The source spreads that store across a dozen keys read and written from wherever needs them.
+`SaveState` gathers the ones that are progression into one object; settings, the wardrobe and
+the sprite studio also live in that store and are deliberately NOT there, because nothing in
+Core reads them and they belong with the systems that own them.
+
+Three things needed a case built on purpose, because the obvious ones cannot reach them:
+
+- **A best is beaten, not matched.** Only a run scoring exactly the standing best separates the
+  two, and the score is not known in advance — so each `tie/*` case is scored once against an
+  empty save and then run again against a save holding that very number. Even that was not
+  enough on its own: writing a number that is already there changes nothing, so the save cannot
+  say afterwards whether the run beat the best or tied it. `Bank` reports it instead, which is
+  also what the end screen needs in order to say "new best".
+- **Which end of the board the eleventh row falls off.** A board has to be already ten deep
+  before a trim can be wrong, so the boards in the corpus run from empty to overfull.
+- **A backdrop is remembered once.** Which needs a save that has already seen it.
+
+Achievements are shipped rules rather than presentation: what a delver has earned is a fact
+about their save, and a screen that worked it out would be a second copy of the rule. Each of
+the fourteen is asked of saves sitting exactly on its threshold, which is the only place a
+greater-than and a greater-or-equal disagree.
+
+### The day, and the zone
+
+The Daily Delve's seed is the UTC date read as a number — 20260907 — so everybody runs the same
+dungeon at the same moment, and the day turns over at one instant worldwide rather than at each
+player's midnight. Recorded across month ends, year ends and a leap day, which is where a date
+routine written by hand goes wrong.
+
+The port takes a `DateTimeOffset` rather than a `DateTime`, and REFUSES a `DateTime` that does
+not say it is UTC. That is not fussiness: converting an unlabelled time silently means reading
+the machine's own zone, two delvers on the same day getting different runs, and — worse for the
+tests — a bug no test could catch without itself depending on the zone it runs in. A mutation
+that removed the conversion survived everything until the ambiguity was refused at the door
+instead; now the mutation that removes the refusal dies.
+
+Twenty-two mutations of the save layer, all twenty-two die.
+
 ## The versus lobby
 
 A match used to be handed a finished lobby the way a fight is handed a finished pack, because
@@ -481,7 +527,8 @@ node Tools/extract/validate.mjs
 | Phase 5a — enemy packs | `packs.json` | passing, 360 packs regenerate exactly |
 | Phase 5b — progression | `corpus/progression.json` | passing, levels, perks and the reward table |
 | Phase 5c — the delve loop | `delve.json` | passing, 516 runs and 13,472 steps replay exactly |
-| Phase 5d — scoring | `outcomes.json` | passing, 637 finished runs across all ten halls |
+| Phase 5d — scoring and banking | `outcomes.json` | passing, 744 finished runs across all ten halls |
+| Phase 5e — the save | `meta.json` | passing, 56 saves, 14 achievements, 15 days |
 | Phase 6a — duels | `duel.json` | passing, 148 duels replay event-for-event |
 | Phase 6b — duels in a lobby | `duels.json` | passing, 120 deep duels, 11,774 events |
 | Phase 6c — the versus lobby | `versus.json` | passing, 120 lobbies made from a seed |
