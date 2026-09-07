@@ -562,12 +562,15 @@ for (let i = 0; i < 16; i++) {
   }));
 }
 
-/* A duel stops answering the moment the answer kills. A defender whose Thorn Vest finishes the
-   striker never gets to the adrenaline, the marrow or the mirror behind it; a delve, answering
-   the same blow, works through the whole ladder. Nothing separates the two unless the defender
-   carries a Thorn Vest AND something later in the ladder, and is itself hurt enough for the
-   later thing to have work to do — so both sides get thorns and a marrow, and open low enough
-   that the marrow is live by the time somebody falls. */
+/* The source's duel stops answering the moment the answer kills: a defender whose Thorn Vest
+   finishes the striker never gets to the adrenaline, the marrow or the mirror behind it, while a
+   delve answering the same blow works through the whole ladder. The delve is right — the blow
+   LANDED, which is what provoked the thorns, so those answers were already earned — and versus
+   takes its answer. These cases record what the source did, which is what the gate replays.
+
+   Nothing separates the two unless the defender carries a Thorn Vest AND something later in the
+   ladder, and is itself hurt enough for the later thing to have work to do, so both sides get
+   thorns and a marrow and open low enough that the marrow is live by the time somebody falls. */
 for (let i = 0; i < 16; i++) {
   const answering = ["thorns", "marrow", "adrenaline", "mirrorscale"];
   cases.push(duelCase(`duel/lastword/${i}`, {

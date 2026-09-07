@@ -200,7 +200,7 @@ namespace RelicRun.Tests
         };
 
         /// <summary>
-        /// Each of the seven rules versus took from the delve has to actually change a duel.
+        /// Each rule versus took from the delve has to actually change a duel.
         /// </summary>
         /// <remarks>
         /// The recorded corpus replays under <see cref="CombatRules.DuelAsRecorded"/>, so it
@@ -212,20 +212,102 @@ namespace RelicRun.Tests
         [Test]
         public void EveryAdoptedRuleChangesADuel()
         {
-            JArray cases = Corpus.Array("duel.json");
-            Assert.That(cases.Count, Is.GreaterThan(0), "duel corpus is empty");
+            // Both tiers: the designed duels ask what one relic does, and the lobby duels are
+            // the hands a player actually assembles. A rule that only bites on a realistic hand
+            // — carrying a Thorn Vest AND something later in the ladder — is invisible to the
+            // first and obvious in the second.
+            JArray designed = Corpus.Array("duel.json");
+            JArray fromLobbies = Corpus.Array("duels.json");
+            Assert.That(designed.Count, Is.GreaterThan(0), "duel corpus is empty");
+            Assert.That(fromLobbies.Count, Is.GreaterThan(0), "lobby duel corpus is empty");
 
             var inert = new List<string>();
             foreach ((string name, System.Action<CombatRules> revert) in Adopted)
             {
                 CombatRules reverted = CombatRules.Duel();
                 revert(reverted);
-                if (!AnyDuelDiffers(cases, reverted)) inert.Add(name);
+
+                if (!AnyDuelDiffers(designed, reverted) && !AnyDuelDiffers(fromLobbies, reverted))
+                {
+                    inert.Add(name);
+                }
             }
 
             Assert.That(inert, Is.Empty,
                 "these rules can be put back with no effect on any recorded duel, so versus " +
                 "adopting the delve's answer did nothing: " + string.Join(", ", inert));
+        }
+
+        /// <summary>
+        /// A defender that was HIT finishes answering, even if its thorns killed the striker.
+        /// </summary>
+        /// <remarks>
+        /// The blow landed — that is what provoked the thorns — so an Adrenaline Gland and a
+        /// Troll Marrow have earned their trigger, and whether the counter happened to be lethal
+        /// is nothing to do with either. The source's duel dropped them; the delve did not, and
+        /// this is versus taking the delve's answer.
+        /// </remarks>
+        [Test]
+        public void ADefenderFinishesAnsweringABlowThatKilledTheStriker()
+        {
+            const int marrowHeal = 2;
+
+            int shipped = MarrowHealsInAFatalExchange(CombatRules.Duel());
+            int asSource = MarrowHealsInAFatalExchange(CombatRules.DuelAsRecorded());
+
+            Assert.That(asSource, Is.Zero,
+                "the source drops the answer the moment its thorns kill, which is what the " +
+                "corpus replays");
+
+            Assert.That(shipped, Is.EqualTo(marrowHeal),
+                "the blow LANDED — that is what provoked the thorns — so the marrow behind them " +
+                "has already earned its trigger, whether or not the counter proved lethal");
+        }
+
+        /// <summary>
+        /// One exchange, rigged so the defender's thorns are fatal and its marrow is live.
+        /// </summary>
+        /// <remarks>
+        /// Built by hand rather than fished out of the corpus: under the shipped rules no
+        /// recorded duel reaches this, because the seven other adopted rules move every one of
+        /// them off the moment before it arrives.
+        ///
+        /// The striker opens on three health and no relics. The defender is on a fifth of its
+        /// pool, so a Troll Marrow is live, and carries thorns enough to kill on the answer.
+        /// Returns the health the marrow gave back, which is nought if it never fired.
+        /// </remarks>
+        private static int MarrowHealsInAFatalExchange(CombatRules rules)
+        {
+            var striker = new DuelSide
+            {
+                Name = "you", IsHero = true, Php = 3, Pmax = 60, BaseAtk = 5, BaseSpd = 40,
+            };
+
+            var defender = new DuelSide
+            {
+                Name = "Rival",
+                Php = 20,
+                Pmax = 100,
+                BaseAtk = 1,
+                BaseSpd = 10,
+                Items = new List<RelicId>
+                {
+                    RelicId.ThornVest, RelicId.ThornVest, RelicId.ThornVest, RelicId.TrollMarrow,
+                },
+            };
+
+            CombatResult result = new DuelEngine(rules).Resolve(striker, defender, new Mulberry32(9));
+
+            Assert.That(striker.Php, Is.LessThanOrEqualTo(0),
+                "the exchange was meant to kill the striker; it did not, so it proves nothing");
+
+            int healed = 0;
+            foreach (CombatEvent e in result.Events)
+            {
+                if (e.Relic == RelicId.TrollMarrow && e.Amount.HasValue) healed += e.Amount.Value;
+            }
+
+            return healed;
         }
 
         /// <summary>
@@ -268,18 +350,17 @@ namespace RelicRun.Tests
         {
             foreach (JToken token in cases)
             {
-                uint seed = token["fightSeed"].Value<uint>();
                 var input = (JObject)token["input"];
 
                 CombatResult shipped = new DuelEngine(CombatRules.Duel()).Resolve(
                     ReadSide((JObject)input["a"], true),
                     ReadSide((JObject)input["b"], false),
-                    new Mulberry32(seed));
+                    Stream(token));
 
                 CombatResult other = new DuelEngine(reverted).Resolve(
                     ReadSide((JObject)input["a"], true),
                     ReadSide((JObject)input["b"], false),
-                    new Mulberry32(seed));
+                    Stream(token));
 
                 if (shipped.Events.Count != other.Events.Count) return true;
 
@@ -291,5 +372,23 @@ namespace RelicRun.Tests
 
             return false;
         }
+
+        /// <summary>
+        /// The generator a recorded duel was fought from.
+        /// </summary>
+        /// <remarks>
+        /// A designed duel has a seed of its own. One fought inside a lobby does not — it picks
+        /// the match's stream up part way through — so it carries the match's seed and how far
+        /// the stream had got.
+        /// </remarks>
+        private static Mulberry32 Stream(JToken token)
+        {
+            if (token["fightSeed"] != null) return new Mulberry32(token["fightSeed"].Value<uint>());
+
+            var rng = new Mulberry32(token["seed"].Value<uint>());
+            rng.Skip(token["skip"].Value<int>());
+            return rng;
+        }
+
     }
 }

@@ -132,6 +132,18 @@
       "file": "Assets/GameAssets/Core/Stats/StatLedger.cs",
       "find": "ctx.IdolBacksTheDominantKind && !ctx.IsVersus && idols > 0 &&",
       "replace": "ctx.IdolBacksTheDominantKind && idols > 0 &&"
+    },
+    {
+      "name": "a duel reads stacking off the catalog again",
+      "file": "Assets/GameAssets/Core/Run/VersusRun.cs",
+      "find": "if (!Rules.Wakeable(id)) continue;",
+      "replace": "if (!RelicCatalog.Get(id).Stackable) continue;"
+    },
+    {
+      "name": "the versus gate replays the shipped relic rules",
+      "file": "Assets/GameAssets/Core/Run/VersusRun.cs",
+      "find": "Rules = runRules ?? RunRules.Shipped(),",
+      "replace": "Rules = RunRules.Shipped(),"
     }
   ]
 }

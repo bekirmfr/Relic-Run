@@ -28,7 +28,7 @@
     {
       "name": "a rival may hold two of anything",
       "file": "Assets/GameAssets/Core/Run/VersusRun.cs",
-      "find": "return RelicCatalog.Get(id).Stackable || !rival.Relics.Contains(id);",
+      "find": "return rules.Stacks(id) || !rival.Relics.Contains(id);",
       "replace": "return true;"
     },
     {
@@ -58,7 +58,7 @@
     {
       "name": "setting up deals no delve offer first",
       "file": "Assets/GameAssets/Core/Run/VersusRun.cs",
-      "find": "            RelicDraft.RollOffer(new List<RelicId>(), 2 + bonuses.DraftChoices, rng,\n                RunRules.Shipped(), GameModes.Delve);",
+      "find": "            RelicDraft.RollOffer(new List<RelicId>(), 2 + bonuses.DraftChoices, rng,\n                rules, GameModes.Delve);",
       "replace": ""
     },
     {
@@ -86,13 +86,13 @@
       "replace": "public const int DrawnFlourishes = 0;"
     },
     {
-      "name": "a duel keeps answering after the answer kills",
+      "name": "the guard the source's duel keeps is gone",
       "file": "Assets/GameAssets/Core/Combat/CombatDamage.cs",
       "find": "if (rules.ReactionsStopWhenTheStrikerFalls && attacker.Php <= 0) return;",
       "replace": ""
     },
     {
-      "name": "a delve stops answering when its thorns kill",
+      "name": "versus never took the delve's answer on a lethal thorn",
       "file": "Assets/GameAssets/Core/Combat/CombatRules.cs",
       "find": "public bool ReactionsStopWhenTheStrikerFalls;",
       "replace": "public bool ReactionsStopWhenTheStrikerFalls = true;"

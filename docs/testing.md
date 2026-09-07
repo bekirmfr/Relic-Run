@@ -360,7 +360,26 @@ as well. Two needed the code opened up before they could be asked at all:
   hand could not reach; another proves it backs one family rather than all of them, which is the
   only thing separating the shipped rule from the source's.
 
-Twenty-two mutations of the four, all twenty-two die.
+Twenty-four mutations of the four, all twenty-four die.
+
+### One flag, one mode
+
+Whether a relic stacks, and whether the bazaar will wake one, are facts about the RELIC. They
+were mode-dependent for a while by accident: a duel read them off the generated catalog while a
+delve read them off `RunRules`, so a Debt of Flesh stacked on one side of the game and not the
+other. `VersusMatch` carries the same rules object a run does now, and
+`ARelicStacksTheSameWayInBothModes` walks all fifty relics through both.
+
+The versus offer had also grown its own copy of the delve's availability filter — the same rule
+written twice, which is how the two drifted apart in the first place. It calls
+`RelicDraft.Available` now.
+
+What a relic DOES in a duel is a different question, and the source answers it deliberately:
+twelve relics are tuned per mode in `RelicTuning`, for three reasons. A duel has no dungeon
+economy, so the relics that swell loot or collect on a kill have nothing to work with. A duel
+runs twenty rounds against thirteen floors, so what compounds gets throttled or allowed to climb
+further. And a duel has a symmetric opponent, which is most of why a Famine Bell is worth
+carrying there. That is design, and it stays.
 
 ### Still to do
 
@@ -446,14 +465,23 @@ match both delvers carry nine relics and a pool three times what they opened on,
 still holding what its earlier duels left it. `duels.json` keeps the deepest duel of every
 lobby, event for event.
 
-It earned its place immediately. A duel stops answering the moment the answer kills: a defender
-whose Thorn Vest finishes the striker never reaches the adrenaline, the marrow or the mirror
-behind it, because there is nobody left to answer. A delve works through the whole ladder
-regardless. Nothing separates the two unless the defender is carrying a Thorn Vest AND something
-later in the ladder while the striker is low enough to die to it — which the designed tier had
-never assembled, and which a round-four duel between two delvers with six relics each did.
-`CombatRules.ReactionsStopWhenTheStrikerFalls` is the seam, and `duel/lastword/*` is the designed
-tier that now covers it on purpose rather than by luck.
+It earned its place immediately. The source's duel stops answering the moment the answer kills: a
+defender whose Thorn Vest finishes the striker never reaches the adrenaline, the marrow or the
+mirror behind it. A delve works through the whole ladder regardless. Nothing separates the two
+unless the defender is carrying a Thorn Vest AND something later in the ladder while the striker
+is low enough to die to it — which the designed tier had never assembled, and which a round-four
+duel between two delvers with six relics each did.
+
+Versus takes the delve's answer, as it does for the seven. The blow LANDED — that is what
+provoked the thorns — so an Adrenaline Gland and a Troll Marrow have already earned their
+trigger, and whether the counter happened to be lethal is nothing to do with either.
+`CombatRules.ReactionsStopWhenTheStrikerFalls` is the seam and the corpus replays it.
+
+That one could not join `EveryAdoptedRuleChangesADuel`, and the reason is worth recording: under
+the SHIPPED rules no recorded duel reaches the moment at all, because the other seven adopted
+rules move every one of them off it first. A rule can be real, reachable in play, and still
+invisible to a corpus recorded before it existed. It is asked directly instead, by one exchange
+built to be fatal with a marrow live behind the thorns.
 
 A lobby duel has no seed of its own — it is fought from the match's generator, part way through
 — so the recording carries the match's seed and how far the stream had got, and a replay skips

@@ -364,6 +364,38 @@ namespace RelicRun.Tests
             }
         }
 
+        /// <summary>
+        /// A relic answers the stacking question the same way wherever it is carried.
+        /// </summary>
+        /// <remarks>
+        /// Whether a second copy is worth holding, and whether the bazaar will wake one, are
+        /// facts about the RELIC. They were mode-dependent for a while by accident — a duel read
+        /// them off the generated catalog and a delve read them off <see cref="RunRules"/> — so
+        /// a Debt of Flesh stacked on one side of the game and not the other. This is what keeps
+        /// the two sides asking the same object.
+        ///
+        /// What a relic DOES in a duel is a different question, and the source answers it
+        /// deliberately; that lives in RelicTuning and is not this.
+        /// </remarks>
+        [Test]
+        public void ARelicStacksTheSameWayInBothModes()
+        {
+            RunRules rules = RunRules.Shipped();
+            var match = new VersusMatch { Rules = rules };
+            var run = new RunState { Rules = rules };
+
+            foreach (RelicDef def in RelicCatalog.All)
+            {
+                match.Items.Clear();
+                run.Items.Clear();
+                match.Items.Add(def.Id);
+                run.Items.Add(def.Id);
+
+                Assert.That(match.Awakenable().Count, Is.EqualTo(run.Awakenable().Count),
+                    def.Key + " reaches the awakening shelf in one mode and not the other");
+            }
+        }
+
         /// <summary>A Merchant's Thumb halves a price here, where the source shaved a fifth.</summary>
         [Test]
         public void AMerchantsThumbHalvesAPrice()

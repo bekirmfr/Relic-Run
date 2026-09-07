@@ -348,7 +348,8 @@ namespace RelicRun.Tests
                 var start = (JObject)match["start"];
 
                 VersusLobby made = VersusRun.Make(
-                    match["seed"].Value<uint>(), match["level"].Value<int>());
+                    match["seed"].Value<uint>(), match["level"].Value<int>(),
+                    RunRules.AsRecorded());
 
                 string diff =
                     Same(id, "setup draws", match["setupDraws"].Value<int>(), made.SetupDraws) ??
@@ -459,9 +460,9 @@ namespace RelicRun.Tests
                 {
                     // The recording is the SOURCE's match, so its duels are fought under the
                     // source's rules. Where the port deliberately differs, the difference is
-                    // CombatRules and nothing else.
+                    // CombatRules and RunRules and nothing else.
                     VersusRun.Resolve(match["seed"].Value<uint>(), LobbyFrom(match), replay, replay,
-                        CombatRules.DuelAsRecorded());
+                        CombatRules.DuelAsRecorded(), RunRules.AsRecorded());
                 }
                 catch (ReplayEnded)
                 {

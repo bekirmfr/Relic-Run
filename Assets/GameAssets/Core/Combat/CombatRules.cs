@@ -52,10 +52,15 @@ namespace RelicRun.Core.Combat
         /// Whether a defender stops answering once its Thorn Vest has killed the striker.
         /// </summary>
         /// <remarks>
-        /// A duel does: the thorns bite, and if the blow that provoked them was the striker's
-        /// last, the rest of the answer — the adrenaline, the marrow's second wind, the mirror —
-        /// never happens, because there is nobody left to answer. A delve answers on regardless,
-        /// so a hero whose thorns kill the foe still takes the marrow heal that follows.
+        /// The source's duel does: the thorns bite, and if that was the striker's last moment,
+        /// the rest of the answer — the adrenaline, the marrow's second wind, the mirror — never
+        /// happens. The delve answers on regardless.
+        ///
+        /// The delve is right, and versus takes its answer here as it does for the seven. The
+        /// defender WAS hit — that is what provoked the thorns — so an Adrenaline Gland and a
+        /// Troll Marrow have already earned their trigger. Whether the counter-blow happened to
+        /// be lethal is nothing to do with them, and dropping their answer because it was is a
+        /// short-circuit rather than a rule.
         ///
         /// Found by the lobby duel tier, which is the only place a defender was ever carrying
         /// both a Thorn Vest and something later in the ladder while the striker was low enough
@@ -162,7 +167,6 @@ namespace RelicRun.Core.Combat
                 KillFiresTrigger = false,
                 KillSharesTheBlowsChain = true,
                 ReactionsShareOneChain = false,
-                ReactionsStopWhenTheStrikerFalls = true,
             };
         }
 
@@ -189,6 +193,7 @@ namespace RelicRun.Core.Combat
             rules.ReturnedBlowDepth = 1;
             rules.IronSkinGlancesOneBlow = false;
             rules.RiposteStrikesWhenAwakened = false;
+            rules.ReactionsStopWhenTheStrikerFalls = true;
 
             return rules;
         }

@@ -95,6 +95,21 @@ namespace RelicRun.Core.Run
         /// <summary>Rounds a Duelist's Oath has been carried. It shatters on the fourth.</summary>
         public int OathCarried;
 
+        /// <summary>
+        /// Where the port's rules differ from the source's. The same object a delve carries.
+        /// </summary>
+        /// <remarks>
+        /// Whether a relic stacks, and whether the bazaar will wake one, are facts about the
+        /// RELIC and not about where it is being carried. They used to be read straight off the
+        /// generated catalog here and out of <see cref="RunRules"/> in a delve, which meant a
+        /// Debt of Flesh stacked on one side of the game and not the other — an accident of
+        /// wiring rather than anything anybody chose.
+        ///
+        /// What a relic DOES in a duel is a different question, and one the source answers
+        /// deliberately; that lives in <see cref="Content.RelicTuning"/>.
+        /// </remarks>
+        public RunRules Rules = RunRules.Shipped();
+
         public int Round
         {
             get { return Hero.Floor; }
@@ -160,7 +175,7 @@ namespace RelicRun.Core.Run
             for (int slot = 0; slot < Items.Count; slot++)
             {
                 RelicId id = Items[slot];
-                if (!RelicCatalog.Get(id).Stackable) continue;
+                if (!Rules.Wakeable(id)) continue;
                 if (AwakenedSlots.Contains(slot)) continue;
                 if (!seen.Add(id)) continue;
 
@@ -350,7 +365,7 @@ namespace RelicRun.Core.Run
                         ? first
                         : second;
 
-                if (RelicCatalog.Get(pick).Stackable || !rival.Relics.Contains(pick))
+                if (match.Rules.Stacks(pick) || !rival.Relics.Contains(pick))
                 {
                     rival.Relics.Add(pick);
                 }
@@ -386,22 +401,16 @@ namespace RelicRun.Core.Run
 
         private static List<RelicId> Draw(VersusMatch match, int want, Mulberry32 rng)
         {
-            return Draw(match.Items, want, rng);
+            return Draw(match.Items, want, rng, match.Rules);
         }
 
         /// <summary>The relics on offer, drawn without repeats and weighted against duplicates.</summary>
-        private static List<RelicId> Draw(IReadOnlyList<RelicId> hand, int want, Mulberry32 rng)
+        private static List<RelicId> Draw(IReadOnlyList<RelicId> hand, int want, Mulberry32 rng,
+            RunRules rules)
         {
-            var avail = new List<RelicId>();
-            List<RelicId> pool = RelicCatalog.PoolFor(GameModes.Versus);
-
-            for (int i = 0; i < pool.Count; i++)
-            {
-                RelicId id = pool[i];
-                if (!RelicCatalog.Get(id).Stackable && Held(hand, id) > 0) continue;
-                if (!RelicDraft.IsLive(id, hand)) continue;
-                avail.Add(id);
-            }
+            // The same question a delve's offer asks, asked once: what may be offered to this
+            // hand in this mode. Two copies of it is how the two modes drifted apart before.
+            List<RelicId> avail = RelicDraft.Available(hand, rules, GameModes.Versus);
 
             var offer = new List<RelicId>(want);
             int take = Math.Min(want, avail.Count);
@@ -416,21 +425,11 @@ namespace RelicRun.Core.Run
             return offer;
         }
 
-        private static int Held(IReadOnlyList<RelicId> hand, RelicId id)
-        {
-            int n = 0;
-            for (int i = 0; i < hand.Count; i++)
-            {
-                if (hand[i] == id) n++;
-            }
-
-            return n;
-        }
-
         /// <summary>What a counter charges. A Merchant's Thumb shaves a fifth off it.</summary>
         public static int PriceOf(VersusMatch match, int list)
         {
-            double price = list * (match.Count(RelicId.MerchantsThumb) > 0 ? 0.8 : 1.0);
+            double price = list *
+                (match.Count(RelicId.MerchantsThumb) > 0 ? match.Rules.ThumbDiscount : 1.0);
             return JsMath.RoundToInt(price);
         }
 
@@ -641,14 +640,15 @@ namespace RelicRun.Core.Run
         /// DELVE offer: setting a versus match up starts a run first and re-deals from the
         /// versus pool afterwards, and the offer that gets thrown away was paid for.
         /// </remarks>
-        public static VersusLobby Make(uint seed, int level)
+        public static VersusLobby Make(uint seed, int level, RunRules rules = null)
         {
+            rules = rules ?? RunRules.Shipped();
             var rng = new Mulberry32(seed);
             LevelBonuses bonuses = Progression.Bonuses(level);
 
             // The delve offer a run opens with, dealt and then thrown away when the mode changes.
             RelicDraft.RollOffer(new List<RelicId>(), 2 + bonuses.DraftChoices, rng,
-                RunRules.Shipped(), GameModes.Delve);
+                rules, GameModes.Delve);
 
             var lobby = new VersusLobby
             {
@@ -656,18 +656,19 @@ namespace RelicRun.Core.Run
                 HeroPool = JsMath.RoundToInt((100 + bonuses.Hp) / 2.0),
             };
 
-            lobby.OpeningOffer = Draw(new List<RelicId>(), DraftChoices, rng);
+            lobby.OpeningOffer = Draw(new List<RelicId>(), DraftChoices, rng, rules);
 
             for (int i = 0; i < RivalNames.Length; i++)
             {
-                lobby.Rivals.Add(MakeRival(RivalNames[i], level, lobby.HeroPool, rng));
+                lobby.Rivals.Add(MakeRival(RivalNames[i], level, lobby.HeroPool, rng, rules));
             }
 
             lobby.SetupDraws = rng.Draws;
             return lobby;
         }
 
-        private static Rival MakeRival(string name, int heroLevel, int heroPool, Mulberry32 rng)
+        private static Rival MakeRival(string name, int heroLevel, int heroPool, Mulberry32 rng,
+            RunRules rules)
         {
             int level = Math.Max(1, heroLevel + rng.NextInt(3) - 1);
             var rival = new Rival { Name = name, Level = level, Lives = Lives };
@@ -683,10 +684,10 @@ namespace RelicRun.Core.Run
                 RelicId b = pool[rng.NextInt(pool.Count)];
 
                 RelicId want = Wants(a) >= Wants(b)
-                    ? (Holdable(rival, a) ? a : b)
-                    : (Holdable(rival, b) ? b : a);
+                    ? (Holdable(rival, a, rules) ? a : b)
+                    : (Holdable(rival, b, rules) ? b : a);
 
-                if (Holdable(rival, want)) rival.Relics.Add(want);
+                if (Holdable(rival, want, rules)) rival.Relics.Add(want);
             }
 
             // Their face: rolled once, read by nobody here, and paid for out of this stream.
@@ -719,13 +720,10 @@ namespace RelicRun.Core.Run
         /// Whether a rival can add this relic: anything that stacks, or anything they lack.
         /// </summary>
         /// <remarks>
-        /// Read off the catalog rather than off <see cref="RunRules"/>, as <see cref="RivalsDraft"/>
-        /// does: a rival's own draft is the source's, and the port's stacking change is about
-        /// what the BAZAAR will wake for the hero.
         /// </remarks>
-        private static bool Holdable(Rival rival, RelicId id)
+        private static bool Holdable(Rival rival, RelicId id, RunRules rules)
         {
-            return RelicCatalog.Get(id).Stackable || !rival.Relics.Contains(id);
+            return rules.Stacks(id) || !rival.Relics.Contains(id);
         }
 
         /// <summary>Plays a match out of a lobby that has already been made.</summary>
@@ -736,14 +734,21 @@ namespace RelicRun.Core.Run
         /// differently — armor meeting relic damage is enough on its own to move a Blood Altar
         /// from four damage to three.
         /// </param>
+        /// <param name="runRules">
+        /// Where the port's relic rules differ from the source's — the same object a delve
+        /// carries. The corpus gate passes <see cref="RunRules.AsRecorded"/>.
+        /// </param>
         public static VersusMatch Resolve(uint seed, VersusLobby lobby, IVersusChoices choices,
-            IVersusObserver observer = null, CombatRules rules = null)
+            IVersusObserver observer = null, CombatRules rules = null, RunRules runRules = null)
         {
             if (lobby == null) throw new ArgumentNullException(nameof(lobby));
             if (choices == null) throw new ArgumentNullException(nameof(choices));
             rules = rules ?? CombatRules.Duel();
 
-            var match = new VersusMatch { Hall = lobby.Hall, Round = 1 };
+            var match = new VersusMatch
+            {
+                Hall = lobby.Hall, Round = 1, Rules = runRules ?? RunRules.Shipped(),
+            };
             match.Hero.Php = lobby.HeroPool;
             match.Hero.Pmax = lobby.HeroPool;
             match.Roster.AddRange(lobby.Rivals);

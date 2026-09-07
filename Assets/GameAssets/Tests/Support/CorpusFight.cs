@@ -450,11 +450,26 @@ namespace RelicRun.Tests.Support
         }
 
         /// <summary>Replays a case and returns the first divergence, or null if it matches.</summary>
-        public static string Replay(Case c)
+        /// <summary>
+        /// Replays a case under the rules it was recorded with.
+        /// </summary>
+        /// <remarks>
+        /// As recorded, not as shipped: the corpus predates an awakened Hollow Idol backing the
+        /// family a delver leans on, and three of its cases carry one.
+        /// </remarks>
+        public static string Replay(Case c) { return Replay(c, CombatRules.DelveAsRecorded()); }
+
+        /// <summary>
+        /// Replays a case under STATED rules, which is how to ask what a rule change would cost.
+        /// </summary>
+        /// <remarks>
+        /// A gate asks whether the port still matches the recording. This asks the other
+        /// question — how much of the recording a proposed change would move — so a balance
+        /// decision can be made against a number rather than a guess.
+        /// </remarks>
+        public static string Replay(Case c, CombatRules rules)
         {
-            // As recorded, not as shipped: the corpus predates an awakened Hollow Idol backing
-            // the family a delver leans on, and three of its cases carry one.
-            var engine = new CombatEngine(CombatRules.DelveAsRecorded());
+            var engine = new CombatEngine(rules);
             CombatResult result = engine.ResolveFloor(c.Hero, c.Pack, new Mulberry32(c.FightSeed));
 
             int n = System.Math.Min(c.Events.Count, result.Events.Count);
