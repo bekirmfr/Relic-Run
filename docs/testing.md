@@ -434,6 +434,38 @@ instead; now the mutation that removes the refusal dies.
 
 Twenty-two mutations of the save layer, all twenty-two die.
 
+## A career, which is where the seams are
+
+Every piece of the game is gated exactly by a corpus of its own. What no corpus covers is the
+JOINS between them, and until now nothing joined them: a screen wanting to start a delve would
+have had to know that the setup comes from the level, that the hall comes from the tier, that the
+tier is bounded by what has been unlocked, and that finishing means scoring and THEN banking.
+Four screens would have known it four times.
+
+`Career` is that joining up and nothing more. It starts nothing and plays nothing — the run loop
+asks a player questions through an interface, so how a UI drives it is a question for whoever
+builds the UI, and deliberately not answered in Core.
+
+One join is a genuine trap. Scoring reads the save to decide how relevant the hall still is, and
+banking then moves the frontier — so banking first would score a run against the hall it had just
+unlocked and quietly pay a fifth less for the best run a delver has ever had.
+`ClearingTheFrontierIsScoredAtTheFrontiersRate` is what holds the order.
+
+`ACareerHoldsTogetherAcrossManyRuns` plays sixty delves for one save and asserts INVARIANTS
+rather than numbers: the wallet never falls of its own accord, a hall never closes, the frontier
+never jumps two, the board never outgrows ten or falls out of order, the level moves only by as
+many levels as the run said it crossed. A test that pinned the exact gold after sixty runs would
+fail on any balance change and teach nobody anything; these keep meaning what they say.
+
+They would also hold vacuously on a career that went nowhere, so the test ends by insisting one
+happened: a level bought, the frontier moved, and the board full enough to have dropped a row. As
+written it reaches level twelve and six halls.
+
+Fifteen mutations of the joins, all fifteen die. Two of them survived at first for a reason worth
+recording: the tests had been written in terms of `Career.DailyOpensAt` rather than the number
+three, so moving the constant moved the test with it. A test phrased in terms of the thing it is
+testing cannot see that thing change.
+
 ## The versus lobby
 
 A match used to be handed a finished lobby the way a fight is handed a finished pack, because
@@ -616,6 +648,7 @@ node Tools/extract/validate.mjs
 | Phase 5c — the delve loop | `delve.json` | passing, 516 runs and 13,472 steps replay exactly |
 | Phase 5d — scoring and banking | `outcomes.json` | passing, 744 finished runs across all ten halls |
 | Phase 5e — the save | `meta.json` | passing, 56 saves, 14 achievements, 15 days |
+| Phase 5f — a career | none — invariants | passing, 60 runs to level 12 and six halls |
 | Phase 6a — duels | `duel.json` | passing, 148 duels replay event-for-event |
 | Phase 6b — duels in a lobby | `duels.json` | passing, 120 deep duels, 11,774 events |
 | Phase 6c — the versus lobby | `versus.json` | passing, 120 lobbies made from a seed |

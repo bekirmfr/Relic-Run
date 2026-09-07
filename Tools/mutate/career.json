@@ -1,0 +1,95 @@
+{
+  "name": "the joins between a run and a career",
+  "mutants": [
+    {
+      "name": "a run is scored after banking has moved the frontier",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "                run.Hero.Kills, run, tier, Frontier(save));",
+      "replace": "                run.Hero.Kills, run, tier, Frontier(save) + 1);"
+    },
+    {
+      "name": "a delve is scored as a duel",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "            RunReward reward = RunOutcome.Score(ending, false, run.Gold, run.Floor,",
+      "replace": "            RunReward reward = RunOutcome.Score(ending, true, run.Gold, run.Floor,"
+    },
+    {
+      "name": "a delve is banked as a duel",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "                Ending = ending,\n                Versus = false,\n                Daily = daily,",
+      "replace": "                Ending = ending,\n                Versus = true,\n                Daily = daily,"
+    },
+    {
+      "name": "a run's setup ignores the hall it is delving",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "            setup.Dungeon = DungeonConfig.ForTier(tier);",
+      "replace": ""
+    },
+    {
+      "name": "a run's setup ignores the delver's level",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "            RunSetup setup = RunSetup.ForLevel(save.Level);",
+      "replace": "            RunSetup setup = RunSetup.ForLevel(1);"
+    },
+    {
+      "name": "a lobby ignores the delver's level",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "            return VersusRun.Make(seed, save.Level);",
+      "replace": "            return VersusRun.Make(seed, 1);"
+    },
+    {
+      "name": "a hall past the frontier can be delved",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "return tier >= 1 && tier <= save.Unlocked && tier <= DungeonCatalog.All.Count;",
+      "replace": "return tier >= 1 && tier <= DungeonCatalog.All.Count;"
+    },
+    {
+      "name": "the frontier runs past the halls that exist",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "return Math.Max(1, Math.Min(save.Unlocked, DungeonCatalog.All.Count));",
+      "replace": "return Math.Max(1, save.Unlocked);"
+    },
+    {
+      "name": "the Daily opens a level early",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "public const int DailyOpensAt = 3;",
+      "replace": "public const int DailyOpensAt = 2;"
+    },
+    {
+      "name": "Versus opens a level early",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "public const int VersusOpensAt = 5;",
+      "replace": "public const int VersusOpensAt = 4;"
+    },
+    {
+      "name": "a spent Daily can be played again",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "return save.Level >= DailyOpensAt && !save.DailyDone.Contains(day);",
+      "replace": "return save.Level >= DailyOpensAt;"
+    },
+    {
+      "name": "starting a Daily does not spend it",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "            save.DailyDone.Add(day);",
+      "replace": ""
+    },
+    {
+      "name": "a match is scored against the first hall rather than its own",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "                match.Hero.Kills, HandOf(match), match.Hall, Frontier(save));",
+      "replace": "                match.Hero.Kills, HandOf(match), 1, Frontier(save));"
+    },
+    {
+      "name": "a match forgets what it was carrying",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "            foreach (int slot in match.AwakenedSlots) hand.Awaken(slot);",
+      "replace": ""
+    },
+    {
+      "name": "an achievement already earned is announced again",
+      "file": "Assets/GameAssets/Core/Meta/Career.cs",
+      "find": "                if (!had) fresh.Add(now[i]);",
+      "replace": "                fresh.Add(now[i]);"
+    }
+  ]
+}
