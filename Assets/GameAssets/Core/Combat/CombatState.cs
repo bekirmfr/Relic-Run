@@ -165,10 +165,25 @@ namespace RelicRun.Core.Combat
         /// <summary>Floor-scoped state as it stood at the end — at the moment of death, if the hero fell.</summary>
         public readonly CarryState Carry;
 
-        public CombatResult(IReadOnlyList<CombatEvent> events, CarryState carry)
+        /// <summary>
+        /// How far into the pack the floor got: the index of the foe that was being fought when
+        /// it ended, and what was left of it.
+        /// </summary>
+        /// <remarks>
+        /// Only a revive reads these. A hero brought back does not start the floor again — they
+        /// resume against the foe that felled them, with its wounds intact.
+        /// </remarks>
+        public readonly int FoeIndex;
+
+        public readonly int FoeHp;
+
+        public CombatResult(IReadOnlyList<CombatEvent> events, CarryState carry,
+            int foeIndex = 0, int foeHp = 0)
         {
             Events = events;
             Carry = carry;
+            FoeIndex = foeIndex;
+            FoeHp = foeHp;
         }
     }
 }

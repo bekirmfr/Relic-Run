@@ -53,6 +53,12 @@ namespace RelicRun.Core.Run
 
         /// <summary>What to do with the bazaar's offer.</summary>
         BazaarDeal Bazaar(RunState run, IReadOnlyList<RelicId> offer);
+
+        /// <summary>
+        /// Whether to be brought back. Asked once per run, the moment the hero falls; what it
+        /// costs — sparks, an advertisement, nothing at all — is the caller's business.
+        /// </summary>
+        bool Revive(RunState run, int floor);
     }
 
     /// <summary>Told what a run did, as it happens.</summary>
@@ -65,6 +71,8 @@ namespace RelicRun.Core.Run
         void Draft(RunState run, int floor, IReadOnlyList<RelicId> offer, int rerolls, RelicId pick);
 
         void Fight(RunState run, int floor, IReadOnlyList<EnemyState> pack, CombatResult result);
+
+        void Revived(RunState run, int floor);
 
         void End(RunState run, bool dead, int floor);
     }
@@ -195,7 +203,7 @@ namespace RelicRun.Core.Run
                 }
 
                 Draft(run, floor, setup, rng, choices, observer);
-                Fight(run, floor, rng, observer, ref dead, ref deadAt);
+                Fight(run, floor, rng, choices, observer, ref dead, ref deadAt);
             }
 
             if (observer != null) observer.End(run, dead, dead ? deadAt : 0);
@@ -311,9 +319,9 @@ namespace RelicRun.Core.Run
             run.Php = Math.Min(run.Pmax, run.Php + heal);
         }
 
-        /// <summary>The floor's pack, and the fight.</summary>
-        private static void Fight(RunState run, int floor, Mulberry32 rng, IRunObserver observer,
-            ref bool dead, ref int deadAt)
+        /// <summary>The floor's pack, the fight, and the one chance to be brought back.</summary>
+        private static void Fight(RunState run, int floor, Mulberry32 rng, IRunChoices choices,
+            IRunObserver observer, ref bool dead, ref int deadAt)
         {
             // No dungeon: these packs carry no boss relics and take no dungeon multiplier,
             // which is what the run corpus records. Pack COMPOSITION is gated separately.
@@ -321,12 +329,47 @@ namespace RelicRun.Core.Run
             CombatResult result = new CombatEngine().ResolveFloor(run.Hero, pack, rng);
 
             if (observer != null) observer.Fight(run, floor, pack, result);
+            if (run.Php > 0) return;
 
-            if (run.Php <= 0)
+            if (!run.Revived && choices.Revive(run, floor))
             {
-                dead = true;
-                deadAt = floor;
+                Revive(run, floor, pack, result, rng, observer);
+                if (run.Php > 0) return;
             }
+
+            dead = true;
+            deadAt = floor;
+        }
+
+        /// <summary>
+        /// Brought back on half a pool, once per run, and set straight back into the fight that
+        /// ended it.
+        /// </summary>
+        /// <remarks>
+        /// The floor does not start again. The hero resumes against the foe that felled them,
+        /// still carrying the wounds it took, and against whatever was behind it — with the
+        /// floor's own carried state intact, so an Anvil Heart's bonus and a Sentinel's defence
+        /// survive the death that interrupted them.
+        /// </remarks>
+        private static void Revive(RunState run, int floor, IReadOnlyList<EnemyState> pack,
+            CombatResult fell, Mulberry32 rng, IRunObserver observer)
+        {
+            run.Revived = true;
+            run.Php = Math.Max(1, (int)Math.Floor(run.Pmax / 2.0));
+
+            var remaining = new List<EnemyState>();
+            for (int i = fell.FoeIndex; i < pack.Count; i++) remaining.Add(pack[i]);
+
+            // The foe that killed the hero keeps the wounds it took getting there.
+            if (remaining.Count > 0) remaining[0].Hp = Math.Max(1, fell.FoeHp);
+
+            if (observer != null) observer.Revived(run, floor);
+
+            run.Hero.Carry = fell.Carry;
+            CombatResult result = new CombatEngine().ResolveFloor(run.Hero, remaining, rng);
+            run.Hero.Carry = null;
+
+            if (observer != null) observer.Fight(run, floor, remaining, result);
         }
     }
 }

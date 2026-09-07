@@ -40,6 +40,9 @@ namespace RelicRun.Core.Run
         /// <summary>Gold an event promised on a later floor.</summary>
         public PendingGold? Pending;
 
+        /// <summary>Whether the one revive this run allows has been spent.</summary>
+        public bool Revived;
+
         public int Floor
         {
             get { return Hero.Floor; }

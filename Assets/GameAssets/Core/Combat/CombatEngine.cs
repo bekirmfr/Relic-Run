@@ -85,6 +85,9 @@ namespace RelicRun.Core.Combat
         private bool _hitTaken;
         private bool _foeCrit;
 
+        /// <summary>Which foe of the pack is being fought, so a revive can resume there.</summary>
+        private int _foeIndex;
+
         /// <summary>Set by an awakened Stutterstep: the foe's next swing hits itself.</summary>
         private bool _staggered;
 
@@ -890,6 +893,7 @@ namespace RelicRun.Core.Combat
 
             for (int k = 0; k < pack.Count && _hero.Php > 0; k++)
             {
+                _foeIndex = k;
                 _cur = pack[k];
                 _enemyHp = _cur.Hp;
 
@@ -976,7 +980,7 @@ namespace RelicRun.Core.Combat
             _carry.GaleBonus = _galeBonus;
             _carry.LuckBonus = _luckBonus;
 
-            return new CombatResult(_events, _carry);
+            return new CombatResult(_events, _carry, _foeIndex, _enemyHp);
         }
 
         // ---------- turns ----------

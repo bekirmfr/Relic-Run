@@ -248,6 +248,19 @@ and 0.72 falls between floor 10 (0.6923) and floor 11 (0.7692). Moving it to 0.7
 nothing; moving it to 0.65 fails. The 0.6 and 0.4 thresholds sit in narrower gaps and are
 pinned.
 
+## The revive, which has no corpus
+
+Everything else in the run loop is diffed against a recording. The revive cannot be: the
+source's lives in a React method that spends sparks or plays an advertisement, animates, and
+calls back into the fight pipeline, and the Balance Lab's headless loop has no notion of being
+brought back. There is nothing to record.
+
+`RunReviveTests` checks what the rule says instead — half a pool rounded down and never less
+than one, offered once per run, a run that takes it never ending sooner than one that refuses,
+and a resumed fight that meets the foe that felled the hero with its wounds intact rather than
+starting the floor over. That is weaker than a corpus and is called out here so it is not
+mistaken for one. The numbers came off the source by reading, not by diffing.
+
 ## Mutation testing
 
 A gate that has never gone red is not evidence of anything. Every phase so far has been

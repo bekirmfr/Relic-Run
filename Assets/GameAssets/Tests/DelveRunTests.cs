@@ -181,6 +181,17 @@ namespace RelicRun.Tests
                 Check("fight", floor, run);
             }
 
+            /// <summary>
+            /// The recorded runs never revive: the source's own harness has no such notion, and
+            /// a revive is bought with sparks or an advertisement. RunReviveTests covers it.
+            /// </summary>
+            bool IRunChoices.Revive(RunState run, int floor) { return false; }
+
+            void IRunObserver.Revived(RunState run, int floor)
+            {
+                Fail("floor " + floor + ": revived, but the recording never does");
+            }
+
             void IRunObserver.End(RunState run, bool dead, int floor) { }
 
             /// <summary>A reroll happened; count it so the next question answers correctly.</summary>
@@ -326,6 +337,11 @@ namespace RelicRun.Tests
             BazaarDeal IRunChoices.Bazaar(RunState run, IReadOnlyList<RelicId> offer)
             {
                 return ((IRunChoices)_inner).Bazaar(run, offer);
+            }
+
+            bool IRunChoices.Revive(RunState run, int floor)
+            {
+                return ((IRunChoices)_inner).Revive(run, floor);
             }
         }
 
