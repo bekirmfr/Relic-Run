@@ -57,6 +57,12 @@ TEST_PROJECT = os.path.join("Tools", "dotnet", "RelicRun.Core.Tests")
 IGNORE = shutil.ignore_patterns("bin", "obj", "*.meta", "*.user")
 
 
+# Single files the tests read that are not worth copying a whole tree for. The hero pack is
+# the shipped art, half a megabyte of it, and it sits beside a directory of PNGs nothing here
+# touches.
+FILES = [os.path.join(".port", "hero-pack.json")]
+
+
 def stage(into):
     """Copies just enough of the project to run the tests, and nothing Unity owns."""
     for tree in TREES:
@@ -64,6 +70,14 @@ def stage(into):
         if not os.path.isdir(src):
             sys.exit("missing from the project: " + tree)
         shutil.copytree(src, os.path.join(into, tree), ignore=IGNORE)
+
+    for name in FILES:
+        src = os.path.join(ROOT, name)
+        if not os.path.isfile(src):
+            sys.exit("missing from the project: " + name)
+        dst = os.path.join(into, name)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(src, dst)
 
 
 def run_tests(where):

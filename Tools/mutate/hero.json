@@ -1,0 +1,125 @@
+{
+  "name": "composing a delver",
+  "mutants": [
+    {
+      "name": "a modifier replaces what is beneath it",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                    bool tones = IsMod(ch) && !below.IsEmpty &&",
+      "replace": "                    bool tones = false && IsMod(ch) && !below.IsEmpty &&"
+    },
+    {
+      "name": "a modifier tones the empty canvas too",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                    bool tones = IsMod(ch) && !below.IsEmpty &&\n                                 !(below.Tones.Length == 0 && IsMod(below.Role));",
+      "replace": "                    bool tones = IsMod(ch);"
+    },
+    {
+      "name": "two bare modifiers compound instead of replacing",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                                 !(below.Tones.Length == 0 && IsMod(below.Role));",
+      "replace": "                                 true;"
+    },
+    {
+      "name": "tones stack in the order they came off rather than on",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                        ? new ComposedPixel(below.Role, below.Tones + ch)",
+      "replace": "                        ? new ComposedPixel(below.Role, ch + below.Tones)"
+    },
+    {
+      "name": "only the last tone on a pixel is kept",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                        ? new ComposedPixel(below.Role, below.Tones + ch)",
+      "replace": "                        ? new ComposedPixel(below.Role, ch.ToString())"
+    },
+    {
+      "name": "a blank space in a layer paints over what is beneath",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                    if (ch == Empty || ch == ' ') continue;",
+      "replace": "                    if (ch == Empty) continue;"
+    },
+    {
+      "name": "the outline is drawn as each pixel is decided",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                        outlined.Add(y * size + x);",
+      "replace": "                        grid[y * size + x] = new ComposedPixel(HeroPalette.OutlineKey);"
+    },
+    {
+      "name": "the outline traces diagonals too",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                        Solid(grid, size, x - 1, y) || Solid(grid, size, x + 1, y))",
+      "replace": "                        Solid(grid, size, x - 1, y) || Solid(grid, size, x + 1, y) ||\n                        Solid(grid, size, x - 1, y - 1) || Solid(grid, size, x + 1, y + 1))"
+    },
+    {
+      "name": "a shadow casts an outline of its own",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "            return !pixel.IsEmpty && pixel.Tones.Length == 0 && !IsMod(pixel.Role);",
+      "replace": "            return !pixel.IsEmpty;"
+    },
+    {
+      "name": "a toned pixel counts as solid",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "            return !pixel.IsEmpty && pixel.Tones.Length == 0 && !IsMod(pixel.Role);",
+      "replace": "            return !pixel.IsEmpty && !IsMod(pixel.Role);"
+    },
+    {
+      "name": "the outline runs around the backdrop as well",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                if (slot == Backdrop) continue;",
+      "replace": ""
+    },
+    {
+      "name": "the backdrop paints over the hero",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                if (!front[i].IsEmpty) behind[i] = front[i];",
+      "replace": "                if (behind[i].IsEmpty) behind[i] = front[i];"
+    },
+    {
+      "name": "a state runs for exactly as many frames as the rig claims",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "                    frames.Count > count)\n                {\n                    count = frames.Count;\n                }",
+      "replace": "                    false)\n                {\n                    count = frames.Count;\n                }"
+    },
+    {
+      "name": "a part that has run out of frames restarts",
+      "file": "Assets/GameAssets/Core/Content/HeroPack.cs",
+      "find": "                return frames[index < frames.Count ? index : frames.Count - 1];",
+      "replace": "                return frames[index % frames.Count];"
+    },
+    {
+      "name": "a part with no frames for a state is simply absent",
+      "file": "Assets/GameAssets/Core/Content/HeroPack.cs",
+      "find": "            return part.Frames.TryGetValue(\"static\", out frames) && frames.Count > 0\n                ? frames[0]\n                : null;",
+      "replace": "            return null;"
+    },
+    {
+      "name": "the paint order is reversed",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "            for (int i = 0; i < pack.Stack.Count; i++)\n            {\n                string slot = pack.Stack[i];\n                if (slot == Backdrop) continue;",
+      "replace": "            for (int i = pack.Stack.Count - 1; i >= 0; i--)\n            {\n                string slot = pack.Stack[i];\n                if (slot == Backdrop) continue;"
+    },
+    {
+      "name": "a short grid is cropped rather than padded",
+      "file": "Assets/GameAssets/Core/Content/HeroPack.cs",
+      "find": "                if (row.Length < Size) row = row.PadRight(Size, '.');",
+      "replace": ""
+    },
+    {
+      "name": "a state the rig does not have falls back to nothing",
+      "file": "Assets/GameAssets/Core/Content/HeroPack.cs",
+      "find": "            return States.TryGetValue(\"idle\", out def) ? def : new HeroStateDef();",
+      "replace": "            return new HeroStateDef();"
+    },
+    {
+      "name": "the pack animates from its own state table",
+      "file": "Assets/GameAssets/Core/Content/HeroRig.cs",
+      "find": "{ \"idle\", new HeroStateDef { Frames = 1, Ms = 200, Mode = \"loop\" } },",
+      "replace": "{ \"idle\", new HeroStateDef { Frames = 7, Ms = 200, Mode = \"loop\" } },"
+    },
+    {
+      "name": "the compositor applies the pack's own slot defaults",
+      "file": "Assets/GameAssets/Core/Content/HeroCompositor.cs",
+      "find": "            if (worn == null || !worn.TryGetValue(slot, out id) || id == null) return null;",
+      "replace": "            if (worn == null || !worn.TryGetValue(slot, out id) || id == null)\n            {\n                if (!pack.Defaults.TryGetValue(slot, out id)) return null;\n            }"
+    }
+  ]
+}

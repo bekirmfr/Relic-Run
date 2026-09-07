@@ -27,6 +27,17 @@ const load = (f) => JSON.parse(readFileSync(join(OUT, f), "utf8"));
 const relics = load("relics.json");
 const dungeons = load("dungeons.json");
 const palette = load("palette.json");
+const rig = load("hero.json");
+
+/* Role keys are single characters and several of them are punctuation, so they are emitted as
+   escaped C# char literals rather than trusted to survive as source text. */
+const asChar = (k) => {
+  const c = [...k][0];
+  const code = c.codePointAt(0);
+  if (c === "'") return "'\\''";
+  if (c === "\\") return "'\\\\'";
+  return code >= 32 && code < 127 ? `'${c}'` : `'\\u${code.toString(16).padStart(4, "0")}'`;
+};
 const kinds = load("kinds.json");
 const sockets = load("sockets.json");
 
@@ -376,17 +387,66 @@ ${halls}
 }
 `);
 
-/* ---------- HeroPalette ---------- */
+/* ---------- HeroRig ---------- */
 
-/* Role keys are single characters and several of them are punctuation, so they are emitted as
-   escaped C# char literals rather than trusted to survive as source text. */
-const asChar = (k) => {
-  const c = [...k][0];
-  const code = c.codePointAt(0);
-  if (c === "'") return "'\\''";
-  if (c === "\\") return "'\\\\'";
-  return code >= 32 && code < 127 ? `'${c}'` : `'\\u${code.toString(16).padStart(4, "0")}'`;
-};
+const stateRows = Object.keys(rig.states).map((name) => {
+  const st = rig.states[name];
+  return `            { "${name}", new HeroStateDef ` +
+         `{ Frames = ${st.frames}, Ms = ${st.ms}, Mode = "${st.mode}" } },`;
+}).join("\n");
+
+const slotRows = rig.slots.map((s) => `            "${s}",`).join("\n");
+const roleRows = Object.keys(rig.roles).map((k) =>
+  `            { ${asChar(k)}, "${rig.roles[k]}" },`).join("\n");
+
+write("HeroRig.cs", header(`${Object.keys(rig.states).length} states, ${rig.slots.length} slots`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>
+    /// The rig every hero pack is drawn against.
+    /// </summary>
+    /// <remarks>
+    /// A pack supplies the ART; this supplies the shape of it — which slots exist, how long each
+    /// animation runs, and what every role key means.
+    ///
+    /// A pack declares its own states too, and those are used to VALIDATE it: a part claiming
+    /// more frames than its state allows is malformed. They are not what the game animates from.
+    /// The registry decides that, and a pack drawn with more frames than the registry claims
+    /// simply animates fully. Reading the pack's numbers instead is a mistake that changes every
+    /// animation in the game and looks, at a glance, like the more obvious thing to do.
+    /// </remarks>
+    public static class HeroRig
+    {
+        /// <summary>The canvas a pack is drawn on unless it says otherwise.</summary>
+        public const int DefaultSize = ${rig.defaultSize};
+
+        /// <summary>The wardrobe slots, in the order the registry lists them.</summary>
+        public static readonly IReadOnlyList<string> Slots = new List<string>
+        {
+${slotRows}
+        };
+
+        /// <summary>How long each state runs, and how it ends.</summary>
+        public static readonly IReadOnlyDictionary<string, HeroStateDef> States =
+            new Dictionary<string, HeroStateDef>
+        {
+${stateRows}
+        };
+
+        /// <summary>What each role key means, for anything that shows an artist the palette.</summary>
+        public static readonly IReadOnlyDictionary<char, string> Roles =
+            new Dictionary<char, string>
+        {
+${roleRows}
+        };
+    }
+}
+`);
+
+/* ---------- HeroPalette ---------- */
 
 const familyRows = palette.families.map((f) =>
   `            new ColourFamily("${f.name}", ${asChar(f.base)}, ${asChar(f.dark)}, ` +

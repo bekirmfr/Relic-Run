@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RelicRun.Core.Content;
 
 namespace RelicRun.Tests.Support
 {
@@ -105,6 +106,83 @@ namespace RelicRun.Tests.Support
         public static T Read<T>(string fileName)
         {
             return JsonConvert.DeserializeObject<T>(ReadText(fileName));
+        }
+
+        /// <summary>
+        /// The shipped hero pack, loaded from <c>.port/hero-pack.json</c>.
+        /// </summary>
+        /// <remarks>
+        /// Read from the source drop rather than from a copy, so the tests compose the same art
+        /// the game ships. Core cannot parse JSON — it references nothing — so the reading
+        /// happens here and Core is handed a filled <see cref="HeroPack"/>. A Unity importer
+        /// will fill the same object from the same file.
+        /// </remarks>
+        public static HeroPack HeroPack()
+        {
+            string path = Path.Combine(
+                Path.GetDirectoryName(Path.GetDirectoryName(Root)), ".port", "hero-pack.json");
+
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("the shipped hero pack is missing: " + path);
+            }
+
+            JObject json = JObject.Parse(File.ReadAllText(path));
+            var pack = new RelicRun.Core.Content.HeroPack { Size = json["size"].Value<int>() };
+
+            foreach (JToken slot in (JArray)json["stack"]) pack.Stack.Add(slot.Value<string>());
+
+            // The pack's own states are deliberately NOT read: they exist to validate the pack,
+            // and the rig is what the game animates from.
+
+            if (json["defaults"] != null)
+            {
+                foreach (JProperty pick in ((JObject)json["defaults"]).Properties())
+                {
+                    pack.Defaults[pick.Name] = pick.Value.Value<string>();
+                }
+            }
+
+            if (json["famHex"] != null)
+            {
+                foreach (JProperty pick in ((JObject)json["famHex"]).Properties())
+                {
+                    pack.FamilyColours[pick.Name[0]] = pick.Value.Value<string>();
+                }
+            }
+
+            if (json["base"] != null && json["base"]["frames"] != null)
+            {
+                pack.Add(PartFrom("base", "base", (JObject)json["base"]["frames"]));
+            }
+
+            foreach (JToken part in (JArray)json["parts"])
+            {
+                pack.Add(PartFrom(part["slot"].Value<string>(), part["id"].Value<string>(),
+                    (JObject)part["frames"]));
+            }
+
+            return pack;
+        }
+
+        private static HeroPart PartFrom(string slot, string id, JObject frames)
+        {
+            var part = new HeroPart(slot, id);
+
+            foreach (JProperty state in frames.Properties())
+            {
+                var list = new List<string[]>();
+                foreach (JToken frame in (JArray)state.Value)
+                {
+                    var rows = new List<string>();
+                    foreach (JToken row in (JArray)frame) rows.Add(row.Value<string>());
+                    list.Add(rows.ToArray());
+                }
+
+                part.Frames[state.Name] = list;
+            }
+
+            return part;
         }
     }
 }

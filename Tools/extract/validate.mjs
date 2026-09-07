@@ -129,6 +129,7 @@ check("every family names its three roles", palette.families.every((f) =>
    silently paint one family's pixels in another's colour. */
 const roleKeys = palette.families.flatMap((f) => [f.base, f.dark, f.light])
   .concat(Object.keys(palette.solos));
+const paletteRoleKeys = roleKeys.concat(["d", "", "f", "i", "j", "m", "S", "s", "7"]);
 check("role keys are unique", new Set(roleKeys).size === roleKeys.length);
 check("role keys are single characters", roleKeys.every((k) => [...k].length === 1));
 check("7 fixed colours", Object.keys(palette.solos).length === 7);
@@ -136,6 +137,26 @@ check("every fixed colour is a hex", Object.values(palette.solos).every((h) =>
   /^#[0-9A-Fa-f]{6}$/.test(h)));
 check("the dark shade darkens and the light shade lightens",
   palette.shade.darkMult < 1 && palette.shade.lightMult > 1);
+
+/* ---------- the hero rig ---------- */
+
+const rig = load("hero.json");
+
+console.log("\nhero rig");
+check("11 wardrobe slots", rig.slots.length === 11);
+check("the backdrop is a slot", rig.slots.indexOf("bg") >= 0);
+check("every state says how it ends", Object.values(rig.states).every((s) =>
+  ["loop", "once", "hold"].indexOf(s.mode) >= 0));
+check("every state has frames and timing", Object.values(rig.states).every((s) =>
+  s.frames >= 1 && s.ms > 0));
+check("idle exists, because everything falls back to it", !!rig.states.idle);
+
+/* A role key names a family and a shade — "outfit-dark" — and the palette is keyed by the same
+   letters. A key the palette cannot paint would leave those pixels black. */
+const painted = new Set(paletteRoleKeys);
+const unpainted = Object.keys(rig.roles).filter((k) => !painted.has(k));
+check("every role key the rig names can be painted",
+  unpainted.length === 0, unpainted.join(", "));
 
 /* ---------- dungeons ---------- */
 

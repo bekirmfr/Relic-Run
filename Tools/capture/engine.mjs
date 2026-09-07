@@ -31,7 +31,7 @@ const CONSTS = [
   "SOLOS", "SHADE_DEFAULTS", "MODS",
   // The synthetic-token registry the shadow and highlight modifiers fill in as a hero is
   // composed. Empty until something composes; paletteFor reads it either way.
-  "SYNTH",
+  "SYNTH", "BASE32", "HERO32", "STUDIO_REV",
   // The merchant's greeting is picked with a SEEDED draw, from inside a callback the
   // animation defers. It is one line of flavour that moves every number after it.
   "MERCHANT_LINES",
@@ -50,6 +50,12 @@ const FUNCTIONS = [
   // Changing Room needs in order to recolour a delver live.
   "shade", "hexToHsl", "hslToHex", "applyShade", "famParams", "shadeParams",
   "hexOver", "paletteFor",
+  // Composing a hero: the pack goes in as overrides, and the compositor stamps the stack,
+  // resolves the shadow and highlight modifiers, and outlines the silhouette.
+  "clampCanvasSize", "setCanvasSize", "studioBump", "up2", "up2Sparse",
+  "StudioBlank", "stateDef", "toneTok", "stampCh", "stamp32", "norm32",
+  "partGrid32", "partFrame32", "slotFallback", "slotDefault", "outlineMode", "applyOutline",
+  "composeHeroState", "validatePack", "importPack", "migrateProp",
 ];
 
 const METHODS = ["simulateFloor", "simulateDuel"];
@@ -103,6 +109,9 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "const window = { __ddDefModel: 'pct',",
     "  matchMedia: (q) => ({ matches: __env.reducedMotion && /reduce/.test(q) }) };",
     "const SFX = new Proxy({}, { get: () => () => {} });",
+    // setCanvasSize clears the sprite cache as it resizes. Nothing here draws, so the cache is
+    // a bare Map and clearing it is the whole of what the stub has to do.
+    "const heroSprite = { _c: new Map() };",
     "const tele = () => {};",
     "const Telemetry = { runCount: 0 };",
     // META reads the save store for the player's level and frontier hall. A tiny stub stands
@@ -151,7 +160,8 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, REVIVE_SPARKS, Store,",
     "  slotList, Studio, FAMILIES, relicSynergy, dailySeed,",
   "  SOLOS, SHADE_DEFAULTS, MODS, shade, hexToHsl, hslToHex, applyShade, famParams,",
-  "  hexOver, paletteFor,",
+  "  hexOver, paletteFor, composeHeroState, importPack, validatePack, PACK, HERO32,",
+  "  stackOrder, partFrame32, applyOutline, setCanvasSize, SYNTH, MODS,",
   "  setReducedMotion: v => { __env.reducedMotion = !!v; } };",
   ];
 

@@ -225,6 +225,23 @@ write("palette.json", {
   shade: evalLiteral("SHADE_DEFAULTS"),
 });
 
+/* ---------- 4c. the hero rig ---------- */
+
+/* The registry a hero pack is drawn against: the canvas, the wardrobe slots, the animation
+   states and what every role key means. A pack declares its own states so it can be validated
+   against them, but the REGISTRY is what decides how long a state runs and how many frames it
+   has — a distinction that is easy to miss and changes every animation if you get it wrong. */
+
+console.log("\nhero rig");
+const packLit = evalLiteral("PACK");
+write("hero.json", {
+  defaultSize: 32,
+  slots: packLit.SLOTS,
+  states: packLit.STATES,
+  roles: packLit.ROLES,
+});
+
+
 /* ---------- 5. enemies ---------- */
 
 console.log("\nenemies");

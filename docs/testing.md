@@ -446,6 +446,58 @@ All three are still worth writing the way the source writes them, so each was re
 neighbouring mutation that is observable: half a turn instead of a full one, a grey threshold
 instead of an exact zero, and a lightness that is halved rather than merely unclamped.
 
+## Composing a delver
+
+A hero is not a sprite. It is a stack of twelve layers — a backdrop, a body, and ten wardrobe
+slots — each drawn as a 42-square grid whose characters are role keys. Composing one means
+stamping the stack in paint order, resolving the shadow and highlight modifiers against whatever
+is already beneath them, outlining the finished silhouette, and laying the lot over the backdrop.
+
+**This is why the port plan's "stack twelve sprites and let a shader colour them" does not work.**
+Two of the role keys are not colours at all: a shadow means "whatever is under this, one tone
+darker", so what a pixel finally is depends on what was stamped before it. The outline is the
+same shape of problem — it traces the finished silhouette, which nothing knows until the stack is
+complete. Neither can be baked into a sprite ahead of time. So the composition happens at
+runtime, into a 42×42 grid of indices, and the shader colours that instead. Seventeen hundred
+pixels is nothing to compose; the sprite-stacking was an optimisation for a cost that is not
+there.
+
+### Comparing a pixel on its meaning
+
+The source names each toned pixel with a synthetic character, handed out in the order the tones
+are first met. Those characters are an artefact of the order it happened to compose in — a port
+that composed differently would pick different ones and still be right — so they are not
+reproduced. Each recorded frame carries a table saying what its characters MEAN, and the port is
+compared on that: this pixel is the outfit's dark side, one tone darker again.
+
+### Where the recording could not reach
+
+483 frames and some 852,000 pixels replay exactly, and five mutations still survived it. Three
+were things the shipped art simply never does, and one was a rule I had invented:
+
+- **Tones stacking.** Nothing in eleven thousand recorded rows lays one modifier over another on
+  a real pixel, so the corpus cannot say whether tones stack or only the last survives.
+- **A blank space.** The grids use a full stop for nothing; the format allows a space and the
+  pack never uses one. Treating a space as paint would let a garment punch its own silhouette
+  out of the body.
+- **A short row.** Every row in the pack is already the full width, so the padding never fires.
+- **Slot defaults**, which the compositor should never have consulted. The pack carries a default
+  for some slots and it belongs to whoever assembles an outfit — the Changing Room applies it, a
+  lobby rolling a rival's appearance does not. Applying it at composition time would have put
+  trousers on delvers drawn deliberately without them. That one was not a gap in the corpus; it
+  was a rule I added that the source does not have, and only mutation found it.
+
+Each is asked directly now, and all twenty mutations die.
+
+### One number that is easy to read off the wrong table
+
+A pack declares its own animation states, and the game does not animate from them. The REGISTRY
+decides how long a state runs and how many frames it starts from; the pack's copy exists so a
+part claiming more frames than its state allows can be rejected as malformed. Reading the pack's
+numbers instead changes every animation in the game and looks, at a glance, like the more obvious
+thing to do — the corpus caught it on the first run, because a state the registry does not have
+at all falls back to idle and the frame counts stopped matching.
+
 ## What a run leaves behind
 
 Scoring says what a run was WORTH; banking is what then happens to it, and the two are apart
@@ -723,3 +775,4 @@ node Tools/extract/validate.mjs
 | Phase 6d — the versus match | `versus.json` | passing, 120 matches and 733 rounds |
 | Phase 6e — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |
 | Phase 8a — the palette | `palette.json` | passing, 12,650 colours and four 94-key palettes |
+| Phase 8b — composing a hero | `hero.json` | passing, 483 frames and ~852,000 pixels |
