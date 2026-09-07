@@ -20,6 +20,12 @@ const CONSTS = [
   // and EV_MIN_SPD's carries EV_MIN_DEF.
   "EVENTS", "EV_MIN_SPD", "ENEMY_STAT_FORMULAS", "ENEMY_ROLE_FORMULAS",
   "FORMULA_BASE_STATS",
+  // The versus lobby rolls each rival's APPEARANCE — outfit, colours, accent, motto — out of
+  // the same generator that then rolls their level, hall and stats: twenty-three draws a
+  // rival. Leaving the wardrobe out would not skip those draws quietly. The source wraps them
+  // in try/catch, so they would throw, consume nothing, and silently shift every statline in
+  // the lobby. These are lifted for their effect on the stream, not for their output.
+  "HERO_LAYERS", "PACK", "FAMILIES", "DRESS_SWATCHES", "Studio",
 ];
 
 const FUNCTIONS = [
@@ -28,6 +34,7 @@ const FUNCTIONS = [
   // The run loop proper.
   "freshRunState", "weightedRelic", "applyPickup", "breathHeal", "relicSynergy",
   "compileFormula", "evRelic", "awakeById", "luckRoll",
+  "uniqHex", "stackOrder", "slotList",
 ];
 
 const METHODS = ["simulateFloor", "simulateDuel"];
@@ -37,7 +44,11 @@ const METHODS = ["simulateFloor", "simulateDuel"];
 // than re-walked in the recorder, so the run corpus records the GAME's run. The brace
 // scanner cannot read it — it holds regex literals the depth count trips over — so it is
 // bounded by where the next method begins instead.
-const BOUNDED_METHODS = ["balanceRuns", "finishRun"];
+const BOUNDED_METHODS = [
+  "balanceRuns", "finishRun",
+  // The versus lobby: how a match is set up, who is fought next, and what a round costs.
+  "startRun", "draftOffer", "startVersus", "rivalPack", "versusResolve", "hallForDuel",
+];
 
 /**
  * Assembles the engine.
@@ -73,6 +84,13 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     "  clearTimers() {}",
     "  later(fn, ms) {}",
     "  countTo(target, ms, from) {}",
+    // setState takes an object or a reducer; the lobby uses both.
+    "  setState(next, done) {",
+    "    const patch = typeof next === 'function' ? next(this.state) : next;",
+    "    Object.assign(this.state, patch);",
+    "    if (done) done();",
+    "  }",
+    "  syncHUD(extra) { if (extra) Object.assign(this.state, extra); }",
     ...METHODS.map(liftMethod),
     ...BOUNDED_METHODS.map(method),
     "}",
@@ -81,11 +99,21 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     "  META, setUnlocked: n => { __store['dd.unlocked'] = n; },",
     "  EVENTS, freshRunState, weightedRelic, applyPickup, breathHeal, relicSynergy,",
     "  compileFormula, evRelic, awakeById, luckRoll, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
-    "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, MAX_FLOOR, REVIVE_SPARKS, Store };",
+    "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, REVIVE_SPARKS, Store,",
+    "  slotList, Studio, FAMILIES };",
   ];
 
+  // startVersus seeds its own match from Math.random, so a recorded lobby needs that to be
+  // reproducible. The realm gets a seeded one; nothing else in the engine draws from it.
+  let seedForNextLobby = 1;
+  const scopedMath = Object.create(Math);
+  scopedMath.random = () => {
+    seedForNextLobby = (seedForNextLobby * 1664525 + 1013904223) >>> 0;
+    return seedForNextLobby / 4294967296;
+  };
+
   const ctx = vm.createContext({
-    globalThis: {}, Math, JSON, Object, Array, Set, Map, Number, String, console,
+    globalThis: {}, Math: scopedMath, JSON, Object, Array, Set, Map, Number, String, console,
     // compileFormula builds enemy curves with `new Function`, so the realm needs it.
     Function, isFinite, isNaN,
     // finishRun timestamps its telemetry.
@@ -93,5 +121,6 @@ export function buildEngine({ instrumentRuns = false } = {}) {
   });
   ctx.globalThis = ctx;
   vm.runInContext(parts.join("\n\n"), ctx, { filename: "engine.lifted.js" });
+  ctx.__api.seedLobby = (n) => { seedForNextLobby = n >>> 0; };
   return ctx.__api;
 }
