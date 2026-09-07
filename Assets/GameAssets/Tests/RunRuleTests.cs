@@ -277,7 +277,7 @@ namespace RelicRun.Tests
             RunState a = AtTheBazaar(refused, RelicId.LuckyClover);
 
             Assert.That(refused.Saw, Is.True, "the run never reached the bazaar");
-            Assert.That(refused.Awakenable, Does.Not.Contain(0),
+            Assert.That(refused.Awakenable.Contains(0), Is.False,
                 "a Lucky Clover does not stack, so the shelf never carried it");
             Assert.That(a.IsAwake(RelicId.LuckyClover), Is.False);
             Assert.That(refused.GoldAfter, Is.EqualTo(refused.GoldBefore),
