@@ -26,6 +26,9 @@ const CONSTS = [
   // in try/catch, so they would throw, consume nothing, and silently shift every statline in
   // the lobby. These are lifted for their effect on the stream, not for their output.
   "HERO_LAYERS", "PACK", "FAMILIES", "DRESS_SWATCHES", "Studio",
+  // The merchant's greeting is picked with a SEEDED draw, from inside a callback the
+  // animation defers. It is one line of flavour that moves every number after it.
+  "MERCHANT_LINES",
 ];
 
 const FUNCTIONS = [
@@ -48,6 +51,16 @@ const BOUNDED_METHODS = [
   "balanceRuns", "finishRun",
   // The versus lobby: how a match is set up, who is fought next, and what a round costs.
   "startRun", "draftOffer", "startVersus", "rivalPack", "versusResolve", "hallForDuel",
+  "pickRelic", "fight", "descend", "finishDescend", "proceedDescend", "shopOffer",
+  "bazaarFloor", "tierPack", "landFrom",
+  // playNext is the playback animation, and it is lifted for one reason: at the end of
+  // the event queue it commits the fight back into the run and dispatches the next
+  // phase. Its own randomness is particle positions drawn from Math.random, a different
+  // generator from the seeded one, so none of it reaches the fight.
+  "schedNext", "playNext",
+  // Log text, playback pacing and the fight intro. None of them draws from the seeded
+  // stream, so lifting them costs nothing and avoids inventing stand-ins.
+  "lineFor", "evDelay", "startFight",
 ];
 
 /**
@@ -65,7 +78,12 @@ export function buildEngine({ instrumentRuns = false } = {}) {
 
   const parts = [
     '"use strict";',
-    "const window = { __ddDefModel: 'pct' };",
+    // The source asks prefers-reduced-motion and takes a DIFFERENT path when it is set —
+    // different code, and different draws from the seeded generator. Which path is recorded
+    // has to be a decision, so it is a switch rather than an accident of the stub.
+    "const __env = { reducedMotion: false };",
+    "const window = { __ddDefModel: 'pct',",
+    "  matchMedia: (q) => ({ matches: __env.reducedMotion && /reduce/.test(q) }) };",
     "const SFX = new Proxy({}, { get: () => () => {} });",
     "const tele = () => {};",
     "const Telemetry = { runCount: 0 };",
@@ -82,7 +100,17 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     // a gold counter that animates. Stubbing those is what lets the arithmetic — banked gold,
     // score, stars, XP — be lifted rather than transcribed.
     "  clearTimers() {}",
-    "  later(fn, ms) {}",
+    // The source defers work behind animation, and some of that work DRAWS — the merchant's
+    // line, the next pack. Dropping the callbacks would quietly shorten the random stream, so
+    // they are queued instead and the driver drains them where the animation would have run.
+    "  later(fn, ms) { (this._pending || (this._pending = [])).push(fn); }",
+    "  drain() {",
+    "    let guard = 0;",
+    "    while (this._pending && this._pending.length && guard++ < 500) {",
+    "      const fn = this._pending.shift();",
+    "      fn();",
+    "    }",
+    "  }",
     "  countTo(target, ms, from) {}",
     // setState takes an object or a reducer; the lobby uses both.
     "  setState(next, done) {",
@@ -100,7 +128,7 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     "  EVENTS, freshRunState, weightedRelic, applyPickup, breathHeal, relicSynergy,",
     "  compileFormula, evRelic, awakeById, luckRoll, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
     "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, REVIVE_SPARKS, Store,",
-    "  slotList, Studio, FAMILIES };",
+    "  slotList, Studio, FAMILIES, setReducedMotion: v => { __env.reducedMotion = !!v; } };",
   ];
 
   // startVersus seeds its own match from Math.random, so a recorded lobby needs that to be

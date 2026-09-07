@@ -90,7 +90,12 @@ namespace RelicRun.Core.Run
         /// <summary>Health restored between floors.</summary>
         public int Breath = 5;
 
-        public int DraftChoices = 3;
+        /// <summary>
+        /// Relics offered at each draft. A delve shows two, and a level-10 perk adds a third;
+        /// a duel always shows three. The Balance Lab defaults to three for a delve as well,
+        /// which is why the run corpus passes this explicitly rather than leaning on it.
+        /// </summary>
+        public int DraftChoices = 2;
 
         /// <summary>Relics the hero starts holding.</summary>
         public IReadOnlyList<RelicId> StartKit = new List<RelicId>();

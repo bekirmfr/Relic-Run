@@ -355,7 +355,9 @@ namespace RelicRun.Tests
             if (p["baseSpd"] != null) setup.Spd = p["baseSpd"].Value<int>();
             if (p["baseLck"] != null) setup.Lck = p["baseLck"].Value<int>();
             if (p["breath"] != null) setup.Breath = p["breath"].Value<int>();
-            if (p["draftChoices"] != null) setup.DraftChoices = p["draftChoices"].Value<int>();
+            // balanceRuns offers three where the shipped delve offers two, so an absent value
+            // means the Lab's default rather than the game's.
+            setup.DraftChoices = p["draftChoices"] != null ? p["draftChoices"].Value<int>() : 3;
 
             if (p["startKit"] != null)
             {
