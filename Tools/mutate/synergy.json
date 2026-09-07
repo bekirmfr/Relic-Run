@@ -1,0 +1,77 @@
+{
+  "name": "how the game reads a build",
+  "mutants": [
+    {
+      "name": "opening a set tier is worth two",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "score += 3;",
+      "replace": "score += 2;"
+    },
+    {
+      "name": "riding a kind has no ceiling",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "score += System.Math.Min(2, ofKind * 0.5);",
+      "replace": "score += ofKind * 0.5;"
+    },
+    {
+      "name": "riding a kind counts double",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "System.Math.Min(2, ofKind * 0.5)",
+      "replace": "System.Math.Min(2, ofKind * 1.0)"
+    },
+    {
+      "name": "the dominant kind earns nothing",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "if (ofKind == dominant && dominant >= 2) score += 0.5;",
+      "replace": ""
+    },
+    {
+      "name": "the dominant bonus starts at one of a kind",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "dominant >= 2",
+      "replace": "dominant >= 1"
+    },
+    {
+      "name": "a set of four opens a tier",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "private static readonly int[] Tiers = { 3, 5, 7 };",
+      "replace": "private static readonly int[] Tiers = { 3, 4, 5, 7 };"
+    },
+    {
+      "name": "a fireable trigger is worth one",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "                score += 2;\n                anyTriggerFires = true;",
+      "replace": "                score += 1;\n                anyTriggerFires = true;"
+    },
+    {
+      "name": "feeding a consumer earns nothing",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "if (consumed.Contains(def.Emits[i])) score += 2;",
+      "replace": ""
+    },
+    {
+      "name": "a dead trigger is not punished",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "if (def.Reacts.Length > 0 && !anyTriggerFires) score -= 3;",
+      "replace": ""
+    },
+    {
+      "name": "luck flows without a Clover",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "if (Contains(owned, RelicId.LuckyClover)) produced.Add(Channel.Luck);",
+      "replace": "produced.Add(Channel.Luck);"
+    },
+    {
+      "name": "a fight produces no gold",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "            produced.Add(Channel.Gold);\n",
+      "replace": ""
+    },
+    {
+      "name": "emits and reacts are swapped",
+      "file": "Assets/GameAssets/Core/Run/RelicSynergy.cs",
+      "find": "for (int k = 0; k < held.Emits.Length; k++) produced.Add(held.Emits[k]);\n                for (int k = 0; k < held.Reacts.Length; k++) consumed.Add(held.Reacts[k]);",
+      "replace": "for (int k = 0; k < held.Reacts.Length; k++) produced.Add(held.Reacts[k]);\n                for (int k = 0; k < held.Emits.Length; k++) consumed.Add(held.Emits[k]);"
+    }
+  ]
+}

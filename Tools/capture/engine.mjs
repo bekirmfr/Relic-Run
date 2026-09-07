@@ -131,7 +131,7 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "  EVENTS, freshRunState, weightedRelic, applyPickup, breathHeal, relicSynergy,",
     "  compileFormula, evRelic, awakeById, luckRoll, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
     "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, REVIVE_SPARKS, Store,",
-    "  slotList, Studio, FAMILIES, setReducedMotion: v => { __env.reducedMotion = !!v; } };",
+    "  slotList, Studio, FAMILIES, relicSynergy, setReducedMotion: v => { __env.reducedMotion = !!v; } };",
   ];
 
   // startVersus seeds its own match from Math.random, so a recorded lobby needs that to be
