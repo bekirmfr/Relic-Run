@@ -18,15 +18,18 @@ namespace RelicRun.Core.Run
         /// Relics that may be offered: everything not already held, unless it stacks, and
         /// nothing whose trigger this loadout could never pull.
         /// </summary>
-        public static List<RelicId> Available(IReadOnlyList<RelicId> owned, RunRules rules)
+        public static List<RelicId> Available(IReadOnlyList<RelicId> owned, RunRules rules,
+            GameModes mode)
         {
-            var avail = new List<RelicId>(RelicCatalog.All.Count);
-            for (int i = 0; i < RelicCatalog.All.Count; i++)
+            List<RelicId> pool = RelicCatalog.PoolFor(mode);
+            var avail = new List<RelicId>(pool.Count);
+
+            for (int i = 0; i < pool.Count; i++)
             {
-                RelicDef def = RelicCatalog.All[i];
-                if (!rules.Stacks(def.Id) && Contains(owned, def.Id)) continue;
-                if (!IsLive(def.Id, owned)) continue;
-                avail.Add(def.Id);
+                RelicId id = pool[i];
+                if (!rules.Stacks(id) && Contains(owned, id)) continue;
+                if (!IsLive(id, owned)) continue;
+                avail.Add(id);
             }
 
             return avail;
@@ -60,13 +63,14 @@ namespace RelicRun.Core.Run
 
         /// <summary>Rolls one offer of up to <paramref name="choices"/> distinct relics.</summary>
         public static List<RelicId> RollOffer(IReadOnlyList<RelicId> owned, int choices,
-            Mulberry32 rng, RunRules rules)
+            Mulberry32 rng, RunRules rules, GameModes mode)
         {
-            List<RelicId> avail = Available(owned, rules);
+            List<RelicId> avail = Available(owned, rules, mode);
             var offer = new List<RelicId>(choices);
             int want = System.Math.Min(choices, avail.Count);
+            int guard = 0;
 
-            while (offer.Count < want)
+            while (offer.Count < want && guard++ < 200)
             {
                 RelicId id = Weighted(avail, owned, rng);
                 if (!offer.Contains(id)) offer.Add(id);

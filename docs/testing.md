@@ -179,84 +179,128 @@ once, which is a statement about corpus coverage rather than about the rule.
 
 ## The run gate
 
-`runs.json` is Phase 5's contract, and it is built differently from the fight corpus. The
-source's own headless run loop, `balanceRuns`, walks a full thirteen floors over the real
-content, so rather than re-walking that loop in a recorder — where a transcription that drifted
-would record the RECORDER's run and the port would be verified against a mistake — it is
-instrumented. Read-only hooks are injected at seven points in the lifted source. With them
-installed `balanceRuns` returns byte-identical aggregates, which is the proof they change
-nothing.
+`delve.json` is Phase 5's contract, and unlike the fight corpus it is recorded by DRIVING the
+game rather than by handing it an input. `Tools/capture/delve.mjs` lifts `startRun`, `pickRelic`,
+`fight`, `playNext`, `descend`, `finishDescend`, `proceedDescend`, `chooseEvent`, the bazaar and
+`revive`, stubs the presentation, and drains the callbacks the animation would have run —
+because some of them draw. Then it plays four hundred delves and writes down what happened.
 
-`balanceRuns` also carries a greedy bot: `pickScore` ranks a draft, `eventChoice` reads an
-event's hint text, `punchOf` decides whether the bazaar awakens or buys. None of that is a game
-rule, so none of it is ported. The corpus records the DECISIONS and the port replays them
-through `IRunChoices`; what the port must reproduce is everything around a decision. An offer is
-compared as a SET for the same reason — which relics `weightedRelic` drew is a rule, the order
-they are ranked in is not.
+It used to be recorded from `balanceRuns`, the Balance Lab's own headless loop, which was the
+only run loop that could be walked before the UI was drivable. That corpus was true — of the
+Lab. The Lab is not the game, and the differences were not small:
 
-Two things the recorder has to override, and both are in `instrument.mjs` with the reason:
+- **The order of a floor.** The Lab walks breath, event, shop-or-(draft, fight). The game walks
+  draft, fight, event, breath — the event sits in the gap BEYOND a floor, not in front of it —
+  and it rolls the next floor's pack the moment a fight ends, before that floor's offer is
+  drawn. Same seed, different stream, different run.
+- **The bazaar.** The Lab models one deal, no Merchant's Thumb discount, and awakenings keyed by
+  relic. The game discounts both prices for merely holding a Thumb, allows a second deal from
+  level fifteen, refunds a Hollow Idol's fifteen when it is woken, and keys awakenings by
+  INVENTORY SLOT — the copy in hand, not the relic.
+- **A paid reroll** draws its replacement offer from the EVENT stream, not the fight stream. So
+  paying for a reroll shifts the events that follow it.
+- **The Flesh set.** Its +3 max HP is guarded by a flag, once per run — but a delve builds each
+  floor's fight state without copying that flag in, and never copies it back out. So a delve
+  re-grants it every floor. Versus copies it and gets the rule as written; the Lab hands the run
+  state straight to the fight, which is why the harness could never see this.
 
-- **The pack path.** `balanceRuns` prices foes through the Balance Lab's editable formula table;
-  the game passes a dungeon and no curve. The two round differently — floor 10 alone looted ten
-  gold more — so the recorder takes the game's path. Pack composition stays gated by
-  `packs.json`, which is what keeps a run-loop failure from being a pack bug in disguise.
-- **The bot's greed.** It always refuses the Chained Ghost's locket, never rerolls with a
-  Merchant's Thumb in hand, and never awakens what it does not rate. Steering the chooser
-  reaches rules the greedy line never walks past; it changes nothing under test.
+The driver is a player, not a rule: which relic it drafts, when it pays to reroll, what it asks
+the bazaar for, whether it takes a revive, whether it walks out at a gate. All of that is
+recorded and the port replays it through `IRunChoices`; everything around a decision has to come
+out of the port. An offer is compared as a SET — which relics `weightedRelic` drew is a rule, the
+order they are shown in is presentation.
+
+Runs are shaped by the delver's LEVEL, because that is the only dial `startRun` has: level sets
+the purse, the stat bonuses, the breath, the third draft choice at ten and the second bazaar deal
+at fifteen. Nine profiles spread across levels 1 to 20, each with its own relic preferences,
+bazaar policy and event choice, so every branch of the loop is walked by somebody.
+
+Two things worth knowing about how the corpus reaches what it reaches:
+
+- **Some rules need several events in one run.** The floor a stat cannot be dragged past needs
+  THREE speed losses — the Chained Ghost's locket and the Rusted Spike Trap for five each, and
+  robbing the dead miner for three more — and about one run in two hundred places all three.
+  The `slowed` profile asks the placement first, by starting runs and reading where the events
+  went, and only plays the seeds that qualify. The shuffle stays the game's.
+- **The recorder records `shopDone`.** That is the bazaar's own answer to "that is all for this
+  visit", and it is what lets the replay catch a port that would have served one more deal —
+  otherwise a mutant that widens the allowance would simply never be asked.
 
 The source wraps an event outcome in `try/catch`, which is right for a game and dangerous for a
-lift: an identifier the lift forgot makes an outcome silently do NOTHING, and the corpus records
-the no-op as truth. `luckRoll` was missing at first and four of the twelve events quietly
-stopped rolling. The catch stays; the error is now handed to the recorder, which refuses to
-write a corpus containing one.
+lift: an identifier the lift forgot makes an outcome silently do NOTHING, and a recorder would
+write the no-op down as truth. `luckRoll` was missing at first and four of the twelve events
+quietly stopped rolling. The recorder now refuses to write a step whose outcome never resolved.
+
+### The reduced-motion path
+
+As in versus, the recording takes the branch where presentation does not reach into the seeded
+stream. One consequence is worth naming: a fight ends by rolling the next floor's pack, so the
+bazaar is handed one it will never fight. The source rolls a replacement while the merchant's
+hall pans past — but only on the animated path. With reduced motion set, the pan is skipped and
+so is the roll, and floor 8 fights the pack that was rolled for floor 7.
+
+The port does not inherit that. `RunRules.BazaarRollsItsOwnPack` is the seam, and the gate
+replays the recorded answer.
 
 ### What the run gate cannot reach
 
-A corpus only catches what its own runs happen to do, and three rules sat outside that. Rather
-than wait for a run to stumble into them, `RunRuleTests` asks each one directly:
+A corpus only catches what its own runs happen to do. `RunRuleTests` asks the rest directly:
 
 - **The breather** is invisible on the first floor, because a run starts whole and healing a
-  full pool changes nothing. It is now a function that can be asked what floor 1 is worth, and
-  the answer is nought — not because the health is full, but because there is no floor before it.
-- **An event grant's pool** is invisible while no relic is versus-only. Asked from the versus
-  side it is not: a duel must never be handed a Greedy Curse, a Second Stomach or a Merchant's
-  Thumb. A companion test fails if the pools ever stop differing, so the first test cannot go
-  blind without saying so.
+  full pool changes nothing. It is a function that can be asked what a gate is worth, and there
+  is no gate before floor 1 — not because the health is full, but because there is no floor
+  before it.
+- **An event grant's pool, and a draft offer's**, are invisible while no relic is versus-only.
+  Asked from the versus side they are not: a duel must never be handed a Greedy Curse, a Second
+  Stomach or a Merchant's Thumb. A companion test fails if the pools ever stop differing, so
+  neither can go blind without saying so.
 - **A Debt of Flesh** pays double once awakened, and in the source that could never happen: the
   bazaar only awakens a relic that STACKS, and this one did not. It stacks under this port's own
-  rules — see `RunRules` — which is what makes the rule real. The bazaar's own rule, that a
-  relic must stack and have a copy not yet awake, is ported alongside it.
+  rules — see `RunRules` — which is what makes the rule real.
+- **An awakening follows the copy it was bought for.** Slots are positional and the source never
+  re-keys them, so an oath shattering out of slot one hands slot three's awakening to whatever
+  slid into slot two. Reachable in play, but it needs an oath drafted late enough to outlive the
+  bazaar with an awakening bought behind it, which no arbitrary seed obliged.
 
 `RunRules` is where the port's answers deliberately differ from the source's, the same
 arrangement as `CombatRules.DuelAsRecorded`: `Shipped()` is what the game plays and
 `AsRecorded()` is what the corpus replays, so the diff between them IS the design change.
+`EveryRuleThePortKeepsChangesADelve` reverts each one on its own and fails if any delve plays
+the same either way — a rule that can be put back with no effect was never a decision.
 
-### A guard removed on purpose
+### Two guards removed on purpose
 
-The source floors an event's defence loss at −2 as well as its speed loss at −10. Only the
-speed floor is reachable: the Ghost's locket and the Spike Trap cost five each and a failed
-robbery three more. Nothing can spend more than ONE defence in a run — only the unclaimed chest
-costs any, and events are drawn without replacement — so the defence floor could never fire, and
-it is not ported. All 400 recorded runs replay unchanged without it, which is what proves it was
-dead rather than merely untested.
+The source floors an event's defence loss at −2 as well as its speed loss at −10, and floors the
+purse at zero after every outcome. Neither is reachable:
 
-Removing a guard silently is how a guard comes to be missing when it is needed, so
-`NoRunCanLoseEnoughDefenceToNeedAFloor` holds the assumption open. It resolves every choice of
-every event over many seeds, sums each event's worst case — one appearance each, so that sum is
-the worst a run can do — and fails if it passes −1. Making the chest cost two, or giving the
-Spike Trap a defence cost as well, both fail it. Adding such an event therefore says so, rather
-than quietly leaving runs to sink past a floor that used to be there.
+- Nothing can spend more than ONE defence in a run — only the unclaimed chest costs any, and
+  events are drawn without replacement.
+- Every outcome that costs gold spends exactly the cost its choice declares, and a choice the
+  purse cannot cover is never offered.
 
-### The one mutation that survives
+Removing a guard silently is how a guard comes to be missing when it is needed, so two tests
+hold the assumptions open. `NoRunCanLoseEnoughDefenceToNeedAFloor` sums each event's worst case
+and fails if it passes −1; making the chest cost two, or giving the Spike Trap a defence cost as
+well, both fail it. `NoEventCanSpendMoreGoldThanItAsksFor` resolves every choice with exactly its
+stated cost in the purse and fails if any leaves it in the red. Adding such an event therefore
+says so, rather than quietly leaving runs to sink past a floor that used to be there.
 
-Thirty mutations of the run layer, twenty-nine die.
+### The five mutations that survive
+
+Fifty-one mutations of the run layer, forty-six die.
 
 | survives | why |
 | --- | --- |
+| the breather may overfill the pool | equivalent. The clamp that follows subtracts the overflow from both the health and the recorded breath, restoring exactly what the `Min` would have produced |
+| an awakened Second Stomach does not grow the pool | a Second Stomach does not stack, and the bazaar only wakes what stacks, so the branch cannot fire in the source |
+| an awakened Merchant's Thumb buys no second deal | same: a Thumb does not stack |
+| waking a Hollow Idol does not fill it | same: an idol does not stack |
 | two stars start at 0.70 rather than 0.72 | depth is a fraction of thirteen floors, so a threshold is pinned only as tightly as the gap it sits in; 0.72 lies between floor 10 (0.6923) and floor 11 (0.7692), and every value in that range is the same rule. 0.65 crosses floor 10 and fails |
 
-That one is a limit of the arithmetic, not of the tests: only a move past 0.6923 or 0.7692 is a
-real change to that threshold.
+The middle three are the same shape as the Debt of Flesh before this port let it stack: a rule
+that is written, is reachable from the code, and can never fire because the only counter that
+awakens anything refuses relics that do not stack. Making any of them stack would make its
+awakened half real, and the mutant would start dying. Each is commented where it sits.
 
 ## Scoring a finished run
 
@@ -364,7 +408,7 @@ node Tools/extract/validate.mjs
 | Gate | Corpus | Status |
 |---|---|---|
 | Phase 0 — content | `Tools/out/` | passing, 4 tracked content gaps |
-| Phase 0 — corpus | `Tools/corpus/` | passing, 783 cases replay exactly |
+| Phase 0 — corpus | `Tools/corpus/` | passing, 1557 cases replay exactly |
 | Phase 1 — RNG | `rng.json` | passing, 5 seeds × 1000 raw draws bit-exact |
 | Phase 1 — defence | `defense.json` | passing, 1800 grid cells |
 | Phase 1 — stat ledger | `statledger.json` | passing, 566 contexts x 4 stats, 5033 labelled rows |
@@ -374,4 +418,8 @@ node Tools/extract/validate.mjs
 | Phase 4b — sockets | `mixed.json` | passing, 120 fights with duplicates, sockets and awakenings |
 | Phase 5a — enemy packs | `packs.json` | passing, 360 packs regenerate exactly |
 | Phase 5b — progression | `corpus/progression.json` | passing, levels, perks and the reward table |
-| Phase 6 — versus | `duel.json` | passing, 72 duels replay event-for-event |
+| Phase 5c — the delve loop | `delve.json` | passing, 420 runs and 11,058 steps replay exactly |
+| Phase 5d — scoring | `outcomes.json` | passing, 307 finished runs |
+| Phase 6a — duels | `duel.json` | passing, 132 duels replay event-for-event |
+| Phase 6b — the versus match | `versus.json` | passing, 120 matches and 710 rounds |
+| Phase 6c — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |

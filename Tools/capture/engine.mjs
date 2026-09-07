@@ -54,6 +54,9 @@ const BOUNDED_METHODS = [
   "pickRelic", "fight", "descend", "finishDescend", "proceedDescend", "shopOffer",
   "bazaarFloor", "tierPack", "landFrom",
   "shopBuy", "shopAwaken", "shopSocket", "shopLeave", "spendHeal",
+  // The delve's own UI path: the between-floor event, the reroll ladder and the one revive.
+  // balanceRuns models all three, but it models them its own way — see delve.mjs.
+  "chooseEvent", "eventGo", "rerollPrice", "rerollDraft", "revive", "cashOut",
   // playNext is the playback animation, and it is lifted for one reason: at the end of
   // the event queue it commits the fight back into the run and dispatches the next
   // phase. Its own randomness is particle positions drawn from Math.random, a different

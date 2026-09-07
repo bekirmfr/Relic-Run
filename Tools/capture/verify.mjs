@@ -76,8 +76,8 @@ console.log(`  ${load("packs.json").length} packs`);
 /* Fight tiers are the corpus files holding an ARRAY of replayable cases. Detect that by
    shape rather than by maintaining a list of exclusions - a new non-fight corpus file used to
    crash this script, and adding its name here would only defer the next one.
-   A fight case is one with a recorded INPUT and an ARRAY of events; runs.json has neither,
-   which is what the run corpus above already checked. */
+   A fight case is one with a recorded INPUT and an ARRAY of events; delve.json has neither,
+   which is what the run corpus below checks instead. */
 const tiers = readdirSync(DIR)
   .filter((f) => f.endsWith(".json") && f !== "manifest.json")
   .filter((f) => {
@@ -106,33 +106,32 @@ for (const tier of tiers) {
 
 /* ---------- the run corpus ---------- */
 
-/* Runs are not replayed from a recorded input the way a fight is — balanceRuns drives a
-   whole delve from a seed, so regenerating IS the replay. What has to hold is that it
-   regenerates identically: same seeds, same events, same decisions, same states. If the
-   lifter ever picks up a different slice of the source, or a hook stops being read-only,
-   this is where it shows. */
-{
-  const recorded = readFileSync(join(DIR, "runs.json"), "utf8");
-  const regenerated = execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "runs.mjs")],
+/* Runs and matches are not replayed from a recorded input the way a fight is — the recorder
+   drives the game's own UI from a seed, so regenerating IS the replay. What has to hold is that
+   it regenerates identically: same seeds, same events, same decisions, same states. If the
+   lifter ever picks up a different slice of the source, or a hook stops being read-only, this
+   is where it shows. */
+for (const [name, script, unit] of [["delve", "delve.mjs", "runs"], ["versus", "versus.mjs", "matches"]]) {
+  const file = `${name}.json`;
+  const recorded = readFileSync(join(DIR, file), "utf8");
+  execFileSync(process.execPath, [join(ROOT, "Tools", "capture", script)],
     { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
-  const now = readFileSync(join(DIR, "runs.json"), "utf8");
-  const runs = JSON.parse(now);
+  const now = readFileSync(join(DIR, file), "utf8");
+  const list = JSON.parse(now);
 
-  checked += runs.length;
+  checked += list.length;
   if (recorded !== now) {
-    fail("runs.json is not reproducible — regenerating it produced different bytes");
-    failed += runs.length;
+    fail(`${file} is not reproducible — regenerating it produced different bytes`);
+    failed += list.length;
     console.log(`
-runs
-  ${runs.length} runs, NOT REPRODUCIBLE`);
+${name}
+  ${list.length} ${unit}, NOT REPRODUCIBLE`);
   } else {
-    const steps = runs.reduce((n, r) => n + r.steps.length, 0);
+    const steps = list.reduce((n, r) => n + (r.steps || r.rounds || []).length, 0);
     console.log(`
-runs
-  ${runs.length} runs, ${steps} steps`);
+${name}
+  ${list.length} ${unit}, ${steps} steps`);
   }
-
-  void regenerated;
 }
 
 /* ---------- report ---------- */

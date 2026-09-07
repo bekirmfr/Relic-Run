@@ -2,28 +2,58 @@
   "name": "the run layer and its rules",
   "mutants": [
     {
-      "name": "the breather also heals before floor 1",
+      "name": "the breather can overfill the pool",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
-      "find": "if (floor <= 1) return 0;",
-      "replace": ""
+      "find": "run.BreathHealed = Math.Min(breath, run.Pmax - run.Php);",
+      "replace": "run.BreathHealed = breath;"
     },
     {
       "name": "the breather ignores a Second Stomach",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
-      "find": "return setup.Breath * (run.Has(RelicId.SecondStomach) ? 2 : 1);",
-      "replace": "return setup.Breath;"
+      "find": "int amount = setup.Breath * (run.Has(RelicId.SecondStomach) ? 2 : 1);",
+      "replace": "int amount = setup.Breath;"
+    },
+    {
+      "name": "an awakened Ox Heart adds nothing at the gate",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.Has(RelicId.OxHeart) && run.IsAwake(RelicId.OxHeart)) amount += 2;",
+      "replace": ""
+    },
+    {
+      "name": "an awakened Second Stomach does not grow the pool",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (stomachAwake && run.Has(RelicId.SecondStomach)) run.Pmax += 1;",
+      "replace": ""
+    },
+    {
+      "name": "the oath shatters a floor late",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.OathCarried >= OathLasts)",
+      "replace": "if (run.OathCarried > OathLasts)"
+    },
+    {
+      "name": "an awakened oath shatters too",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.Has(RelicId.DuelistsOath) && !oathAwake)",
+      "replace": "if (run.Has(RelicId.DuelistsOath))"
     },
     {
       "name": "promised gold arrives a floor early",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
-      "find": "run.Pending.Value.Floor == floor",
-      "replace": "run.Pending.Value.Floor == floor + 1"
+      "find": "run.Pending.Value.Floor == run.Floor",
+      "replace": "run.Pending.Value.Floor == run.Floor + 1"
     },
     {
       "name": "the event stream is the fight stream",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
       "find": "var events = new Mulberry32(seed ^ EventSeedMix);",
       "replace": "var events = new Mulberry32(seed);"
+    },
+    {
+      "name": "a reroll draws from the fight stream",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "run.Items, setup.DraftChoices, events, run.Rules, GameModes.Delve));",
+      "replace": "run.Items, setup.DraftChoices, rng, run.Rules, GameModes.Delve));"
     },
     {
       "name": "the shuffle walks upward",
@@ -38,6 +68,18 @@
       "replace": "MinSpdBonus = -11;"
     },
     {
+      "name": "the speed floor is gone entirely",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "run.Hero.SpdBonus = Math.Max(MinSpdBonus, run.Hero.SpdBonus);",
+      "replace": ""
+    },
+    {
+      "name": "an event that costs gold does not pay the Debt",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.Gold < purse) PayTheDebt(run);",
+      "replace": ""
+    },
+    {
       "name": "the bazaar sits on floor 8",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
       "find": "BazaarFloor = 7;",
@@ -50,16 +92,82 @@
       "replace": "AwakenPrice = 40;"
     },
     {
+      "name": "the crown pays nothing",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.Php > 0 && run.Floor >= MaxFloor) run.Gold += ClearPurse;",
+      "replace": ""
+    },
+    {
+      "name": "a floor's health ceiling is the one it ends with",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "int ceiling = run.Pmax;\n\n            // A floor may get",
+      "replace": "int ceiling = int.MaxValue;\n\n            // A floor may get"
+    },
+    {
       "name": "rerolls cost a flat ten",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
       "find": "double price = 10 * Math.Pow(2, run.Rerolls);",
       "replace": "double price = 10.0;"
     },
     {
-      "name": "a Merchant's Thumb does not discount",
+      "name": "a Merchant's Thumb does not discount a reroll",
       "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
       "find": "if (run.Has(RelicId.MerchantsThumb)) price *= 0.8;",
       "replace": ""
+    },
+    {
+      "name": "a Merchant's Thumb does not discount the bazaar",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "double price = list * (run.Has(RelicId.MerchantsThumb) ? 0.8 : 1.0);",
+      "replace": "double price = list;"
+    },
+    {
+      "name": "an awakened Merchant's Thumb buys no second deal",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "return (thumb ? 2 : 1) + (setup.BazaarDeals - 1);",
+      "replace": "return 1 + (setup.BazaarDeals - 1);"
+    },
+    {
+      "name": "a level-fifteen delver gets no second deal",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "return (thumb ? 2 : 1) + (setup.BazaarDeals - 1);",
+      "replace": "return thumb ? 2 : 1;"
+    },
+    {
+      "name": "an unawakened Thumb buys a second deal too",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "bool thumb = run.Has(RelicId.MerchantsThumb) && run.IsAwake(RelicId.MerchantsThumb);",
+      "replace": "bool thumb = run.Has(RelicId.MerchantsThumb);"
+    },
+    {
+      "name": "waking a Hollow Idol does not fill it",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "run.Pmax += 15;\n                        run.Php = Math.Min(run.Pmax, run.Php + 15);",
+      "replace": ""
+    },
+    {
+      "name": "a bought unique stays on the shelf",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (!run.Rules.Stacks(deal.Relic)) offer.RemoveAll(id => id == deal.Relic);",
+      "replace": ""
+    },
+    {
+      "name": "the shelf offers a second awakening in one visit",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "awakenable = new List<int>();",
+      "replace": ""
+    },
+    {
+      "name": "the bazaar awakens what the shelf never carried",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (!awakenable.Contains(deal.Slot)) break;",
+      "replace": ""
+    },
+    {
+      "name": "the bazaar sells what the shelf never carried",
+      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
+      "find": "if (run.Gold < price || !offer.Contains(deal.Relic)) break;",
+      "replace": "if (run.Gold < price) break;"
     },
     {
       "name": "an awakened Debt of Flesh pays the same as a plain one",
@@ -68,22 +176,28 @@
       "replace": "return 10;"
     },
     {
-      "name": "the bazaar awakens what the shelf never carried",
-      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
-      "find": "deal.Kind == DealKind.Awaken && run.CanAwaken(deal.Relic)",
-      "replace": "deal.Kind == DealKind.Awaken"
+      "name": "a copy already awake is offered again",
+      "file": "Assets/GameAssets/Core/Run/RunState.cs",
+      "find": "if (AwakenedSlots.Contains(slot)) continue;",
+      "replace": ""
     },
     {
-      "name": "a copy can be awakened twice",
+      "name": "anything in hand reaches the shelf",
       "file": "Assets/GameAssets/Core/Run/RunState.cs",
-      "find": "Count(id) > AwakenedCount(id)",
-      "replace": "Count(id) > 0"
+      "find": "if (!Rules.Stacks(Items[slot])) continue;",
+      "replace": ""
     },
     {
-      "name": "anything in hand can be awakened",
+      "name": "the shelf lists every copy, not one per relic",
       "file": "Assets/GameAssets/Core/Run/RunState.cs",
-      "find": "return Rules.Stacks(id) && Count(id) > AwakenedCount(id);",
-      "replace": "return Count(id) > 0;"
+      "find": "if (!seen.Add(Items[slot])) continue;",
+      "replace": ""
+    },
+    {
+      "name": "an awakening survives the relic it was bought for",
+      "file": "Assets/GameAssets/Core/Run/RunState.cs",
+      "find": "if (awake == slot) continue;",
+      "replace": ""
     },
     {
       "name": "a Debt of Flesh does not stack after all",
@@ -94,8 +208,14 @@
     {
       "name": "the source's rules stack it too",
       "file": "Assets/GameAssets/Core/Run/RunRules.cs",
-      "find": "return new RunRules(new Dictionary<RelicId, bool>());",
-      "replace": "return new RunRules(new Dictionary<RelicId, bool> { { RelicId.DebtOfFlesh, true } });"
+      "find": "return new RunRules(new Dictionary<RelicId, bool>())",
+      "replace": "return new RunRules(new Dictionary<RelicId, bool> { { RelicId.DebtOfFlesh, true } })"
+    },
+    {
+      "name": "the recording is replayed under the shipped rules",
+      "file": "Assets/GameAssets/Core/Run/RunRules.cs",
+      "find": "BazaarRollsItsOwnPack = false,\n                FleshSetSurvivesTheFloor = false,\n                AwakeningsFollowTheirCopy = false,",
+      "replace": ""
     },
     {
       "name": "an event grant draws from the whole table",
@@ -116,6 +236,18 @@
       "replace": "run.Php += 7;"
     },
     {
+      "name": "the chest costs two defence",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "run.Hero.DefBonus -= 1;",
+      "replace": "run.Hero.DefBonus -= 2;"
+    },
+    {
+      "name": "the spike trap costs defence too",
+      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
+      "find": "Free((run, rng) => { run.Hero.SpdBonus -= 5; }),",
+      "replace": "Free((run, rng) => { run.Hero.SpdBonus -= 5; run.Hero.DefBonus -= 1; }),"
+    },
+    {
       "name": "duplicates are not thinned out",
       "file": "Assets/GameAssets/Core/Run/RelicDraft.cs",
       "find": "w[i] = System.Math.Pow(0.5, CountOf(owned, avail[i]));",
@@ -124,19 +256,25 @@
     {
       "name": "dead relics are still offered",
       "file": "Assets/GameAssets/Core/Run/RelicDraft.cs",
-      "find": "if (!IsLive(def.Id, owned)) continue;",
+      "find": "if (!IsLive(id, owned)) continue;",
       "replace": ""
+    },
+    {
+      "name": "the draft ignores the mode's pool",
+      "file": "Assets/GameAssets/Core/Run/RelicDraft.cs",
+      "find": "List<RelicId> pool = RelicCatalog.PoolFor(mode);",
+      "replace": "List<RelicId> pool = RelicCatalog.PoolFor(GameModes.Delve | GameModes.Versus);"
     },
     {
       "name": "an Ox Heart is worth twelve",
       "file": "Assets/GameAssets/Core/Run/Pickup.cs",
-      "find": "run.Pmax += 13;",
-      "replace": "run.Pmax += 12;"
+      "find": "hero.Pmax += 13;",
+      "replace": "hero.Pmax += 12;"
     },
     {
       "name": "the Flesh set can fire twice",
       "file": "Assets/GameAssets/Core/Run/Pickup.cs",
-      "find": "&& !run.Hero.FleshSetApplied",
+      "find": "&& !hero.FleshSetApplied",
       "replace": ""
     },
     {
@@ -164,22 +302,10 @@
       "replace": "baseScore += kills * PerKill;"
     },
     {
-      "name": "the chest costs two defence",
-      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
-      "find": "run.Hero.DefBonus -= 1;",
-      "replace": "run.Hero.DefBonus -= 2;"
-    },
-    {
-      "name": "the spike trap costs defence too",
-      "file": "Assets/GameAssets/Core/Run/DungeonEvents.cs",
-      "find": "Free((run, rng) => { run.Hero.SpdBonus -= 5; }),",
-      "replace": "Free((run, rng) => { run.Hero.SpdBonus -= 5; run.Hero.DefBonus -= 1; }),"
-    },
-    {
-      "name": "the speed floor is gone entirely",
-      "file": "Assets/GameAssets/Core/Run/DelveRun.cs",
-      "find": "run.Hero.SpdBonus = Math.Max(MinSpdBonus, run.Hero.SpdBonus);",
-      "replace": ""
+      "name": "an awakening does not slide down when the tray shortens",
+      "file": "Assets/GameAssets/Core/Run/RunState.cs",
+      "find": "kept.Add(awake > slot ? awake - 1 : awake);",
+      "replace": "kept.Add(awake);"
     }
   ]
 }

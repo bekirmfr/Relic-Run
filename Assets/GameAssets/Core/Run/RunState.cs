@@ -20,9 +20,9 @@ namespace RelicRun.Core.Run
     /// lives out here. Nothing is copied between them — the run passes <see cref="Hero"/> to
     /// the engine by reference — so the two cannot drift.
     ///
-    /// Awakenings are held as counts rather than a set because the bazaar can awaken the same
-    /// relic more than once. Nothing reads the count back; every rule asks only whether a relic
-    /// is awake at all, which is what <see cref="Hero"/>'s Awakened collection carries.
+    /// Awakenings are keyed by INVENTORY SLOT, because that is what the bazaar awakens: the
+    /// copy in hand, not the relic. Two Ox Hearts can be held with only one of them awake. The
+    /// rules never ask which copy, so <see cref="Hero"/> carries the ids the slots resolve to.
     /// </remarks>
     public sealed class RunState
     {
@@ -31,8 +31,11 @@ namespace RelicRun.Core.Run
         /// <summary>Inventory in draft order, duplicates included. Aliased into the hero.</summary>
         public readonly List<RelicId> Items = new List<RelicId>();
 
-        /// <summary>How many copies of each relic have been awakened.</summary>
-        public readonly Dictionary<RelicId, int> Awakened = new Dictionary<RelicId, int>();
+        /// <summary>Inventory slots whose copy has been awakened.</summary>
+        public readonly HashSet<int> AwakenedSlots = new HashSet<int>();
+
+        /// <summary>Which relics have at least one awakened copy. Aliased into the hero.</summary>
+        private readonly HashSet<RelicId> _awake = new HashSet<RelicId>();
 
         /// <summary>Rerolls bought across the whole run. The price ladder reads this.</summary>
         public int Rerolls;
@@ -42,6 +45,19 @@ namespace RelicRun.Core.Run
 
         /// <summary>Whether the one revive this run allows has been spent.</summary>
         public bool Revived;
+
+        /// <summary>
+        /// Health the last breather gave back, until the next fight opens and spends it.
+        /// </summary>
+        /// <remarks>
+        /// It is carried rather than applied and forgotten because the fight reports it: the
+        /// breath lands in the log as the floor opens, which is also where a Second Stomach
+        /// announces itself. The run corpus records it at the draft, before the fight clears it.
+        /// </remarks>
+        public int BreathHealed;
+
+        /// <summary>Floors a Duelist's Oath has been carried. It shatters on the fourth.</summary>
+        public int OathCarried;
 
         /// <summary>Where this run's rules differ from the source's.</summary>
         public RunRules Rules = RunRules.Shipped();
@@ -73,7 +89,7 @@ namespace RelicRun.Core.Run
         public RunState()
         {
             Hero.Items = Items;
-            Hero.Awakened = Awakened.Keys;
+            Hero.Awakened = _awake;
         }
 
         public int Count(RelicId id)
@@ -89,32 +105,108 @@ namespace RelicRun.Core.Run
 
         public bool Has(RelicId id) { return Count(id) > 0; }
 
-        public bool IsAwake(RelicId id)
-        {
-            int n;
-            return Awakened.TryGetValue(id, out n) && n > 0;
-        }
+        public bool IsAwake(RelicId id) { return _awake.Contains(id); }
 
         /// <summary>How many copies of this relic are awake.</summary>
         public int AwakenedCount(RelicId id)
         {
-            int n;
-            return Awakened.TryGetValue(id, out n) ? n : 0;
+            int n = 0;
+            foreach (int slot in AwakenedSlots)
+            {
+                if (slot >= 0 && slot < Items.Count && Items[slot] == id) n++;
+            }
+
+            return n;
         }
 
-        /// <summary>Awakens one more copy. The bazaar's only lasting purchase.</summary>
-        public void Awaken(RelicId id)
+        /// <summary>Awakens the copy held in one inventory slot. The bazaar's lasting purchase.</summary>
+        public void Awaken(int slot)
         {
-            Awakened[id] = AwakenedCount(id) + 1;
+            if (slot < 0 || slot >= Items.Count) return;
+            AwakenedSlots.Add(slot);
+            RefreshAwakened();
         }
 
         /// <summary>
-        /// Whether the bazaar could awaken another copy of this relic: it has to stack, and
-        /// there has to be a copy in hand that is not awake already.
+        /// Which copies the bazaar would offer to awaken: one per relic, stacking, and not
+        /// already awake. The shelf shows at most six.
         /// </summary>
-        public bool CanAwaken(RelicId id)
+        public List<int> Awakenable()
         {
-            return Rules.Stacks(id) && Count(id) > AwakenedCount(id);
+            var slots = new List<int>();
+            var seen = new HashSet<RelicId>();
+
+            for (int slot = 0; slot < Items.Count; slot++)
+            {
+                if (!Rules.Stacks(Items[slot])) continue;
+                if (AwakenedSlots.Contains(slot)) continue;
+                if (!seen.Add(Items[slot])) continue;
+
+                slots.Add(slot);
+                if (slots.Count == BazaarShelf) break;
+            }
+
+            return slots;
+        }
+
+        /// <summary>How many awakenings the bazaar will ever put on its shelf at once.</summary>
+        public const int BazaarShelf = 6;
+
+        /// <summary>
+        /// Drops every copy of a relic from the tray — what a Duelist's Oath shattering does.
+        /// </summary>
+        /// <remarks>
+        /// Awakenings are keyed by position, so something leaving the middle of the tray moves
+        /// every one behind it. The source does not notice: it filters the inventory and leaves
+        /// the awakening map alone, so an oath shattering out of slot one hands slot three's
+        /// awakening to whatever slid into slot two. Under the shipped rules an awakening
+        /// follows the copy it was bought for; <see cref="RunRules.AwakeningsFollowTheirCopy"/>
+        /// is what puts the source's answer back for the gate.
+        /// </remarks>
+        public void Drop(RelicId id)
+        {
+            if (!Rules.AwakeningsFollowTheirCopy)
+            {
+                Items.RemoveAll(held => held == id);
+                RefreshAwakened();
+                return;
+            }
+
+            for (int slot = Items.Count - 1; slot >= 0; slot--)
+            {
+                if (Items[slot] != id) continue;
+
+                Items.RemoveAt(slot);
+
+                var kept = new List<int>(AwakenedSlots.Count);
+                foreach (int awake in AwakenedSlots)
+                {
+                    if (awake == slot) continue;
+                    kept.Add(awake > slot ? awake - 1 : awake);
+                }
+
+                AwakenedSlots.Clear();
+                for (int i = 0; i < kept.Count; i++) AwakenedSlots.Add(kept[i]);
+            }
+
+            RefreshAwakened();
+        }
+
+        /// <summary>
+        /// Recomputes which relics are awake from the slots that are.
+        /// </summary>
+        /// <remarks>
+        /// Called whenever the inventory or the awakened slots change, because slots are
+        /// positional: a Duelist's Oath shattering out of the middle of the tray shifts every
+        /// slot behind it, and the source lets it, so an awakening can land on a neighbour.
+        /// </remarks>
+        public void RefreshAwakened()
+        {
+            _awake.Clear();
+            foreach (int slot in AwakenedSlots)
+            {
+                if (slot >= 0 && slot < Items.Count) _awake.Add(Items[slot]);
+            }
         }
 
         /// <summary>How many relics of a kind are in hand. A Hollow Idol counts toward every set.</summary>

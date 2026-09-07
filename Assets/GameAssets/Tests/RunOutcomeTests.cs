@@ -49,10 +49,9 @@ namespace RelicRun.Tests
                     if (RelicCatalog.TryParse(t.Value<string>(), out relic)) run.Items.Add(relic);
                 }
 
-                // Recorded as inventory SLOTS, because a copy is what gets awakened. RunState
-                // keeps the per-id count the rules actually read, which is the same conversion
-                // the source makes before anything downstream sees an awakening.
-                foreach (JToken slot in (JArray)input["awake"]) run.Awaken(run.Items[slot.Value<int>()]);
+                // Recorded as inventory SLOTS, because a copy is what gets awakened, and that
+                // is how the run holds them too.
+                foreach (JToken slot in (JArray)input["awake"]) run.Awaken(slot.Value<int>());
 
                 RunReward got = RunOutcome.Score(
                     Endings[input["how"].Value<string>()],

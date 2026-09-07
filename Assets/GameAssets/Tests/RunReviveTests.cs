@@ -34,7 +34,13 @@ namespace RelicRun.Tests
 
             public RelicId Draft(RunState run, IReadOnlyList<RelicId> offer) { return offer[0]; }
 
-            public BazaarDeal Bazaar(RunState run, IReadOnlyList<RelicId> offer) { return BazaarDeal.Walk; }
+            public BazaarDeal Bazaar(RunState run, IReadOnlyList<RelicId> offer,
+                IReadOnlyList<int> awakenable)
+            {
+                return BazaarDeal.Walk;
+            }
+
+            public bool CashOut(RunState run, int floor) { return false; }
 
             public bool Revive(RunState run, int floor)
             {
@@ -51,7 +57,9 @@ namespace RelicRun.Tests
 
             public void Event(RunState run, int floor, int index, int choice) { }
 
-            public void Bazaar(RunState run, int floor, IReadOnlyList<RelicId> offer, BazaarDeal deal) { }
+            public void Deal(RunState run, int floor, IReadOnlyList<RelicId> offer,
+                IReadOnlyList<int> awakenable, BazaarDeal deal)
+            { }
 
             public void Draft(RunState run, int floor, IReadOnlyList<RelicId> offer, int rerolls, RelicId pick) { }
 
@@ -67,9 +75,9 @@ namespace RelicRun.Tests
             public bool Dead;
             public int EndFloor;
 
-            public void End(RunState run, bool dead, int floor)
+            public void End(RunState run, RunEnding ending, int floor)
             {
-                Dead = dead;
+                Dead = ending == RunEnding.Died;
                 EndFloor = floor;
             }
         }
