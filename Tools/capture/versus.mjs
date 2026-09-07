@@ -36,7 +36,7 @@ import { buildEngine } from "./engine.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const OUT = join(ROOT, "Tools", "corpus");
 
-const api = buildEngine();
+const api = buildEngine({ countDraws: true });
 api.setReducedMotion(true);
 
 /** A deterministic stand-in for a player: body first, then whatever is on offer. */
@@ -81,6 +81,14 @@ function match(id, seed, wants) {
   engine.startVersus();
 
   const G = engine.G;
+
+  // Building the lobby spends around 250 draws, and most of them go on the rivals' LOOKS: ten
+  // wardrobe slots and eleven colour families each, plus an accent and a motto. The port has
+  // no wardrobe, so it cannot spend them — and it does not need to. The roster the source
+  // produced is recorded verbatim, the way packs are, and the number of draws the setup
+  // consumed goes with it, so a match can resume the stream exactly where setup left it.
+  // Roster GENERATION is then a separate problem, and lands with the wardrobe.
+  const setupDraws = engine._draws;
   const record = {
     id,
     seed,
@@ -156,6 +164,7 @@ function match(id, seed, wants) {
     engine.drain();
   }
 
+  record.setupDraws = setupDraws;
   record.end = {
     how: G.how || "unresolved",
     round: G.floor | 0,

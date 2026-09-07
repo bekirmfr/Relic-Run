@@ -8,7 +8,7 @@
 
 import vm from "node:vm";
 import { liftConst, liftFunction, liftMethod, liftMethodTo } from "./lift.mjs";
-import { instrumentBalanceRuns } from "./instrument.mjs";
+import { instrumentBalanceRuns, instrumentRunSeed } from "./instrument.mjs";
 
 /* Module-scope declarations the engine reaches for. Order matters only for consts
    that reference each other at definition time (POOL reads ITEMS). */
@@ -71,10 +71,12 @@ const BOUNDED_METHODS = [
  * observe every floor. It changes no behaviour and draws no random numbers; without it
  * the loop is the source's, character for character.
  */
-export function buildEngine({ instrumentRuns = false } = {}) {
+export function buildEngine({ instrumentRuns = false, countDraws = false } = {}) {
   const method = (name) => {
-    const text = liftMethodTo(name);
-    return instrumentRuns && name === "balanceRuns" ? instrumentBalanceRuns(text) : text;
+    let text = liftMethodTo(name);
+    if (instrumentRuns && name === "balanceRuns") text = instrumentBalanceRuns(text);
+    if (countDraws && name === "startRun") text = instrumentRunSeed(text);
+    return text;
   };
 
   const parts = [

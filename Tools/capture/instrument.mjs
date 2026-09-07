@@ -121,3 +121,23 @@ export function instrumentBalanceRuns(src) {
 
   return src;
 }
+
+/**
+ * Counts draws from a run's generator, from the moment it is created.
+ *
+ * The versus corpus records the roster verbatim rather than making the port reproduce it —
+ * most of the setup's randomness goes on the rivals' appearance, which the port has no
+ * wardrobe for. What the port DOES need is to resume the stream where the setup left it, and
+ * that is a count, so the generator is wrapped the instant startRun builds it.
+ */
+export function instrumentRunSeed(src) {
+  const anchor = 'tele("run_start"';
+  const at = src.indexOf(anchor);
+  if (at < 0) throw new Error("instrument: startRun has no run_start telemetry to anchor on");
+
+  const wrap =
+    "this._draws = 0;\n" +
+    "    { const __rng = this.G.rng; this.G.rng = () => { this._draws++; return __rng(); }; }\n    ";
+
+  return src.slice(0, at) + wrap + src.slice(at);
+}
