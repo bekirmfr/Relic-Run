@@ -53,6 +53,7 @@ const BOUNDED_METHODS = [
   "startRun", "draftOffer", "startVersus", "rivalPack", "versusResolve", "hallForDuel",
   "pickRelic", "fight", "descend", "finishDescend", "proceedDescend", "shopOffer",
   "bazaarFloor", "tierPack", "landFrom",
+  "shopBuy", "shopAwaken", "shopSocket", "shopLeave", "spendHeal",
   // playNext is the playback animation, and it is lifted for one reason: at the end of
   // the event queue it commits the fight back into the run and dispatches the next
   // phase. Its own randomness is particle positions drawn from Math.random, a different
