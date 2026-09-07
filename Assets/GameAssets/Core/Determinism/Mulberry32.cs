@@ -60,6 +60,20 @@ namespace RelicRun.Core.Determinism
         /// Dividing by 2^32 is exact in IEEE 754 — no rounding happens here, so this agrees
         /// with the JS value bit for bit on every runtime.
         /// </remarks>
+        /// <summary>
+        /// Burns <paramref name="draws"/> numbers without using them.
+        /// </summary>
+        /// <remarks>
+        /// A recording sometimes covers a stretch the port does not reproduce — the versus
+        /// lobby spends most of its randomness on the rivals' appearance, which belongs with
+        /// the wardrobe — and the port still has to pick the stream up where that stretch left
+        /// it. Skipping is how, and it is deliberately explicit at the call site.
+        /// </remarks>
+        public void Skip(int draws)
+        {
+            for (int i = 0; i < draws; i++) NextRaw();
+        }
+
         public double Next()
         {
             return NextRaw() / 4294967296.0;

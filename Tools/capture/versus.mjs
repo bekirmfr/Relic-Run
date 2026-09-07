@@ -91,7 +91,11 @@ function match(id, seed, wants) {
   const setupDraws = engine._draws;
   const record = {
     id,
-    seed,
+
+    // The lobby seed picks the MATCH; the match's own generator is seeded from it inside
+    // startVersus. It is the second that a replay needs, so it is the second that is recorded.
+    lobbySeed: seed,
+    seed: G.seed >>> 0,
     start: { hero: hero(G), hall: G.vsHall | 0, roster: G.vsRoster.map(side) },
     rounds: [],
     bazaar: null,
@@ -100,6 +104,27 @@ function match(id, seed, wants) {
 
   let picks = [];
   let guard = 0;
+  const recorded = new Set();
+
+  // A round is recorded once its fight has resolved. That is checked here rather than in the
+  // "decide" stage, because the round that ENDS a match never reaches it — the match is over —
+  // and the round that ends a match is the one worth having.
+  const round = () => {
+    if (recorded.has(G.floor)) return;
+    recorded.add(G.floor);
+
+    record.rounds.push({
+      round: G.floor | 0,
+      picks,
+      foe: G.vsFoe | 0,
+      foeName: G.vsRoster[G.vsFoe] ? G.vsRoster[G.vsFoe].name : null,
+      won: !!G.vsLastWon,
+      hero: hero(G),
+      roster: G.vsRoster.map(side),
+    });
+
+    picks = [];
+  };
 
   while (engine.state.screen !== "over" && guard++ < 400) {
     const stage = engine.state.stage;
@@ -133,27 +158,22 @@ function match(id, seed, wants) {
       } else if (wants === "awaken" && canBuy) {
         action = { kind: "buy", relic: offer[0] };
         engine.shopBuy(offer[0]);
-      } else {
-        engine.shopLeave();
       }
 
-      record.bazaar = { round: G.floor | 0, offer, awakenable, action, after: hero(G) };
+      // Snapshot the deal BEFORE leaving. Walking out of the bazaar descends straight into the
+      // next round on this path — pool growth, a full heal and all — so a snapshot taken after
+      // shopLeave is a snapshot of the round after, not of the deal.
+      const round = G.floor | 0;
+      const after = hero(G);
+      if (action.kind === "leave") engine.shopLeave();
+
+      record.bazaar = { round, offer, awakenable, action, after };
       engine.drain();
       continue;
     }
 
     if (stage === "decide") {
-      record.rounds.push({
-        round: G.floor | 0,
-        picks,
-        foe: G.vsFoe | 0,
-        foeName: G.vsRoster[G.vsFoe] ? G.vsRoster[G.vsFoe].name : null,
-        won: !!G.vsLastWon,
-        hero: hero(G),
-        roster: G.vsRoster.map(side),
-      });
-
-      picks = [];
+      round();
       engine.descend();
       engine.drain();
       continue;
@@ -163,6 +183,9 @@ function match(id, seed, wants) {
     engine.descend();
     engine.drain();
   }
+
+  // The match ended mid-round, so that round has not been recorded yet.
+  if (G.vsLastWon !== undefined) round();
 
   record.setupDraws = setupDraws;
   record.end = {
