@@ -610,7 +610,7 @@ const manifest = {
       "phase 2": "bare.json",
       "phase 3": "primitives.json",
       "phase 4": "solo.json + mixed.json",
-      "phase 5": "packs.json + progression.json + runs.json",
+      "phase 5": "packs.json + progression.json + runs.json + outcomes.json",
       "phase 6": "duel.json",
     },
   },
@@ -622,3 +622,4 @@ console.log(`\n  ${cases.length} cases · ${totalEvents} events · ${packs.lengt
    above, so it lives in its own script — but one command has to regenerate the whole corpus,
    or the two halves drift apart. */
 execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "runs.mjs")], { stdio: "inherit" });
+execFileSync(process.execPath, [join(ROOT, "Tools", "capture", "outcomes.mjs")], { stdio: "inherit" });

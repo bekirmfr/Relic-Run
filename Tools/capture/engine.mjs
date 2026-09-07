@@ -37,7 +37,7 @@ const METHODS = ["simulateFloor", "simulateDuel"];
 // than re-walked in the recorder, so the run corpus records the GAME's run. The brace
 // scanner cannot read it — it holds regex literals the depth count trips over — so it is
 // bounded by where the next method begins instead.
-const BOUNDED_METHODS = ["balanceRuns"];
+const BOUNDED_METHODS = ["balanceRuns", "finishRun"];
 
 /**
  * Assembles the engine.
@@ -55,6 +55,9 @@ export function buildEngine({ instrumentRuns = false } = {}) {
   const parts = [
     '"use strict";',
     "const window = { __ddDefModel: 'pct' };",
+    "const SFX = new Proxy({}, { get: () => () => {} });",
+    "const tele = () => {};",
+    "const Telemetry = { runCount: 0 };",
     // META reads the save store for the player's level and frontier hall. A tiny stub stands
     // in, so progression formulas can be exercised at any point in the progression.
     "const __store = { 'dd.unlocked': 1, 'dd.xp': 0 };",
@@ -64,6 +67,12 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     "class Engine {",
     "  itemName(id) { return id; }",           // log text only — corpus compares structure
     "  t(key) { return key; }",
+    // finishRun is scoring wrapped in presentation: sound, telemetry, screen transitions and
+    // a gold counter that animates. Stubbing those is what lets the arithmetic — banked gold,
+    // score, stars, XP — be lifted rather than transcribed.
+    "  clearTimers() {}",
+    "  later(fn, ms) {}",
+    "  countTo(target, ms, from) {}",
     ...METHODS.map(liftMethod),
     ...BOUNDED_METHODS.map(method),
     "}",
@@ -72,13 +81,15 @@ export function buildEngine({ instrumentRuns = false } = {}) {
     "  META, setUnlocked: n => { __store['dd.unlocked'] = n; },",
     "  EVENTS, freshRunState, weightedRelic, applyPickup, breathHeal, relicSynergy,",
     "  compileFormula, evRelic, awakeById, luckRoll, ENEMY_STAT_FORMULAS, ENEMY_ROLE_FORMULAS,",
-    "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF };",
+    "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, MAX_FLOOR, REVIVE_SPARKS, Store };",
   ];
 
   const ctx = vm.createContext({
     globalThis: {}, Math, JSON, Object, Array, Set, Map, Number, String, console,
     // compileFormula builds enemy curves with `new Function`, so the realm needs it.
     Function, isFinite, isNaN,
+    // finishRun timestamps its telemetry.
+    Date, Proxy,
   });
   ctx.globalThis = ctx;
   vm.runInContext(parts.join("\n\n"), ctx, { filename: "engine.lifted.js" });

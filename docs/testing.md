@@ -224,6 +224,30 @@ because none of them is a coverage gap that more cases would close.
 
 The last two are dead branches in the source, ported as written and commented where they sit.
 
+## Scoring a finished run
+
+`outcomes.json` covers what a run was worth: banked gold, score, stars and XP. The source keeps
+that arithmetic inside a React method, wrapped in sound, telemetry and screen transitions, so it
+cannot be lifted whole the way a fight can — the recorder stubs the presentation and calls the
+real thing.
+
+Two things it forced into the open:
+
+- **Awakenings are per COPY, not per relic.** The game stores them keyed by inventory slot and
+  converts to per-id counts with `awakeById` before anything downstream sees them. The Balance
+  Lab keys them by id instead, which is equivalent only because it never awakens the same relic
+  twice. Passing ids to the scoring reads as nothing awake at all, which is how a Piggy Bank
+  quietly stopped taking its awakened cut.
+- **`relevance` is the only fraction in the calculation** and is deliberately not recorded. It
+  exists to scale XP, so pinning the resulting `xpGain` pins it exactly and keeps the corpus
+  free of float literals.
+
+Nineteen mutations, eighteen die. The survivor is the two-star threshold at 0.72: depth is a
+fraction of thirteen floors, so a threshold is pinned no more tightly than the gap it sits in,
+and 0.72 falls between floor 10 (0.6923) and floor 11 (0.7692). Moving it to 0.70 changes
+nothing; moving it to 0.65 fails. The 0.6 and 0.4 thresholds sit in narrower gaps and are
+pinned.
+
 ## Mutation testing
 
 A gate that has never gone red is not evidence of anything. Every phase so far has been
