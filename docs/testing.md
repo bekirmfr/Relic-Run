@@ -1063,6 +1063,27 @@ would drift away from the fight the moment anybody pressed the speed control.
 not overlap. A view-model that rolled dice would make the same fight look different on replay,
 which is the one thing this layer exists to prevent — `TheSameEventAlwaysDrawsTheSame` says so.
 
+## One copy, not one relic
+
+`RelicMeter` is the relic tray's view-model, and it is where invariant 6 shows up in the
+interface. A socket is bolted to an inventory SLOT, so the second Whetstone on the shelf can be
+counting toward something the first is not — which is the whole reason inventory is an ordered
+list with duplicates rather than a tally.
+
+Two clocks run at once and both are shown. An Anvil Heart counts strikes toward a sharpening
+while a socket on the same copy counts strikes toward something else entirely; merging them would
+show one number for two clocks, and a delver watching the gauge they could see would be surprised
+by the other.
+
+Three of the source's gauge branches are for relics **the draft cannot offer** — Blood Chalice,
+Glass Edge and Debtor's Chain are among the twenty-eight cut orphans. Not ported. The *shape* of
+the debt gauge is kept, because one that counts up toward a reckoning is not one that counts down
+toward nothing and showing either as the other would read as good news.
+
+And silence is a rule. Six of the twenty event kinds make a noise; the rest say nothing, because
+a chain of eight relics firing would otherwise be eight noises on top of one another and a delver
+would learn nothing from any of them.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1121,3 +1142,4 @@ node Tools/extract/validate.mjs
 | Phase 9b — walking a finished fight | none — invariants | passing, the stepper and the loop |
 | Phase 9c — what a delver reads | none — invariants | passing, 20 event kinds · **9 lines English-only** |
 | Phase 9d — what a screen draws | none — invariants | passing, the fliers and the two gauges |
+| Phase 9e — what a relic has left | none — invariants | passing, two clocks and a budget per copy |

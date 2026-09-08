@@ -43,7 +43,29 @@ namespace RelicRun.Tests
         private sealed class Notepad : IPlaybackScreen
         {
             public readonly List<string> Told = new List<string>();
-            public bool Paused { get; set; }
+
+            private bool _paused;
+            private int _asked;
+
+            /// <summary>
+            /// Whether the delver has stopped to look at something.
+            /// </summary>
+            /// <remarks>
+            /// Also the loop's only reliable bound. The screen's own counter and the clock's are
+            /// both skippable — a loop spinning on a step that shows nothing and waits for
+            /// nothing reaches neither — but this is asked once per turn round the loop, whatever
+            /// the step turns out to be.
+            /// </remarks>
+            public bool Paused
+            {
+                get
+                {
+                    if (++_asked > 256) throw new InvalidOperationException("the loop is not ending");
+
+                    return _paused;
+                }
+                set { _paused = value; }
+            }
 
             /// <summary>Runs after the nth thing it is told. How a delver interrupts.</summary>
             public Action<Notepad> After;

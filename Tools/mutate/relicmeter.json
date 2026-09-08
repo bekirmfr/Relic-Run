@@ -1,0 +1,95 @@
+{
+  "name": "what a relic has left to give",
+  "mutants": [
+    {
+      "name": "a socketed trigger counts to two rather than three",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public const int SocketEvery = 3;",
+      "replace": "        public const int SocketEvery = 2;"
+    },
+    {
+      "name": "every socket counts strikes",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                case SocketTrigger.Hit:\n                    return new Cadence(counters.Pain % SocketEvery, SocketEvery, \"hits taken\");",
+      "replace": "                case SocketTrigger.Hit:\n                    return new Cadence(counters.Strikes % SocketEvery, SocketEvery, \"strikes\");"
+    },
+    {
+      "name": "a socket nothing counts toward shows an empty gauge",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                default:\n                    return default(Cadence);\n            }\n        }\n\n        /// <summary>The relic's own rhythm, for the four that have one.</summary>",
+      "replace": "                default:\n                    return new Cadence(0, SocketEvery, \"nothing\");\n            }\n        }\n\n        /// <summary>The relic's own rhythm, for the four that have one.</summary>"
+    },
+    {
+      "name": "the anvil counts this fight's strikes rather than the run's",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                        ? new Cadence(counters.StrikeTotal % AnvilEvery, AnvilEvery, \"strikes\")",
+      "replace": "                        ? new Cadence(counters.Strikes % AnvilEvery, AnvilEvery, \"strikes\")"
+    },
+    {
+      "name": "a spent anvil keeps counting toward nothing",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                    return Sharpenings(hero, awakened) > 0\n                        ? new Cadence(counters.StrikeTotal % AnvilEvery, AnvilEvery, \"strikes\")\n                        : default(Cadence);",
+      "replace": "                    return new Cadence(counters.StrikeTotal % AnvilEvery, AnvilEvery, \"strikes\");"
+    },
+    {
+      "name": "waking the anvil buys it nothing",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            return Max((awakened ? AwokenAnvilCap : AnvilCap) - hero.AnvilBonus);",
+      "replace": "            return Max(AnvilCap - hero.AnvilBonus);"
+    },
+    {
+      "name": "the anvil's budget is the woken one whether or not it was woken",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                    return new Budget(Sharpenings(hero, false), AnvilCap);",
+      "replace": "                    return new Budget(Sharpenings(hero, true), AnvilCap);"
+    },
+    {
+      "name": "the quenched blade counts what the bead counts",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                    return new Cadence(counters.QuenchCount % SocketEvery, SocketEvery,\n                        \"heals → +1 ATK\");",
+      "replace": "                    return new Cadence(counters.MomentumCount % SocketEvery, SocketEvery,\n                        \"heals → +1 ATK\");"
+    },
+    {
+      "name": "the rabbit counts in a delve too",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                    return versus\n                        ? new Cadence(counters.RabbitCount % SocketEvery, SocketEvery,\n                            \"luck signals → +LCK\")\n                        : default(Cadence);",
+      "replace": "                    return new Cadence(counters.RabbitCount % SocketEvery, SocketEvery,\n                        \"luck signals → +LCK\");"
+    },
+    {
+      "name": "the bell rings one more time than it can",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public const int SentinelCap = 3;",
+      "replace": "        public const int SentinelCap = 4;"
+    },
+    {
+      "name": "the soil is never spent",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                    return new Budget(hero.SoilUsed ? 0 : 1, 1);",
+      "replace": "                    return new Budget(1, 1);"
+    },
+    {
+      "name": "a budget can read as owing uses",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        private static int Max(int value) { return value < 0 ? 0 : value; }",
+      "replace": "        private static int Max(int value) { return value; }"
+    },
+    {
+      "name": "every relic has something to show",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public bool Any { get { return Attached.Any || Native.Any || Uses.Any; } }",
+      "replace": "        public bool Any { get { return true; } }"
+    },
+    {
+      "name": "a gauge of nothing still counts as one",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public bool Any { get { return Total > 0; } }",
+      "replace": "        public bool Any { get { return true; } }"
+    },
+    {
+      "name": "a spent budget does not read as spent",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public bool Spent { get { return Any && Left <= 0; } }",
+      "replace": "        public bool Spent { get { return Any && Left < 0; } }"
+    }
+  ]
+}

@@ -328,6 +328,9 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
   widgets a scene attaches. They decide nothing; the frame does
 - `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,
   relic tray with the `relicMeter` charge/uses gauges, hall pan
+- **`RelicMeter` (Core, done)** — what one COPY of a relic has to show: a socketed trigger's
+  progress, its own rhythm, and what is left of its budget. Two clocks can run at once
+- **`FightFrame.SoundOf` (Core, done)** — six of the twenty event kinds make a noise
 - Death shatter / blood / dust via UI-Particle (replaces `pileFrom`/`shatterOf` pixel reads)
 - 8 SFX clips through `IAudioService`
 

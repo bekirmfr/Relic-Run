@@ -101,15 +101,37 @@ def run_tests(where):
     # the harness with no output at all — which is how this one sat for an hour looking like a
     # slow machine. A mutant that hangs is a mutant that was NOT killed, so a timeout counts as
     # a survivor and says so.
+    #
+    # And the tree, not the child. `dotnet test` spawns a test host, and killing only the
+    # process we launched leaves that host spinning on the very loop that caused the timeout —
+    # one pegged core per hung mutant, quietly making every later mutant slower. That is how a
+    # single hang turned into an afternoon of a machine that seemed inexplicably tired.
+    running = subprocess.Popen(
+        ["dotnet", "test", TEST_PROJECT, "--nologo"],
+        cwd=where, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        encoding="utf-8", errors="replace")
+
     try:
-        result = subprocess.run(
-            ["dotnet", "test", TEST_PROJECT, "--nologo"],
-            cwd=where, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=DEADLINE)
+        out, _ = running.communicate(timeout=DEADLINE)
     except subprocess.TimeoutExpired:
+        reap(running.pid)
+        running.communicate()
         return True, True
 
-    return result.returncode == 0, "error CS" not in result.stdout
+    return running.returncode == 0, "error CS" not in out
+
+
+def reap(pid):
+    """Kills a process and everything it started."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
+                       capture_output=True, check=False)
+        return
+
+    try:
+        os.killpg(os.getpgid(pid), 9)
+    except OSError:
+        pass
 
 
 def main():

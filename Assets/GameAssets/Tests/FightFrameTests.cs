@@ -253,6 +253,69 @@ namespace RelicRun.Tests
             Assert.That(Frame(new[] { At(0, CombatEventType.Death) }, 0).Fliers, Is.Empty);
         }
 
+        /* ---------- what it sounds like ---------- */
+
+        /// <summary>
+        /// Six of the twenty event kinds make a noise, and the rest are silent.
+        /// </summary>
+        /// <remarks>
+        /// Silence is the interesting half. A chain of eight relics firing would otherwise be
+        /// eight noises on top of one another, and a delver would learn nothing from any of them
+        /// — so a relic's damage sounds like a blow because it IS one, and a relic's heal, luck
+        /// signal and fizzle say nothing at all.
+        /// </remarks>
+        [Test]
+        public void SixThingsMakeANoiseAndTheRestAreQuiet()
+        {
+            var heard = new Dictionary<CombatEventType, FightSound>
+            {
+                { CombatEventType.Gold, FightSound.Gold },
+                { CombatEventType.PlayerDamage, FightSound.Hurt },
+                { CombatEventType.EnemyDamage, FightSound.Hit },
+                { CombatEventType.Heal, FightSound.Heal },
+                { CombatEventType.Kill, FightSound.Kill },
+                { CombatEventType.Death, FightSound.Death },
+            };
+
+            var noisy = 0;
+
+            foreach (CombatEventType type in System.Enum.GetValues(typeof(CombatEventType)))
+            {
+                FightSound sound = FightFrame.SoundOf(At(0, type));
+
+                if (heard.ContainsKey(type))
+                {
+                    Assert.That(sound, Is.EqualTo(heard[type]), type.ToString());
+                    noisy++;
+                }
+                else
+                {
+                    Assert.That(sound, Is.EqualTo(FightSound.None),
+                        type + " makes a noise nobody asked for");
+                }
+            }
+
+            Assert.That(noisy, Is.EqualTo(6));
+        }
+
+        /// <summary>A relic's blow sounds like a blow, because it is one.</summary>
+        [Test]
+        public void ARelicsDamageSoundsLikeTheDelversOwn()
+        {
+            Assert.That(FightFrame.SoundOf(At(0, CombatEventType.EnemyDamage, "Ember Cask", 1)),
+                Is.EqualTo(FightSound.Hit));
+            Assert.That(FightFrame.SoundOf(Swing(0)), Is.EqualTo(FightSound.Hit));
+        }
+
+        [Test]
+        public void TheFrameCarriesTheSound()
+        {
+            Assert.That(Frame(new[] { At(0, CombatEventType.Kill, "you") }, 0).Sound,
+                Is.EqualTo(FightSound.Kill));
+            Assert.That(Frame(new[] { At(0, CombatEventType.Fizzle) }, 0).Sound,
+                Is.EqualTo(FightSound.None));
+        }
+
         /* ---------- a real fight ---------- */
 
         /// <summary>

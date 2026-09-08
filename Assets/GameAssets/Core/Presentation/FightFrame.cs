@@ -108,6 +108,32 @@ namespace RelicRun.Core.Presentation
     }
 
     /// <summary>
+    /// What a fight sounds like. Six noises, and mostly silence.
+    /// </summary>
+    /// <remarks>
+    /// Six of the twenty event kinds make a sound and the rest do not, which is the source's
+    /// arrangement and a good one: a chain of eight relics firing would otherwise be eight
+    /// noises on top of one another, and the delver would learn nothing from any of them.
+    /// </remarks>
+    public enum FightSound
+    {
+        None,
+
+        /// <summary>Coin.</summary>
+        Gold,
+
+        /// <summary>The delver taking a blow.</summary>
+        Hurt,
+
+        /// <summary>The delver landing one.</summary>
+        Hit,
+
+        Heal,
+        Kill,
+        Death,
+    }
+
+    /// <summary>
     /// Everything a screen needs to draw one event, and nothing it does not.
     /// </summary>
     /// <remarks>
@@ -136,12 +162,17 @@ namespace RelicRun.Core.Presentation
         /// <summary>What the foe's attack gauge should do.</summary>
         public readonly Gauge Enemy;
 
-        public FightFrame(CombatLine line, IReadOnlyList<Flier> fliers, Gauge hero, Gauge enemy)
+        /// <summary>What it sounds like, if anything.</summary>
+        public readonly FightSound Sound;
+
+        public FightFrame(CombatLine line, IReadOnlyList<Flier> fliers, Gauge hero, Gauge enemy,
+            FightSound sound)
         {
             Line = line;
             Fliers = fliers;
             Hero = hero;
             Enemy = enemy;
+            Sound = sound;
         }
 
         /// <summary>The frame for one event of a fight.</summary>
@@ -154,7 +185,31 @@ namespace RelicRun.Core.Presentation
                 log == null ? new CombatLine(LineKind.Silent, "") : log.For(shown),
                 FliersFor(shown),
                 GaugeFor(events, index, pacing, true),
-                GaugeFor(events, index, pacing, false));
+                GaugeFor(events, index, pacing, false),
+                SoundOf(shown));
+        }
+
+        /// <summary>
+        /// What an event sounds like.
+        /// </summary>
+        /// <remarks>
+        /// A relic's damage sounds the same as the delver's own swing, deliberately: the source
+        /// keys this on the event kind and not on who caused it, so a chain landing reads as one
+        /// series of blows rather than as a different instrument. Silence for everything else,
+        /// which is most things.
+        /// </remarks>
+        public static FightSound SoundOf(CombatEvent shown)
+        {
+            switch (shown.Type)
+            {
+                case CombatEventType.Gold: return FightSound.Gold;
+                case CombatEventType.PlayerDamage: return FightSound.Hurt;
+                case CombatEventType.EnemyDamage: return FightSound.Hit;
+                case CombatEventType.Heal: return FightSound.Heal;
+                case CombatEventType.Kill: return FightSound.Kill;
+                case CombatEventType.Death: return FightSound.Death;
+                default: return FightSound.None;
+            }
         }
 
         /* ---------- who is attacking ---------- */
