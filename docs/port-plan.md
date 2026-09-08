@@ -310,6 +310,9 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
 `dotnet test`; applying it to the actual `.asset` files needs the Editor and runs there.
 
 ### Phase 9 — Presentation
+- **`Pacing` (Core, done)** — how long to wait between two events, ported by hand from
+  `evDelay`. Playback follows the fight's own ATB clock rather than one beat per event.
+  `PresentationSettings` authors the numbers and hands Core a `PacingRules`
 - `CombatPlaybackController` — `CancellationTokenSource` per fight replaces the
   `later()`/`schedNext()`/`_ptk` single-flight dance; pause becomes an await gate
 - `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,

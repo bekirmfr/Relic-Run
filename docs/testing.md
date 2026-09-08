@@ -910,6 +910,56 @@ address names an id nothing asks for, and the book's GUID is the addressed asset
 asserts that the two sheets are **not** addressed, so the split stays a decision rather than
 becoming a drift.
 
+## Pacing, which had to be read rather than recorded
+
+The playback timings live inside a React component's methods rather than in a named declaration
+`lift.mjs` can slice, so there is nothing to record — and a recording would anyway be a record of
+how fast one machine ran on one afternoon. They are ported by hand from `evDelay` and the setup
+around it, and gated by stating the rules instead.
+
+The rule worth knowing: **playback follows the fight's own clock.** Every event carries the ATB
+tick it happened on, and the wait between two events is how many ticks passed times a few hundred
+milliseconds — floored at 45% of a beat so a burst still registers, capped at 2600ms so a slow
+exchange is not an intermission. It is not one event per beat. That is the difference between a
+flurry reading as a flurry and a fight reading as a metronome.
+
+Two things fell out of reading it closely.
+
+`Math.round(_step * 0.45)` is a **JsMath case with a live example**. At ×4 on a short fight the
+beat is 250ms, 45% of it is 112.5 exactly, JavaScript rounds a half up to 113 and .NET rounds a
+half to even and says 112. One millisecond, in the one place the arithmetic lands on a half.
+
+And the speed control **only ever shortened half of what it should have.** The source divides both
+the beat and the per-tick figure by the speed when a fight opens, then the button recomputes only
+the beat — so pressing it mid-fight tightened the gaps between events on the same tick and changed
+nothing about the long waits, which are most of what a delver pressing it wants skipped. The same
+fight at the same speed then played at two different paces depending on whether the button had
+been touched. That reads as a slip rather than a decision, so `PacingRules.Shipped()` fixes it and
+`AsRecorded()` keeps it, and the diff between them is the change.
+
+One rule is unobservable and ported as written: the source floors the beat at 30ms when the speed
+CONTROL recomputes it and not when a fight opens. Applied in both places here, because it cannot
+be reached in either — a fight opens at 700 or 1000, and a quarter of either is six times the
+floor.
+
+Mutation earned its keep on this one. Five of eighteen survived the first run and none of the five
+was a missing test in the ordinary sense.
+
+Two said a guard was **redundant**: `Between` opened with `if (toTick <= fromTick) return shortest`
+and the floor two lines below already answered both cases — a zero gap multiplies to zero and a
+backwards one to a negative, and both are under the shortest gap. Deleting the guard made the
+floor load-bearing and killed both mutants at once. Nothing was added to the tests.
+
+Two said the reduced-motion **beat and clock were never read**, because the waits answer before
+they get that far. They are public, so a caller asking a reduced-motion fight how long a beat is
+should be told forty rather than a thousand; asserted rather than deleted.
+
+And one said the shipped numbers cannot tell the two roundings apart. 87.5 goes to 88 whichever
+way you round, because .NET rounds a half to the nearest EVEN and 88 is even — so the only live
+disagreement in the whole table is `ShortestMs`. The numbers are authored though, and a beat of
+450 at ×4 lands on 112.5 where they differ, so that case is asserted with numbers nobody has
+chosen yet.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -964,3 +1014,4 @@ node Tools/extract/validate.mjs
 | Phase 8f — a delver, indexed | `hero.json` | passing, 93 heroes round-trip pixel for pixel |
 | Phase 8g — what a face can draw | `fonts.json` | passing, 2 faces × 8 languages · ja/zh/ar borrow the system's |
 | Phase 8h — what is fetched, not held | none — invariants | Test Runner only; 30 addresses against the catalogs |
+| Phase 9a — how long a fight takes | none — ported by hand | passing, the ATB clock drives playback |

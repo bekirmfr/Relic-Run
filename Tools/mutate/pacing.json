@@ -1,0 +1,107 @@
+{
+  "name": "how long a fight takes to watch",
+  "mutants": [
+    {
+      "name": "a fight of exactly thirty-four counts as long",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            bool busy = events > rules.BusyAfterEvents;",
+      "replace": "            bool busy = events >= rules.BusyAfterEvents;"
+    },
+    {
+      "name": "a fight is long one event later",
+      "file": "Assets/GameAssets/Core/Presentation/PacingRules.cs",
+      "find": "        public int BusyAfterEvents = 34;",
+      "replace": "        public int BusyAfterEvents = 35;"
+    },
+    {
+      "name": "reduced motion still watches the fight at its own pace",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            int fullStep = reduced ? rules.ReducedStepMs : (busy ? rules.BusyStepMs : rules.StepMs);",
+      "replace": "            int fullStep = busy ? rules.BusyStepMs : rules.StepMs;"
+    },
+    {
+      "name": "reduced motion keeps the tick-proportional waits",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            int fullPerTick = reduced ? 0 : (busy ? rules.BusyPerTickMs : rules.PerTickMs);",
+      "replace": "            int fullPerTick = busy ? rules.BusyPerTickMs : rules.PerTickMs;"
+    },
+    {
+      "name": "reduced motion is paced like everything else",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            if (_reduced) return _rules.ReducedStepMs;",
+      "replace": ""
+    },
+    {
+      "name": "a wait may be shorter than the shortest gap",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            if (waited < shortest) return shortest;",
+      "replace": ""
+    },
+    {
+      "name": "a long silence is not capped",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            return waited > _rules.LongestWaitMs ? _rules.LongestWaitMs : waited;",
+      "replace": "            return waited;"
+    },
+    {
+      "name": "the cap is a little higher",
+      "file": "Assets/GameAssets/Core/Presentation/PacingRules.cs",
+      "find": "        public int LongestWaitMs = 2600;",
+      "replace": "        public int LongestWaitMs = 3000;"
+    },
+    {
+      "name": "the wait is the tick rather than the gap between two",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            int waited = (toTick - fromTick) * PerTickMs;",
+      "replace": "            int waited = toTick * PerTickMs;"
+    },
+    {
+      "name": "the shortest gap is half a beat rather than forty-five hundredths",
+      "file": "Assets/GameAssets/Core/Presentation/PacingRules.cs",
+      "find": "        public int ShortestGapPercent = 45;",
+      "replace": "        public int ShortestGapPercent = 50;"
+    },
+    {
+      "name": "the shortest gap rounds the way .NET does",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            get { return JsMath.RoundToInt(StepMs * _rules.ShortestGapPercent / 100.0); }",
+      "replace": "            get { return (int)System.Math.Round(StepMs * _rules.ShortestGapPercent / 100.0); }"
+    },
+    {
+      "name": "a duration rounds the way .NET does",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            return ms == 0 ? 0 : JsMath.RoundToInt(ms / (double)speed);",
+      "replace": "            return ms == 0 ? 0 : (int)System.Math.Round(ms / (double)speed);"
+    },
+    {
+      "name": "the speed control divides what it already divided",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            return new Pacing(_rules, Beat(_base, speed, _rules), perTick, _base,",
+      "replace": "            return new Pacing(_rules, Beat(StepMs, speed, _rules), perTick, _base,"
+    },
+    {
+      "name": "the speed control never touches the long waits",
+      "file": "Assets/GameAssets/Core/Presentation/PacingRules.cs",
+      "find": "        public bool SpeedShortensTheTickWait = true;",
+      "replace": "        public bool SpeedShortensTheTickWait = false;"
+    },
+    {
+      "name": "the fastest speed does not wrap back to the slowest",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "                if (steps[i] == Speed) return steps[(i + 1) % steps.Length];",
+      "replace": "                if (steps[i] == Speed) return steps[i + 1 < steps.Length ? i + 1 : i];"
+    },
+    {
+      "name": "a speed of zero is allowed through",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "            if (rules == null) rules = PacingRules.Shipped();\n            if (speed < 1) speed = 1;",
+      "replace": "            if (rules == null) rules = PacingRules.Shipped();"
+    },
+    {
+      "name": "the last event holds for a whole beat",
+      "file": "Assets/GameAssets/Core/Presentation/Pacing.cs",
+      "find": "        public int Last() { return _reduced ? _rules.ReducedStepMs : ShortestMs; }",
+      "replace": "        public int Last() { return _reduced ? _rules.ReducedStepMs : StepMs; }"
+    }
+  ]
+}
