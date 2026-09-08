@@ -165,6 +165,26 @@ namespace RelicRun.Tests.Support
             return pack;
         }
 
+        /// <summary>One language's strings, from <c>Tools/out/locales/</c>.</summary>
+        public static Dictionary<string, string> LocaleTable(string language)
+        {
+            string path = Path.Combine(Path.GetDirectoryName(Root), "out", "locales",
+                language + ".json");
+
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("no such language: " + path);
+            }
+
+            var table = new Dictionary<string, string>();
+            foreach (JProperty entry in JObject.Parse(File.ReadAllText(path)).Properties())
+            {
+                table[entry.Name] = entry.Value.Value<string>();
+            }
+
+            return table;
+        }
+
         private static HeroPart PartFrom(string slot, string id, JObject frames)
         {
             var part = new HeroPart(slot, id);

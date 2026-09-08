@@ -1,0 +1,113 @@
+{
+  "name": "what a delver reads",
+  "mutants": [
+    {
+      "name": "a missing key comes back empty rather than as itself",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                text = key;",
+      "replace": "                text = \"\";"
+    },
+    {
+      "name": "a missing translation does not fall back to English",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "            if (!_table.TryGetValue(key, out text) && !_fallback.TryGetValue(key, out text))",
+      "replace": "            if (!_table.TryGetValue(key, out text))"
+    },
+    {
+      "name": "a placeholder is filled once rather than everywhere",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                    text = text.Replace(\"{\" + value.Key + \"}\", value.Value ?? \"\");",
+      "replace": "                    int at = text.IndexOf(\"{\" + value.Key + \"}\");\n                    if (at >= 0) text = text.Substring(0, at) + (value.Value ?? \"\") + text.Substring(at + value.Key.Length + 2);"
+    },
+    {
+      "name": "an empty value leaves the placeholder standing",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "value.Value ?? \"\");",
+      "replace": "value.Value == null || value.Value.Length == 0 ? (\"{\" + value.Key + \"}\") : value.Value);"
+    },
+    {
+      "name": "the string is cleaned before its placeholders are filled",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "            return Clean(text);",
+      "replace": "            return text;"
+    },
+    {
+      "name": "the spacing is tidied before the decoration is stripped",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "            return Trim(Collapse(Strip(text)));",
+      "replace": "            return Trim(Strip(Collapse(text)));"
+    },
+    {
+      "name": "nothing is trimmed",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "            return Trim(Collapse(Strip(text)));",
+      "replace": "            return Collapse(Strip(text));"
+    },
+    {
+      "name": "a lone space is collapsed too",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                if (run == 1) kept.Append(text[i - 1]);",
+      "replace": "                if (run == 1) kept.Append(' ');"
+    },
+    {
+      "name": "a run of spaces is dropped rather than collapsed",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                else if (run > 1) kept.Append(' ');",
+      "replace": ""
+    },
+    {
+      "name": "tabs are left alone",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                if (i < text.Length && (text[i] == ' ' || text[i] == Tab))",
+      "replace": "                if (i < text.Length && text[i] == ' ')"
+    },
+    {
+      "name": "a surrogate pair is read as two separate characters",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                int point = paired ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];",
+      "replace": "                int point = text[i];"
+    },
+    {
+      "name": "half of a stripped pair is left behind",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                    if (paired) kept.Append(text[i + 1]);",
+      "replace": ""
+    },
+    {
+      "name": "arrows are not decoration",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                   (point >= 0x2190 && point <= 0x21FF) ||",
+      "replace": ""
+    },
+    {
+      "name": "the emoji range stops one short",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "            return (point >= 0x1F000 && point <= 0x1FAFF) ||",
+      "replace": "            return (point >= 0x1F000 && point <= 0x1FAFE) ||"
+    },
+    {
+      "name": "the dingbat range runs one too far",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                   (point >= 0x2500 && point <= 0x27BF) ||",
+      "replace": "                   (point >= 0x2500 && point <= 0x27C0) ||"
+    },
+    {
+      "name": "the technical range starts one early",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                   (point >= 0x2300 && point <= 0x23FF) ||",
+      "replace": "                   (point >= 0x22FF && point <= 0x23FF) ||"
+    },
+    {
+      "name": "the zero-width joiner survives",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "                   point == 0xFE0E || point == 0xFE0F || point == 0x200D;",
+      "replace": "                   point == 0xFE0E || point == 0xFE0F;"
+    },
+    {
+      "name": "a locale borrows a key and calls it its own",
+      "file": "Assets/GameAssets/Core/Content/Locale.cs",
+      "find": "        public bool Has(string key) { return _table.ContainsKey(key); }",
+      "replace": "        public bool Has(string key) { return _table.ContainsKey(key) || _fallback.ContainsKey(key); }"
+    }
+  ]
+}

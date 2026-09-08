@@ -32,6 +32,8 @@ const CONSTS = [
   // The synthetic-token registry the shadow and highlight modifiers fill in as a hero is
   // composed. Empty until something composes; paletteFor reads it either way.
   "SYNTH", "BASE32", "HERO32", "STUDIO_REV",
+  // What t() strips out of a string before showing it.
+  "EMOJI",
   // The merchant's greeting is picked with a SEEDED draw, from inside a callback the
   // animation defers. It is one line of flavour that moves every number after it.
   "MERCHANT_LINES",
@@ -106,7 +108,7 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     // different code, and different draws from the seeded generator. Which path is recorded
     // has to be a decision, so it is a switch rather than an accident of the stub.
     "const __env = { reducedMotion: false };",
-    "const window = { __ddDefModel: 'pct',",
+    "const window = { __ddDefModel: 'pct', DD_STRINGS: { en: {} },",
     "  matchMedia: (q) => ({ matches: __env.reducedMotion && /reduce/.test(q) }) };",
     "const SFX = new Proxy({}, { get: () => () => {} });",
     // setCanvasSize clears the sprite cache as it resizes. Nothing here draws, so the cache is
@@ -123,6 +125,10 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "class Engine {",
     "  itemName(id) { return id; }",           // log text only — corpus compares structure
     "  t(key) { return key; }",
+    // The REAL translator, under its own name. The stub above stays because the fight corpus
+    // compares log lines by key rather than by prose, and swapping it would rewrite every
+    // recorded event; this is the one the locale corpus asks.
+    liftMethodTo("t").replace(/^  t\s*\(/, "  translate("),
     // finishRun is scoring wrapped in presentation: sound, telemetry, screen transitions and
     // a gold counter that animates. Stubbing those is what lets the arithmetic — banked gold,
     // score, stars, XP — be lifted rather than transcribed.
@@ -160,8 +166,9 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
     "  SHOP_BUY, SHOP_UP, EV_MIN_SPD, EV_MIN_DEF, REVIVE_SPARKS, Store,",
     "  slotList, Studio, FAMILIES, relicSynergy, dailySeed,",
   "  SOLOS, SHADE_DEFAULTS, MODS, shade, hexToHsl, hslToHex, applyShade, famParams,",
+  "  __window: () => window,",
   "  hexOver, paletteFor, composeHeroState, importPack, validatePack, PACK, HERO32,",
-  "  stackOrder, partFrame32, applyOutline, setCanvasSize, SYNTH, MODS,",
+  "  stackOrder, partFrame32, applyOutline, setCanvasSize, SYNTH, MODS, EMOJI,",
   "  setReducedMotion: v => { __env.reducedMotion = !!v; } };",
   ];
 
@@ -184,5 +191,6 @@ export function buildEngine({ instrumentRuns = false, countDraws = false } = {})
   ctx.globalThis = ctx;
   vm.runInContext(parts.join("\n\n"), ctx, { filename: "engine.lifted.js" });
   ctx.__api.seedLobby = (n) => { seedForNextLobby = n >>> 0; };
+  ctx.__api.setStrings = (tables) => { ctx.__api.__window().DD_STRINGS = tables; };
   return ctx.__api;
 }

@@ -82,9 +82,13 @@ def stage(into):
 
 def run_tests(where):
     """Returns (passed, built)."""
+    # Decoded as UTF-8 rather than as the console's own codepage. A failing test prints the
+    # strings it compared, and the game speaks Arabic, Japanese and Russian — on a Windows
+    # console that is cp1252, and reading it as such kills the reader thread mid-suite.
     result = subprocess.run(
         ["dotnet", "test", TEST_PROJECT, "--nologo"],
-        cwd=where, capture_output=True, text=True)
+        cwd=where, capture_output=True, text=True,
+        encoding="utf-8", errors="replace")
     return result.returncode == 0, "error CS" not in result.stdout
 
 

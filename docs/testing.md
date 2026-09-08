@@ -498,6 +498,45 @@ numbers instead changes every animation in the game and looks, at a glance, like
 thing to do — the corpus caught it on the first run, because a state the registry does not have
 at all falls back to idle and the frame counts stopped matching.
 
+## What a delver reads
+
+Resolving a string is a lookup, a fallback to English, a fallback to the KEY itself, placeholder
+substitution, and then a clean-up. That last step is the reason this is recorded rather than
+assumed: it strips emoji, arrows, technical symbols and dingbats, collapses runs of spaces, and
+trims. **"← Back" reaches the screen as "Back"** — a hundred and forty-four of the twelve hundred
+shipped strings change on their way out, because the game writes its buttons with icons in front
+of them and none of those icons is ever drawn.
+
+Twelve hundred strings across eight languages replay exactly, along with the filled placeholders,
+the awkward cases, and a set of probes sitting either side of every boundary in the stripped
+ranges. The probes never appear in the game; they are there so the ranges are pinned rather than
+inferred from whichever emoji the translators happened to reach for.
+
+Two bugs came out of the first run, both in the clean-up, and both from the same mistake: I had
+written it as one pass that stripped, counted spaces and rebuilt in a single walk, and the index
+juggling was wrong in two directions at once — an arrow survived, and a character above the basic
+plane came out mangled. The source does three passes. So does the port now.
+
+Values are passed as strings on purpose. How a number is spelled depends on a culture, and
+choosing one is the caller's business; Core has no opinion and no way to have one.
+
+### What the shipped strings cannot say
+
+Eighteen mutations, all eighteen die — after four were replaced or covered directly. Three were
+rules the shipped data never exercises: **no string repeats a placeholder** in any of the eight
+languages, and **none contains a tab**. Both are ordinary things for a translator to write, so
+each is asked directly. The fourth was a mutant that could not fail — it swapped a null check
+that the corpus only ever fed empty strings — and was rewritten to test the case that exists.
+
+### Two more footguns in the harness
+
+`mutate.py` decoded test output using the console's own codepage. That was fine until a failing
+test printed the strings it compared, in Arabic and Japanese, and the reader thread died mid-suite
+with a decoding error rather than a test result. It reads UTF-8 now.
+
+It also gained a way to stage single files. The tests read the shipped hero pack, which sits in a
+directory of PNGs that nothing here touches and that would have been copied for every mutant.
+
 ## What a run leaves behind
 
 Scoring says what a run was WORTH; banking is what then happens to it, and the two are apart
@@ -776,3 +815,4 @@ node Tools/extract/validate.mjs
 | Phase 6e — synergy | `synergy.json` | passing, 1200 loadouts scored exactly |
 | Phase 8a — the palette | `palette.json` | passing, 12,650 colours and four 94-key palettes |
 | Phase 8b — composing a hero | `hero.json` | passing, 483 frames and ~852,000 pixels |
+| Phase 8c — what a delver reads | `strings.json` | passing, 1224 strings in 8 languages |
