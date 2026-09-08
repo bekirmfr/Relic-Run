@@ -59,6 +59,17 @@ namespace RelicRun.Core.Presentation
         public int[] SpeedSteps = { 1, 2, 4 };
 
         /// <summary>
+        /// How long the walk down the hall to a new foe takes.
+        /// </summary>
+        /// <remarks>
+        /// Flat, and deliberately not divided by the speed. This one is not a wait but an
+        /// animation with a length of its own: shortening the timer without shortening the walk
+        /// would cut a delver off mid-stride. It is skipped entirely under reduced motion, which
+        /// is the only setting that turns it off.
+        /// </remarks>
+        public int WalkMs = 3350;
+
+        /// <summary>
         /// Whether pressing the speed control also shortens the tick-proportional waits.
         /// </summary>
         /// <remarks>

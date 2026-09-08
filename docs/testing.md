@@ -960,6 +960,40 @@ disagreement in the whole table is `ShortestMs`. The numbers are authored though
 450 at ×4 lands on 112.5 where they differ, so that case is asserted with numbers nobody has
 chosen yet.
 
+## What the timer dance was hiding
+
+The source shows a fight as a chain of `setTimeout` callbacks, and two thirds of that machinery
+exists because a browser timer cannot be recalled once set. Pausing re-schedules a poll every
+180ms until the delver comes back. Starting a fresh fight bumps `_ptk` so the old chain notices
+it has been superseded and returns quietly. Neither is a rule about how a fight is shown; both
+are scaffolding for a language problem.
+
+A `CancellationToken` removes both, and what is left is small enough to state and test:
+
+- **`CombatPlayback`** — a cursor with no timers in it at all. It says *show this, then hold for
+  that long*, and whoever drives it does the waiting.
+- **`PlaybackLoop`** — the loop, with the clock injected. A test clock answers instantly and
+  writes down what it was asked for, which turns "does pausing work" from a question about
+  timing into a question about a list.
+- **`CombatPlaybackController`** (Game) — the two things Core cannot have: a clock made of
+  frames, and the token that ends a fight nobody is watching.
+
+Three details that are rules rather than scaffolding, and are asserted as such.
+
+**A foe entering is announced twice.** The first time the cursor reaches an `Enter`, playback
+walks the hall and does *not* advance; the second time it shows the event. That is why the source
+keeps a `_walked` index — the walk is what puts the cursor back, so without a memory of having
+walked, the same foe would be approached forever.
+
+**The pause gate is checked before the next step, not after the last one.** That is the
+difference between a delver who pauses to read a card finding it still on screen and finding the
+next thing already drawn over it.
+
+**The speed control takes effect from the step after the press.** A step's hold is worked out
+when the step is produced, so the beat being watched when the button goes down plays out at the
+length it was given. Cutting the current wait short would let a press land in the middle of a
+2600ms gap and skip most of it, which reads as the button having skipped an event.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1015,3 +1049,4 @@ node Tools/extract/validate.mjs
 | Phase 8g — what a face can draw | `fonts.json` | passing, 2 faces × 8 languages · ja/zh/ar borrow the system's |
 | Phase 8h — what is fetched, not held | none — invariants | Test Runner only; 30 addresses against the catalogs |
 | Phase 9a — how long a fight takes | none — ported by hand | passing, the ATB clock drives playback |
+| Phase 9b — walking a finished fight | none — invariants | passing, the stepper and the loop |

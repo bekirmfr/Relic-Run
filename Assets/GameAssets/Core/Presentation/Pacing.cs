@@ -33,6 +33,12 @@ namespace RelicRun.Core.Presentation
         /// <summary>How fast the delver has asked for it: 1, 2 or 4.</summary>
         public readonly int Speed;
 
+        /// <summary>Whether the delver's system asked for less motion.</summary>
+        public bool Reduced { get { return _reduced; } }
+
+        /// <summary>The numbers this was paced by.</summary>
+        public PacingRules Rules { get { return _rules; } }
+
         private Pacing(PacingRules rules, int step, int perTick, int fullBase, int perTickAtFullSpeed,
             bool reduced, int speed)
         {

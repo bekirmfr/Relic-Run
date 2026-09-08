@@ -57,6 +57,12 @@ namespace RelicRun.Game.Data
         [Tooltip("What the control cycles through. The last one wraps back to the first.")]
         public int[] SpeedSteps = { 1, 2, 4 };
 
+        [Header("The hall")]
+        [Tooltip("How long the walk to a new foe takes. Not divided by the speed — this is an " +
+                 "animation with a length of its own, and cutting the timer would cut the walk. " +
+                 "Skipped entirely under reduced motion.")]
+        [Min(0)] public int WalkMs = 3350;
+
         [Tooltip("Whether pressing the control also shortens the long waits. The source only " +
                  "shortened the gaps between events on the same tick, which was most likely a " +
                  "slip: it changed the least of what a delver pressing it wanted skipped.")]
@@ -78,6 +84,7 @@ namespace RelicRun.Game.Data
                 ShortestGapPercent = ShortestGapPercent,
                 SpeedSteps = SpeedSteps,
                 SpeedShortensTheTickWait = SpeedShortensTheTickWait,
+                WalkMs = WalkMs,
             };
         }
     }

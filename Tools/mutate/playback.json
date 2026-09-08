@@ -1,0 +1,101 @@
+{
+  "name": "walking a finished fight",
+  "mutants": [
+    {
+      "name": "the hall is walked every time the foe is reached",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            if (_walks && _walked != at && _events[at].Type == CombatEventType.Enter)",
+      "replace": "            if (_walks && _events[at].Type == CombatEventType.Enter)"
+    },
+    {
+      "name": "having walked is not remembered",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "                _walked = at;",
+      "replace": ""
+    },
+    {
+      "name": "the walk consumes the event it walked to",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "                _walked = at;\n                return new PlaybackStep(PlaybackAction.Walk, at, Pacing.Rules.WalkMs);",
+      "replace": "                _walked = at;\n                _cursor = at + 1;\n                return new PlaybackStep(PlaybackAction.Walk, at, Pacing.Rules.WalkMs);"
+    },
+    {
+      "name": "the hall is walked for everything except a foe entering",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            if (_walks && _walked != at && _events[at].Type == CombatEventType.Enter)",
+      "replace": "            if (_walks && _walked != at && _events[at].Type != CombatEventType.Enter)"
+    },
+    {
+      "name": "reduced motion is walked through the hall anyway",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            _walks = !pacing.Reduced && !skipIntro && pacing.Rules.WalkMs > 0;",
+      "replace": "            _walks = !skipIntro && pacing.Rules.WalkMs > 0;"
+    },
+    {
+      "name": "skipping the intro does not skip the walk",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            _walks = !pacing.Reduced && !skipIntro && pacing.Rules.WalkMs > 0;",
+      "replace": "            _walks = !pacing.Reduced && pacing.Rules.WalkMs > 0;"
+    },
+    {
+      "name": "a walk of no length is taken anyway",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            _walks = !pacing.Reduced && !skipIntro && pacing.Rules.WalkMs > 0;",
+      "replace": "            _walks = !pacing.Reduced && !skipIntro;"
+    },
+    {
+      "name": "the hold looks backwards rather than forwards",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "                ? Pacing.Between(_events[at].State.Tick, _events[_cursor].State.Tick)",
+      "replace": "                ? Pacing.Between(_events[_cursor].State.Tick, _events[at].State.Tick)"
+    },
+    {
+      "name": "the last event holds for a whole beat",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "                : Pacing.Last();",
+      "replace": "                : Pacing.StepMs;"
+    },
+    {
+      "name": "a fight is paced as though it were short",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            return new CombatPlayback(events, Pacing.For(count, reduced, speed, rules), skipIntro);",
+      "replace": "            return new CombatPlayback(events, Pacing.For(0, reduced, speed, rules), skipIntro);"
+    },
+    {
+      "name": "skipping rewinds instead of ending",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "        public void Skip() { _cursor = Count; }",
+      "replace": "        public void Skip() { _cursor = 0; }"
+    },
+    {
+      "name": "the speed control does not advance the speed",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            Pacing = Pacing.At(Pacing.NextSpeed());",
+      "replace": "            Pacing = Pacing.At(Pacing.Speed);"
+    },
+    {
+      "name": "the speed control also skips an event",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            Pacing = Pacing.At(Pacing.NextSpeed());\n            return Pacing.Speed;",
+      "replace": "            Pacing = Pacing.At(Pacing.NextSpeed());\n            _cursor++;\n            return Pacing.Speed;"
+    },
+    {
+      "name": "a fight is finished one event early",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "        public bool Finished { get { return _cursor >= Count; } }",
+      "replace": "        public bool Finished { get { return _cursor >= Count - 1; } }"
+    },
+    {
+      "name": "a fight is never finished",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "        public bool Finished { get { return _cursor >= Count; } }",
+      "replace": "        public bool Finished { get { return _cursor > Count; } }"
+    },
+    {
+      "name": "the cursor does not advance",
+      "file": "Assets/GameAssets/Core/Presentation/CombatPlayback.cs",
+      "find": "            _cursor = at + 1;",
+      "replace": "            _cursor = at;"
+    }
+  ]
+}

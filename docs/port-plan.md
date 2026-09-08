@@ -313,8 +313,11 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
 - **`Pacing` (Core, done)** — how long to wait between two events, ported by hand from
   `evDelay`. Playback follows the fight's own ATB clock rather than one beat per event.
   `PresentationSettings` authors the numbers and hands Core a `PacingRules`
-- `CombatPlaybackController` — `CancellationTokenSource` per fight replaces the
-  `later()`/`schedNext()`/`_ptk` single-flight dance; pause becomes an await gate
+- **`CombatPlayback` + `PlaybackLoop` (Core, done)** — the cursor and the loop, with the clock
+  injected so both are testable without waiting for anything. A `CancellationTokenSource` per
+  fight replaces the `later()`/`schedNext()`/`_ptk` single-flight dance, and pause is an await
+  gate rather than a 180ms poll
+- **`CombatPlaybackController` (Game, done)** — the clock made of frames, and the token
 - `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,
   relic tray with the `relicMeter` charge/uses gauges, hall pan
 - Death shatter / blood / dust via UI-Particle (replaces `pileFrom`/`shatterOf` pixel reads)

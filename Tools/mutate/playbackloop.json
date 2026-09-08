@@ -1,0 +1,65 @@
+{
+  "name": "showing a fight, and stopping",
+  "mutants": [
+    {
+      "name": "a paused fight plays on regardless",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                if (screen.Paused) await clock.Until(() => !screen.Paused, token);",
+      "replace": ""
+    },
+    {
+      "name": "the gate opens while the delver is still paused",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                if (screen.Paused) await clock.Until(() => !screen.Paused, token);",
+      "replace": "                if (screen.Paused) await clock.Until(() => screen.Paused, token);"
+    },
+    {
+      "name": "an abandoned fight draws one more event first",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                token.ThrowIfCancellationRequested();\n",
+      "replace": ""
+    },
+    {
+      "name": "the end of a fight is not the end of the loop",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                if (step.Action == PlaybackAction.Done) return;",
+      "replace": "                if (step.Action == PlaybackAction.Done) continue;"
+    },
+    {
+      "name": "walking and showing are the other way round",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                if (step.Action == PlaybackAction.Walk) screen.Walk(step.Index);\n                else screen.Show(playing.At(step.Index));",
+      "replace": "                if (step.Action == PlaybackAction.Walk) screen.Show(playing.At(step.Index));\n                else screen.Walk(step.Index);"
+    },
+    {
+      "name": "nothing is held for any length of time",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                await clock.Wait(step.WaitMs, token);",
+      "replace": "                await clock.Wait(0, token);"
+    },
+    {
+      "name": "the screen is shown the wrong event",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "                else screen.Show(playing.At(step.Index));",
+      "replace": "                else screen.Show(playing.At(0));"
+    },
+    {
+      "name": "a fight with no screen is played to nobody",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "            if (screen == null) throw new ArgumentNullException(\"screen\");",
+      "replace": ""
+    },
+    {
+      "name": "a fight with no clock is played instantly",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "            if (clock == null) throw new ArgumentNullException(\"clock\");",
+      "replace": ""
+    },
+    {
+      "name": "nothing at all is played happily",
+      "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
+      "find": "            if (playing == null) throw new ArgumentNullException(\"playing\");",
+      "replace": ""
+    }
+  ]
+}
