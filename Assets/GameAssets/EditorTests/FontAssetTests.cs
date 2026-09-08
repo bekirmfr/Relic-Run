@@ -184,10 +184,15 @@ namespace RelicRun.Tests.Editor
 
                 foreach (TMP_Character character in face.characterTable)
                 {
-                    if (!asked.Contains((int)character.unicode))
-                    {
-                        extra.Add("U+" + character.unicode.ToString("X4"));
-                    }
+                    int point = (int)character.unicode;
+                    if (asked.Contains(point)) continue;
+
+                    // TextMeshPro keeps bookkeeping of its own in the low control range — the
+                    // missing-glyph stand-in among it. That is the library's business; what
+                    // matters here is that no PRINTABLE glyph was baked for nothing.
+                    if (point < 0x20) continue;
+
+                    extra.Add("U+" + character.unicode.ToString("X4"));
                 }
 
                 Assert.That(extra, Is.Empty,
@@ -209,7 +214,7 @@ namespace RelicRun.Tests.Editor
             int gap = 0;
             foreach (int point in Needed(language))
             {
-                if (!face.HasCharacter((uint)point)) gap++;
+                if (!face.HasCharacter(point)) gap++;
             }
 
             return gap;
