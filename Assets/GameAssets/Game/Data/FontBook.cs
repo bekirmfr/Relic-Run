@@ -11,17 +11,26 @@ namespace RelicRun.Game.Data
     /// </summary>
     /// <remarks>
     /// Bound by ROLE rather than by typeface, because the role is what the game means. Two
-    /// hundred and thirty-eight of the two hundred and forty-seven styled spans in the source
-    /// are the same pixel face; the rest are prose. Naming them <c>ui</c> and <c>display</c>
-    /// means changing which typeface fills a role is a line in the importer rather than a
-    /// rename across every screen.
+    /// hundred and forty of the two hundred and forty-nine styled spans in the source are the
+    /// same pixel face — Silkscreen — and the rest are prose, in Space Grotesk. Naming them
+    /// <c>ui</c> and <c>display</c> means changing which typeface fills a role is a line in the
+    /// importer rather than a rename across every screen.
     ///
-    /// The fallbacks are a separate list because they are a different kind of thing. Neither
-    /// shipped face can draw Japanese, Chinese or Arabic — not partially: a tenth of Chinese, an
-    /// eighth of Japanese, half of Arabic — so those three borrow the reader's own system font.
-    /// A delver reading Japanese gets their platform's Japanese face beside a 1983 pixel face,
-    /// which is a compromise somebody chose rather than an accident: the alternative was ten to
-    /// sixteen megabytes of bundled CJK for three languages.
+    /// That indirection earned itself. The first pass filled both roles with faces the source
+    /// does not use anywhere, and putting the right ones in was those two lines and nothing
+    /// else — no screen, no widget and no test had to learn a new typeface name.
+    ///
+    /// The fallbacks are a separate list because they are a different kind of thing. FIVE of the
+    /// eight languages need them. Neither face can draw Japanese, Chinese or Arabic — not
+    /// partially: a tenth of Chinese, an eighth of Japanese, half of Arabic. Neither has any
+    /// Cyrillic, so Russian too. And Silkscreen reaches 94% of Turkish, which is worse than it
+    /// sounds: it has no dotless i and no breve, and Turkish uses both constantly.
+    ///
+    /// So a delver reading Japanese gets their platform's Japanese face beside a pixel face from
+    /// 2001, and a Turkish one gets two letters in a different face from the rest of the word.
+    /// Both are compromises somebody chose rather than accidents: the alternative was ten to
+    /// sixteen megabytes of bundled CJK, and the source makes the same trade by falling through
+    /// to <c>monospace</c>.
     ///
     /// A fallback resolves by FAMILY NAME on the device, so what it finds depends on what is
     /// installed there. That is the whole point of it and also its limit, and it is why the

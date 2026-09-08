@@ -28,30 +28,69 @@ namespace RelicRun.Editor.Importers
     /// </remarks>
     public static class FontImporter
     {
-        /// <summary>A role, the file that fills it, and the size that file was drawn at.</summary>
+        /// <summary>A role, the file that fills it, and how that file wants to be drawn.</summary>
         private struct Cut
         {
             public string Role;
             public string File;
             public int SamplingSize;
             public int Atlas;
+
+            /// <summary>Pixel art, which is baked as pixels and never filtered.</summary>
+            public bool Pixels;
         }
 
+        /// <summary>
+        /// The two faces, read off the source's own stylesheet link.
+        /// </summary>
+        /// <remarks>
+        /// Not chosen. The source asks Google Fonts for three families and uses Silkscreen for
+        /// 240 of its 249 font-family declarations, Space Grotesk for the six on text inputs,
+        /// and Baloo 2 for three containers whose children override it anyway. So Silkscreen
+        /// fills the ui role and Space Grotesk the display one, and Baloo 2 is left out on the
+        /// grounds that nothing visible is set in it.
+        ///
+        /// Press Start 2P and Jacquard 12 were here first and appear in the source NOWHERE. They
+        /// arrived as uploads, were bound because they were to hand, and the game was set in a
+        /// gothic face nobody had asked for until a screenshot showed it. Worth remembering as
+        /// the failure mode it is: nothing was broken, everything was wired, and the answer was
+        /// simply not the one the source gives.
+        ///
+        /// The two want opposite treatment, which is what <c>Pixels</c> decides. Silkscreen is
+        /// drawn on a grid at eight pixels and is baked as a bitmap at exactly that, point
+        /// filtered, so a whole pixel stays a whole pixel. Space Grotesk is an outline face for
+        /// prose and is baked as a distance field, which is the only way it stays clean at the
+        /// arbitrary sizes a scaled canvas asks for.
+        /// </remarks>
         private static readonly Cut[] Cuts =
         {
-            new Cut { Role = FontBook.Ui, File = "PressStart2P.ttf", SamplingSize = 8, Atlas = 512 },
-            new Cut { Role = FontBook.Display, File = "Jacquard12.ttf", SamplingSize = 12, Atlas = 512 },
+            new Cut { Role = FontBook.Ui, File = "Silkscreen-Regular.ttf", SamplingSize = 8,
+                      Atlas = 512, Pixels = true },
+            new Cut { Role = FontBook.Display, File = "SpaceGrotesk.ttf", SamplingSize = 48,
+                      Atlas = 1024, Pixels = false },
         };
 
         /// <summary>
-        /// No padding between glyphs.
+        /// No padding between glyphs, for a face baked as pixels.
         /// </summary>
         /// <remarks>
         /// Padding exists so a filtered atlas cannot bleed one glyph's edge into its neighbour.
-        /// The atlas here is point sampled, so nothing bleeds and padding would only make the
+        /// A pixel atlas is point sampled, so nothing bleeds and padding would only make the
         /// texture larger and the glyphs further apart than they were drawn.
         /// </remarks>
         private const int NoPadding = 0;
+
+        /// <summary>
+        /// Room around each glyph in a distance field, which is where the field lives.
+        /// </summary>
+        /// <remarks>
+        /// Not decoration and not the same thing as the padding above. A distance field encodes
+        /// how far each texel is from the glyph's edge, and it can only encode as far out as it
+        /// has room for — with none, the face has no field to read and renders as hard-edged
+        /// mush at every size except the one it was baked at, which is the whole problem a
+        /// distance field is there to solve.
+        /// </remarks>
+        private const int FieldPadding = 5;
 
         /// <summary>
         /// The scripts no shipped face can draw, and the families that can.
@@ -61,6 +100,18 @@ namespace RelicRun.Editor.Importers
         /// and the rest are reported. The order is deliberate — the platform's own UI face first,
         /// then the Noto families, which is what most Linux and Android images carry.
         ///
+        /// The FIRST chain is Latin and Cyrillic, and it is first because it is the one most
+        /// readers will actually hit. Silkscreen is a small face: it draws English, Spanish and
+        /// French whole, gets Turkish to 94% — it has no dotless i and no breve — and has no
+        /// Cyrillic at all, so Russian sits at 48%. Press Start 2P did both of those, which made
+        /// this look like a regression when the faces were swapped. It is not: the source has
+        /// exactly the same hole and falls through to <c>monospace</c> for it, and this chain is
+        /// the same decision written where it can be read.
+        ///
+        /// Which means a Turkish word may arrive with two letters in a different face. That is
+        /// worse than uniform and better than a word with holes in it, and it is what the
+        /// shipped game already does.
+        ///
         /// A device resolves these by family name at run time, so a build made on Windows and
         /// played on a phone will find whichever of these that phone has. It may find none, and
         /// then the text is boxes again. That is the honest limit of borrowing somebody else's
@@ -69,6 +120,7 @@ namespace RelicRun.Editor.Importers
         /// </remarks>
         private static readonly string[][] Borrowed =
         {
+            new[] { "Segoe UI", "Noto Sans", "DejaVu Sans", "Roboto", "Arial" },
             new[] { "Yu Gothic", "Meiryo", "MS Gothic", "Hiragino Sans", "Noto Sans CJK JP", "Noto Sans JP" },
             new[] { "Microsoft YaHei", "SimSun", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC" },
             new[] { "Segoe UI", "Geeza Pro", "Noto Sans Arabic", "Arial" },
@@ -172,7 +224,7 @@ namespace RelicRun.Editor.Importers
         /// From the locale tables the importer has already copied in, so this measures the same
         /// strings the build ships rather than the ones in the source drop. Cleaned first: the
         /// arrows and pictograms in front of half the buttons never reach the screen, and asking
-        /// a 1983 pixel face for an emoji would fill the report with noise nobody can act on.
+        /// a 2001 pixel face for an emoji would fill the report with noise nobody can act on.
         /// </remarks>
         private static string Wanted()
         {
@@ -292,7 +344,9 @@ namespace RelicRun.Editor.Importers
             AssetDatabase.DeleteAsset(path);
 
             TMP_FontAsset face = TMP_FontAsset.CreateFontAsset(
-                font, cut.SamplingSize, NoPadding, GlyphRenderMode.RASTER,
+                font, cut.SamplingSize,
+                cut.Pixels ? NoPadding : FieldPadding,
+                cut.Pixels ? GlyphRenderMode.RASTER : GlyphRenderMode.SDFAA,
                 cut.Atlas, cut.Atlas, AtlasPopulationMode.Dynamic, false);
 
             if (face == null)
@@ -308,7 +362,7 @@ namespace RelicRun.Editor.Importers
             face.TryAddCharacters(wanted, out missing);
 
             face.atlasPopulationMode = AtlasPopulationMode.Static;
-            Seal(face, path, cut.Role, true);
+            Seal(face, path, cut.Role, cut.Pixels);
             Report(cut, face, wanted, missing);
 
             return face;

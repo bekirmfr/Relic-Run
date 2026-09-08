@@ -17,7 +17,7 @@ namespace RelicRun.Core.Content
     /// buttons in this game are written with an icon in front of them and
     /// <see cref="Locale.Clean"/> strips every one, so the arrows and pictograms in the source
     /// strings are not a font's problem — and a check that counted them would demand emoji from
-    /// a font drawn in 1983.
+    /// a font drawn in 2001.
     /// </remarks>
     public sealed class Legibility
     {

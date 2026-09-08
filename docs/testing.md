@@ -844,21 +844,31 @@ The flip is checked twice, once by walking the writer's own arithmetic and once 
 with its top two rows deliberately bare — the second is the one that would catch a flip in the
 wrong direction, since the first would agree with it.
 
-## Three languages that borrow their fonts
+## Five languages that borrow their fonts
 
-The port ships two pixel faces and eight languages, and those two facts are in tension. Measured
+The port ships two faces and eight languages, and those two facts are in tension. Measured
 after `Locale.Clean` has taken the icons off the buttons:
 
 | | en | es | fr | tr | ru | ar | ja | zh |
 |---|---|---|---|---|---|---|---|---|
-| Press Start 2P | 100% | 100% | 100% | 100% | 100% | 53% | 12% | 10% |
-| Jacquard 12 | 100% | 100% | 100% | 100% | 49% | 53% | 12% | 10% |
+| Silkscreen | 100% | 100% | 100% | **94%** | 48% | 52% | 12% | 9% |
+| Space Grotesk | 100% | 100% | 100% | 100% | 48% | 52% | 12% | 9% |
+
+Turkish at 94% is the worst number on that table — not the lowest, the worst. A figure that high
+survives a spot check and still puts a hole in a word, and what Silkscreen is missing is the
+dotless ı and the breve, which Turkish uses constantly.
+
+These numbers changed once, and the change looked like a regression. The first pass bundled Press
+Start 2P and Jacquard 12 — faces that appear in the source **nowhere** — and Press Start 2P
+happened to carry Cyrillic. Swapping to the faces the source actually asks Google Fonts for gave
+the real answer: Russian borrows too. The shipped game has exactly the same hole and falls
+through to `monospace` for it.
 
 Neither face has a single Japanese or Chinese glyph in it, and both are missing half of Arabic.
 The choice was between bundling ten to sixteen megabytes of CJK for three languages and
 borrowing the reader's own fonts; **borrowing won**. `FontBook.Fallbacks` holds a chain of
 `DynamicOS` font assets — a family name and no glyphs at all — and the device rasterises what it
-needs, so a delver reading Japanese sees their platform's Japanese face beside a 1983 pixel one.
+needs, so a delver reading Japanese sees their platform's Japanese face beside a pixel face from 2001.
 
 That is a compromise somebody chose, and it has a limit worth naming. A fallback resolves by
 family name **on the device**, and the importer can only create one for a family the machine it

@@ -282,12 +282,22 @@ only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
   swatch drag rewrites 90 texels and every delver on screen recolours; nothing recomposes.
   The colour maths (`hexToHsl`/`hslToHex`/`applyShade`/`shade`) is ported and gated at 12,650
   colours.
-- TMP font assets from `Jacquard12.ttf` and `PressStart2P.ttf`, baked static at the sizes they
-  were drawn for (8px and 12px), RASTER rather than SDF, atlases point-filtered. Bound by ROLE
-  (`ui`, `display`) rather than by typeface. **The web build used Silkscreen, Space Grotesk and
-  Baloo 2 from Google Fonts**; these two are the offline stand-ins. Neither can draw Japanese,
-  Chinese or Arabic, so those three fall through to a chain of `DynamicOS` faces the reader's own
-  device resolves by family name — borrowed, not bundled. See `docs/testing.md`
+- TMP font assets from the faces the source actually asks Google Fonts for, bound by ROLE
+  (`ui`, `display`) rather than by typeface. **Silkscreen** fills `ui` — 240 of the source's 249
+  `font-family` declarations — baked RASTER at 8px with a point-filtered atlas, because it is
+  drawn on a pixel grid and a filtered pixel is a smeared one. **Space Grotesk** fills `display`,
+  baked SDF at 48px, because it is an outline face for prose and has to stay clean at whatever
+  size a scaled canvas asks for. Baloo 2 is left out: the source puts it on three containers
+  whose children override it.
+  The first pass bundled `PressStart2P.ttf` and `Jacquard12.ttf`, which appear in the source
+  **nowhere** — they arrived as uploads and were bound because they were to hand. Nothing was
+  broken and everything was wired; the game was simply set in a gothic face nobody had asked
+  for, and it took a screenshot to notice.
+  Silkscreen is a smaller face than the stand-in was: it draws English, Spanish and French whole,
+  reaches 94% of Turkish (no dotless ı, no breve) and has no Cyrillic at all. So Turkish and
+  Russian join Japanese, Chinese and Arabic in falling through to a chain of `DynamicOS` faces
+  the reader's own device resolves by family name — borrowed, not bundled. That is not a
+  regression: the source has the same hole and falls through to `monospace`. See `docs/testing.md`
 - Addressables, for what is worth fetching and nothing else. Measured uncompressed:
 
   | | files | resident if held | wanted at once |

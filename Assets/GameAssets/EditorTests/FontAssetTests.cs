@@ -148,10 +148,17 @@ namespace RelicRun.Tests.Editor
         /// room, and the face reports it. Anything that broke in between shows up here as a
         /// language rather than as a number.
         /// </remarks>
+        /// <remarks>
+        /// Three languages, not five. Silkscreen has no dotless i and no Cyrillic, so Turkish and
+        /// Russian are the borrow chain's problem rather than the atlas's, and asking for them
+        /// here would fail on the typeface rather than on anything the importer did. Which is
+        /// exactly the distinction this test exists to keep: it is about the bake, and
+        /// <c>LegibilityTests</c> is about the face.
+        /// </remarks>
         [Test]
         public void TheUiFaceDrawsEveryLanguageItsTypefaceCan()
         {
-            foreach (string language in new[] { "en", "es", "fr", "tr", "ru" })
+            foreach (string language in new[] { "en", "es", "fr" })
             {
                 Missing(Face(FontBook.Ui), language, "the ui face");
             }

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1127cc6cd78db384b92dd2a1ba8de230, type: 3}
+  m_Name: GameSceneConfig
+  m_EditorClassIdentifier: 
+  <SceneKey>k__BackingField: game_scene
+  <SceneReference>k__BackingField:
+    m_AssetGUID: 5750aeeb94b6ac94da6c95cb84d80506
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  <RemoveAllOtherScenes>k__BackingField: 1
+  <ShowSceneTransition>k__BackingField: 0

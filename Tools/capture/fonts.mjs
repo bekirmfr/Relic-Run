@@ -23,10 +23,18 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const OUT = join(ROOT, "Tools", "corpus");
 const FONTS = join(ROOT, ".port", "assets");
 
-/* The faces the port ships, and the id each is bound under. */
+/*
+ * The faces the source asks Google Fonts for, and the id each is bound under.
+ *
+ * Read off the stylesheet link in the source rather than chosen: Silkscreen carries 240 of the
+ * 249 font-family declarations, Space Grotesk the six on text inputs, and Baloo 2 the three on
+ * container panels whose children override it anyway. Press Start 2P and Jacquard 12 were here
+ * first and are in the source NOWHERE — they were bundled by mistake, and a screen set in a
+ * gothic face nobody asked for is what it took to notice.
+ */
 const FACES = [
-  { id: "press-start-2p", file: "PressStart2P.ttf" },
-  { id: "jacquard-12", file: "Jacquard12.ttf" },
+  { id: "silkscreen", file: "Silkscreen-Regular.ttf" },
+  { id: "space-grotesk", file: "SpaceGrotesk.ttf" },
 ];
 
 /** Table directory offset for a four-character tag, or 0. */

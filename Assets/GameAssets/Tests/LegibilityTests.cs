@@ -15,13 +15,19 @@ namespace RelicRun.Tests
     /// <see cref="Locale.Clean"/> — recording the intersection would have made the answer agree
     /// with the question, which is a mistake this project has already made once.
     ///
-    /// The answer is uncomfortable and stated out loud rather than left for Phase 10. Press
-    /// Start 2P and Jacquard 12 are pixel faces from a Latin tradition: between them they draw
-    /// English, Spanish, French and Turkish completely, Press Start 2P draws Russian, and
-    /// NEITHER can draw Japanese, Chinese or Arabic — a tenth of Chinese, an eighth of Japanese,
-    /// half of Arabic. Those three are asserted as unreadable on purpose. A face that fixed one
-    /// of them would fail this test, which is the point: it should be impossible to add a
-    /// fallback font and not notice that it worked.
+    /// The answer is uncomfortable and stated out loud rather than left for Phase 10. Both faces
+    /// draw English, Spanish and French completely. Space Grotesk also draws Turkish; Silkscreen
+    /// reaches 94% of it, having no dotless i and no breve. NEITHER draws Russian, and neither
+    /// draws Japanese, Chinese or Arabic — a tenth of Chinese, an eighth of Japanese, half of
+    /// Arabic. All of those are asserted as unreadable on purpose. A face that fixed one would
+    /// fail this test, which is the point: it should be impossible to add a fallback font and
+    /// not notice that it worked.
+    ///
+    /// The Turkish and Russian holes arrived WITH the correct faces, not despite them. The first
+    /// pass bundled Press Start 2P and Jacquard 12, which are in the source nowhere and which
+    /// did draw both; swapping to the faces the source actually asks for looked like a
+    /// regression and is not one. The source has the same hole and falls through to
+    /// <c>monospace</c>, and the borrow chain in <c>FontBook</c> is that decision made explicit.
     /// </remarks>
     [TestFixture]
     public class LegibilityTests
@@ -29,8 +35,8 @@ namespace RelicRun.Tests
         private static JObject _corpus;
         private static Dictionary<string, List<int>> _faces;
 
-        private const string Press = "press-start-2p";
-        private const string Jacquard = "jacquard-12";
+        private const string Pixel = "silkscreen";
+        private const string Prose = "space-grotesk";
 
         [OneTimeSetUp]
         public void LoadTheFaces()
@@ -60,27 +66,27 @@ namespace RelicRun.Tests
         [Test]
         public void TheCorpusHoldsBothShippedFaces()
         {
-            Assert.That(_faces.ContainsKey(Press), Is.True);
-            Assert.That(_faces.ContainsKey(Jacquard), Is.True);
+            Assert.That(_faces.ContainsKey(Pixel), Is.True);
+            Assert.That(_faces.ContainsKey(Prose), Is.True);
 
-            Assert.That(_faces[Press].Count, Is.GreaterThan(200), "the cmap read as nearly empty");
-            Assert.That(_faces[Jacquard].Count, Is.GreaterThan(200));
+            Assert.That(_faces[Pixel].Count, Is.GreaterThan(200), "the cmap read as nearly empty");
+            Assert.That(_faces[Prose].Count, Is.GreaterThan(200));
         }
 
         /// <summary>
-        /// The Latin languages are drawn completely by both faces.
+        /// English, Spanish and French are drawn completely by both faces.
         /// </summary>
         /// <remarks>
-        /// Including the accents. Spanish, French and Turkish are the reason this is asked
-        /// rather than assumed — a face can hold every letter of the alphabet and still be
-        /// missing an ı or a ğ, and the word it belongs to then arrives with a hole in it.
+        /// Including the accents. Spanish and French are the reason this is asked rather than
+        /// assumed — a face can hold every letter of the alphabet and still be missing an é or
+        /// an ñ, and the word it belongs to then arrives with a hole in it.
         /// </remarks>
         [Test]
-        public void BothFacesDrawEveryLatinLanguageCompletely()
+        public void BothFacesDrawTheAccentedLatinLanguagesCompletely()
         {
-            foreach (string language in new[] { "en", "es", "fr", "tr" })
+            foreach (string language in new[] { "en", "es", "fr" })
             {
-                foreach (string face in new[] { Press, Jacquard })
+                foreach (string face in new[] { Pixel, Prose })
                 {
                     Legibility read = Read(face, language);
 
@@ -90,16 +96,51 @@ namespace RelicRun.Tests
             }
         }
 
-        /// <summary>Only one of the two faces has Cyrillic.</summary>
+        /// <summary>
+        /// Turkish stops just short of readable in the pixel face.
+        /// </summary>
+        /// <remarks>
+        /// Ninety-four per cent, which is the worst a coverage figure can be: high enough to look
+        /// fine in a spot check, low enough that a Turkish delver meets a hole in a word. What is
+        /// absent is the dotless ı and the breve — a handful of characters that happen to be the
+        /// ones Turkish uses constantly.
+        ///
+        /// Asserted as NOT readable rather than quietly tolerated, so the borrow chain covering
+        /// it cannot be taken away without this saying what it was for.
+        /// </remarks>
         [Test]
-        public void OnlyPressStartDrawsRussian()
+        public void OnlyTheProseFaceFinishesTurkish()
         {
-            Assert.That(Read(Press, "ru").Readable, Is.True, Read(Press, "ru").Report());
+            Assert.That(Read(Prose, "tr").Readable, Is.True, Read(Prose, "tr").Report());
 
-            Legibility jacquard = Read(Jacquard, "ru");
-            Assert.That(jacquard.Readable, Is.False,
-                "Jacquard 12 has grown Cyrillic — say so where the fonts are bound");
-            Assert.That(jacquard.Percent, Is.LessThan(60));
+            Legibility pixel = Read(Pixel, "tr");
+
+            Assert.That(pixel.Readable, Is.False,
+                "Silkscreen has grown the Turkish letters — say so where the fonts are bound");
+            Assert.That(pixel.Percent, Is.InRange(90, 99),
+                "Turkish coverage has moved; the borrow chain was sized for a near miss");
+        }
+
+        /// <summary>
+        /// Neither face has any Cyrillic, so Russian borrows as the CJK languages do.
+        /// </summary>
+        /// <remarks>
+        /// A change from the first pass and not a regression. The faces bundled then were not the
+        /// ones the source uses, and one of them happened to carry Cyrillic; using the real faces
+        /// gives the real answer, which is that the shipped game falls through to
+        /// <c>monospace</c> for Russian and so does this.
+        /// </remarks>
+        [Test]
+        public void NeitherFaceDrawsRussian()
+        {
+            foreach (string face in new[] { Pixel, Prose })
+            {
+                Legibility read = Read(face, "ru");
+
+                Assert.That(read.Readable, Is.False,
+                    face + " has grown Cyrillic — say so where the fonts are bound");
+                Assert.That(read.Percent, Is.LessThan(60), read.Report());
+            }
         }
 
         /// <summary>
@@ -124,7 +165,7 @@ namespace RelicRun.Tests
 
             foreach (string language in new[] { "ja", "zh", "ar" })
             {
-                foreach (string face in new[] { Press, Jacquard })
+                foreach (string face in new[] { Pixel, Prose })
                 {
                     Legibility read = Read(face, language);
 
@@ -141,7 +182,7 @@ namespace RelicRun.Tests
 
         /// <summary>The decoration never reaches a font, so no face is asked for emoji.</summary>
         /// <remarks>
-        /// English uses thirteen characters that no pixel font from 1983 has ever had, and all
+        /// English uses thirteen characters that no pixel font of that vintage has ever had, and all
         /// thirteen are arrows and pictograms that <see cref="Locale.Clean"/> removes on the way
         /// to the screen. Counting them would make every face fail for a reason nobody could act
         /// on.
@@ -240,10 +281,10 @@ namespace RelicRun.Tests
         [Test]
         public void TheReportNamesTheFirstFewAndCountsTheRest()
         {
-            Legibility read = Read(Press, "zh");
+            Legibility read = Read(Pixel, "zh");
             string report = read.Report();
 
-            Assert.That(report, Does.StartWith("press-start-2p cannot read zh"));
+            Assert.That(report, Does.StartWith("silkscreen cannot read zh"));
             Assert.That(report, Does.Contain(" of " + read.Needs + " characters"));
             Assert.That(report, Does.Contain(" more"), "it names eight and counts the rest");
         }
@@ -267,10 +308,10 @@ namespace RelicRun.Tests
             // nothing at all.
             int dropped = needed[needed.Count / 2];
 
-            var almost = new List<int>(_faces[Press]);
+            var almost = new List<int>(_faces[Pixel]);
             almost.Remove(dropped);
 
-            Legibility read = Legibility.Of("en", Press, Strings("en"), almost);
+            Legibility read = Legibility.Of("en", Pixel, Strings("en"), almost);
 
             Assert.That(read.Readable, Is.False,
                 "a missing U+" + dropped.ToString("X4") + " went unnoticed");
