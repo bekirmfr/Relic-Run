@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Relic Run Events
+  m_EditorClassIdentifier: 
+  m_GroupName: Relic Run Events
+  m_GUID: ae67fd0271967be47b11c48343692f0c
+  m_SerializeEntries:
+  - m_GUID: 08046b437285a0f42a36763005e69276
+    m_Address: event-rusted-spikes
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 14ef3d0007bbca643a477f9c23f20056
+    m_Address: event-voice-dark
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 35437b29c27e59545bd2a18037431137
+    m_Address: event-chest
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4a84540f3034db54a8490f0812ab9710
+    m_Address: event-chained-ghost
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 81dd0d8d98d0fba4886a4a48dcfc23ae
+    m_Address: event-miners-map
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8a1c0ce4e47207d44aa61d1f4bc3e0ea
+    m_Address: event-scratching-walls
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f11a0b7dbfc7844d96f986030fb9d9a
+    m_Address: event-altar-deep
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 90069327615af3945bb549a828fc3aed
+    m_Address: event-glimmering-pool
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9b4cfbaa64cc1b44f88e7646d975bea3
+    m_Address: event-pale-merchant
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a12952699f582054ca2c1694c438c9b4
+    m_Address: event-imps-dice
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d36454ae199dad74298966d1ece9824d
+    m_Address: event-glowing-mushroom
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d97c5f6d03c76c54da0809b325041758
+    m_Address: event-knife-throat
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4c512308be351984cb85729bb0bd0702, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: be7694a898e6ad44caa205f90704b147, type: 2}
+    - {fileID: 11400000, guid: 7b3470568f100ce409f9617bddc86983, type: 2}

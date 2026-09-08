@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Relic Run Locales
+  m_EditorClassIdentifier: 
+  m_GroupName: Relic Run Locales
+  m_GUID: 053c7d01509b9494dbdc17085a9c35c0
+  m_SerializeEntries:
+  - m_GUID: 15ccd3241bac6eb4abc99566d44292c1
+    m_Address: en
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 54c35d6a3e674064581cc910b6d1a999
+    m_Address: tr
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57451c8e816049a4baff78bd1d92a923
+    m_Address: zh
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 74609e67f78476a428b7f55fdff87de3
+    m_Address: ru
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 75aa0d3aac3606c4194f13f4a6445140
+    m_Address: ar
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a81da52276bc02447bcf355024e6df85
+    m_Address: fr
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bed1e6b543e68604b9ee5bfe956d2368
+    m_Address: ja
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c5136db48e740ab4092509227d032aa4
+    m_Address: es
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4c512308be351984cb85729bb0bd0702, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 0ab2656b1a8a10d42a7b833d6864d3c5, type: 2}
+    - {fileID: 11400000, guid: 65e014039ed83d24c825720ca8dc9f8e, type: 2}

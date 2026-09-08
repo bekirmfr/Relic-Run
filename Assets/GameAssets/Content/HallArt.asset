@@ -14,22 +14,72 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _entries:
   - Id: hall-hoard
-    Sprite: {fileID: 21300000, guid: 5aa67fc2f78b4ad489e39e57bae7e705, type: 3}
+    Art:
+      m_AssetGUID: 5aa67fc2f78b4ad489e39e57bae7e705
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-moss
-    Sprite: {fileID: 21300000, guid: 792331dc1d947fc4a86921ea82697ec0, type: 3}
+    Art:
+      m_AssetGUID: 792331dc1d947fc4a86921ea82697ec0
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-tomb
-    Sprite: {fileID: 21300000, guid: 5ce306380c948a042b1f832df48a7106, type: 3}
+    Art:
+      m_AssetGUID: 5ce306380c948a042b1f832df48a7106
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-mine
-    Sprite: {fileID: 21300000, guid: 0c5736b6467a5e04db898ed99eb07aa5, type: 3}
+    Art:
+      m_AssetGUID: 0c5736b6467a5e04db898ed99eb07aa5
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-jungle
-    Sprite: {fileID: 21300000, guid: 5d745a4b6e193144c881d4915b15a7b2, type: 3}
+    Art:
+      m_AssetGUID: 5d745a4b6e193144c881d4915b15a7b2
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-sunken
-    Sprite: {fileID: 21300000, guid: fed4d14c9cf8c184fbb5594b5bc84c90, type: 3}
+    Art:
+      m_AssetGUID: fed4d14c9cf8c184fbb5594b5bc84c90
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-forge
-    Sprite: {fileID: 21300000, guid: 0f17b27afed0c494c83fb389493ddf64, type: 3}
+    Art:
+      m_AssetGUID: 0f17b27afed0c494c83fb389493ddf64
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-frost
-    Sprite: {fileID: 21300000, guid: e3fcdcc88dfa0b54aaee9f8a918aefba, type: 3}
+    Art:
+      m_AssetGUID: e3fcdcc88dfa0b54aaee9f8a918aefba
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-orrery
-    Sprite: {fileID: 21300000, guid: bda6b08c34f76a342b9d41799e18fe6a, type: 3}
+    Art:
+      m_AssetGUID: bda6b08c34f76a342b9d41799e18fe6a
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Id: hall-throne
-    Sprite: {fileID: 21300000, guid: 55c9b89a9652d1c4881263de744368e6, type: 3}
+    Art:
+      m_AssetGUID: 55c9b89a9652d1c4881263de744368e6
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0

@@ -14,18 +14,58 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _languages:
   - Language: ar
-    Strings: {fileID: 4900000, guid: 75aa0d3aac3606c4194f13f4a6445140, type: 3}
+    Strings:
+      m_AssetGUID: 75aa0d3aac3606c4194f13f4a6445140
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: en
-    Strings: {fileID: 4900000, guid: 15ccd3241bac6eb4abc99566d44292c1, type: 3}
+    Strings:
+      m_AssetGUID: 15ccd3241bac6eb4abc99566d44292c1
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: es
-    Strings: {fileID: 4900000, guid: c5136db48e740ab4092509227d032aa4, type: 3}
+    Strings:
+      m_AssetGUID: c5136db48e740ab4092509227d032aa4
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: fr
-    Strings: {fileID: 4900000, guid: a81da52276bc02447bcf355024e6df85, type: 3}
+    Strings:
+      m_AssetGUID: a81da52276bc02447bcf355024e6df85
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: ja
-    Strings: {fileID: 4900000, guid: bed1e6b543e68604b9ee5bfe956d2368, type: 3}
+    Strings:
+      m_AssetGUID: bed1e6b543e68604b9ee5bfe956d2368
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: ru
-    Strings: {fileID: 4900000, guid: 74609e67f78476a428b7f55fdff87de3, type: 3}
+    Strings:
+      m_AssetGUID: 74609e67f78476a428b7f55fdff87de3
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: tr
-    Strings: {fileID: 4900000, guid: 54c35d6a3e674064581cc910b6d1a999, type: 3}
+    Strings:
+      m_AssetGUID: 54c35d6a3e674064581cc910b6d1a999
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
   - Language: zh
-    Strings: {fileID: 4900000, guid: 57451c8e816049a4baff78bd1d92a923, type: 3}
+    Strings:
+      m_AssetGUID: 57451c8e816049a4baff78bd1d92a923
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0

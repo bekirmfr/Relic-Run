@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Relic Run Halls
+  m_EditorClassIdentifier: 
+  m_GroupName: Relic Run Halls
+  m_GUID: 06fa7267c245c3640bebd152e3d4e97b
+  m_SerializeEntries:
+  - m_GUID: 0c5736b6467a5e04db898ed99eb07aa5
+    m_Address: hall-mine
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0f17b27afed0c494c83fb389493ddf64
+    m_Address: hall-forge
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 55c9b89a9652d1c4881263de744368e6
+    m_Address: hall-throne
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5aa67fc2f78b4ad489e39e57bae7e705
+    m_Address: hall-hoard
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5ce306380c948a042b1f832df48a7106
+    m_Address: hall-tomb
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5d745a4b6e193144c881d4915b15a7b2
+    m_Address: hall-jungle
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 792331dc1d947fc4a86921ea82697ec0
+    m_Address: hall-moss
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bda6b08c34f76a342b9d41799e18fe6a
+    m_Address: hall-orrery
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e3fcdcc88dfa0b54aaee9f8a918aefba
+    m_Address: hall-frost
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fed4d14c9cf8c184fbb5594b5bc84c90
+    m_Address: hall-sunken
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4c512308be351984cb85729bb0bd0702, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 983cc22c603c17c468c4248319126342, type: 2}
+    - {fileID: 11400000, guid: dce773397b005b94e990ca7c088fba86, type: 2}
