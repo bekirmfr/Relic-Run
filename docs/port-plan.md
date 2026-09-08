@@ -288,7 +288,22 @@ only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
   Baloo 2 from Google Fonts**; these two are the offline stand-ins. Neither can draw Japanese,
   Chinese or Arabic, so those three fall through to a chain of `DynamicOS` faces the reader's own
   device resolves by family name — borrowed, not bundled. See `docs/testing.md`
-- Addressables groups
+- Addressables, for what is worth fetching and nothing else. Measured uncompressed:
+
+  | | files | resident if held | wanted at once |
+  |---|---|---|---|
+  | halls | 10 | 4.5 MB | 0.45 MB — a run descends one |
+  | events | 12 | 2.8 MB | 0.23 MB — one is shown at a time |
+  | sheets | 2 | 1.3 MB | 1.3 MB — every screen draws from both |
+  | locales | 8 | 59 KB | 7 KB |
+
+  So the halls and the illustrations are addressed and the sheets are not. **The books that
+  hold them differ accordingly**: `SpriteBook` holds `Sprite` and is always resident,
+  `AddressBook` holds `AssetReference` and is a GUID until something asks. A direct reference
+  loads with whatever holds it, so a book of ten halls with direct references would put the
+  whole dungeon in memory to draw one corridor — addressing without changing the book buys
+  nothing at all. The address IS the content id, and `AddressedContentTests` checks the join
+  both ways.
 
 **Gate:** every id the catalogs will ask for is bound exactly once, to something, and nothing
 is bound that the game will never ask for. The rule is `BindingAudit`, tested and mutated under

@@ -883,6 +883,33 @@ pairs as two separate characters passed every other test. And the thirteen Engli
 pixel font has ever had are all arrows and pictograms that never reach the screen — counting them
 would make every face fail for a reason nobody could act on.
 
+## Held or fetched
+
+Addressables is worth using here for two of the four kinds of art and not for the other two, and
+the numbers say which. Uncompressed:
+
+| | files | resident if held | wanted at once |
+|---|---|---|---|
+| halls | 10 | 4.5 MB | 0.45 MB — a run descends one |
+| events | 12 | 2.8 MB | 0.23 MB — one is shown at a time |
+| sheets | 2 | 1.3 MB | 1.3 MB — every screen draws from both |
+| locales | 8 | 59 KB | 7 KB |
+
+The trap is that addressing an asset changes nothing on its own. A direct `Sprite` reference is
+loaded when the thing holding it is loaded, so a book of ten halls holding direct references puts
+all four and a half megabytes in memory however carefully the groups are arranged. That is why
+there are two book types rather than one flag: `SpriteBook` holds sprites and is resident,
+`AddressBook` holds `AssetReference` — a GUID and nothing else — and the hall arrives when the
+delver does.
+
+The address is the content id, so a screen asks for `hall-hoard` by the same name everything else
+uses. That is a convenience and a second trap: an address is a string, nothing resolves it until
+run time, and a typo is invisible until somebody reaches the ninth floor and gets nothing.
+`AddressedContentTests` checks the join in both directions — every id has exactly one address, no
+address names an id nothing asks for, and the book's GUID is the addressed asset's GUID. It also
+asserts that the two sheets are **not** addressed, so the split stays a decision rather than
+becoming a drift.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -936,3 +963,4 @@ node Tools/extract/validate.mjs
 | Phase 8e — the assets themselves | none — invariants | Test Runner only; audits the real `.asset` files |
 | Phase 8f — a delver, indexed | `hero.json` | passing, 93 heroes round-trip pixel for pixel |
 | Phase 8g — what a face can draw | `fonts.json` | passing, 2 faces × 8 languages · ja/zh/ar borrow the system's |
+| Phase 8h — what is fetched, not held | none — invariants | Test Runner only; 30 addresses against the catalogs |

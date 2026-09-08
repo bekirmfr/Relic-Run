@@ -66,15 +66,27 @@ namespace RelicRun.Game.Data
             _presentation = presentation;
         }
 
-        /// <summary>The books that bind ids to sprites, in the order worth reading them.</summary>
-        public IEnumerable<SpriteBook> Books
+        /// <summary>
+        /// The books holding art outright: one texture each, wanted by every screen.
+        /// </summary>
+        public IEnumerable<SpriteBook> Resident
         {
             get
             {
                 if (_relicIcons != null) yield return _relicIcons;
+                if (_enemies != null) yield return _enemies;
+            }
+        }
+
+        /// <summary>
+        /// The books holding addresses: large art, many of it, shown one at a time.
+        /// </summary>
+        public IEnumerable<AddressBook> Fetched
+        {
+            get
+            {
                 if (_halls != null) yield return _halls;
                 if (_events != null) yield return _events;
-                if (_enemies != null) yield return _enemies;
             }
         }
 
@@ -115,7 +127,8 @@ namespace RelicRun.Game.Data
                     .Append(string.Join(", ", unbound));
             }
 
-            foreach (SpriteBook book in Books) Say(said, book.Audit());
+            foreach (SpriteBook book in Resident) Say(said, book.Audit());
+            foreach (AddressBook book in Fetched) Say(said, book.Audit());
 
             if (_locales != null) Say(said, _locales.Audit());
             if (_fonts != null) Say(said, _fonts.Audit());

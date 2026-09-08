@@ -6,7 +6,9 @@
         "VContainer",
         "UniTask",
         "GameLift",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

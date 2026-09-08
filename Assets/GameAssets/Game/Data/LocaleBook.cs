@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using RelicRun.Core.Content;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace RelicRun.Game.Data
 {
@@ -9,8 +10,10 @@ namespace RelicRun.Game.Data
     /// Every language the game is written in, one text asset each.
     /// </summary>
     /// <remarks>
-    /// Separate assets rather than one file, because a delver reading Japanese has no use for
-    /// the other seven and Addressables can only leave behind what it can address separately.
+    /// Separate assets rather than one file, and addressed rather than referenced, because a
+    /// delver reading Japanese has no use for the other seven. They are only fifty-nine
+    /// kilobytes between them — this is not where the memory is — but a language is fetched at
+    /// startup and never again, which is exactly the shape an address is for.
     ///
     /// English is required. Not out of preference — <see cref="Locale"/> falls back to it for
     /// any key a translation is missing, so a build without it would show raw keys the moment a
@@ -28,10 +31,10 @@ namespace RelicRun.Game.Data
             [Tooltip("Locale code, e.g. en, fr, ja.")]
             public string Language;
 
-            [Tooltip("The strings for that language, as JSON.")]
-            public TextAsset Strings;
+            [Tooltip("Where to find the strings for that language.")]
+            public AssetReferenceT<TextAsset> Strings;
 
-            public Translation(string language, TextAsset strings)
+            public Translation(string language, AssetReferenceT<TextAsset> strings)
             {
                 Language = language;
                 Strings = strings;
@@ -42,8 +45,8 @@ namespace RelicRun.Game.Data
 
         public IReadOnlyList<Translation> Languages { get { return _languages; } }
 
-        /// <summary>The strings for a language, or null when it is not one of them.</summary>
-        public TextAsset For(string language)
+        /// <summary>Where to find a language's strings, or null when it is not one of them.</summary>
+        public AssetReferenceT<TextAsset> For(string language)
         {
             for (int i = 0; i < _languages.Length; i++)
             {
@@ -73,7 +76,8 @@ namespace RelicRun.Game.Data
                 string language = _languages[i].Language;
                 if (!needed.Contains(language)) needed.Add(language);
 
-                bound.Add(new Binding(language, _languages[i].Strings != null));
+                AssetReferenceT<TextAsset> strings = _languages[i].Strings;
+                bound.Add(new Binding(language, strings != null && strings.RuntimeKeyIsValid()));
             }
 
             return BindingAudit.Of("locales", needed, bound);

@@ -5,6 +5,7 @@ using RelicRun.Game.Data;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace RelicRun.Editor.Importers
 {
@@ -250,8 +251,10 @@ namespace RelicRun.Editor.Importers
 
             relicIcons.Rebind(FromSheet(ContentPaths.RelicIconSheet, SpriteSheet.RelicCells()));
             enemies.Rebind(FromSheet(ContentPaths.EnemySheet, SpriteSheet.EnemyCells()));
-            halls.Rebind(FromFolder(ContentPaths.Halls, ContentIds.Halls));
-            events.Rebind(FromFolder(ContentPaths.Events, ContentIds.Events));
+            halls.Rebind(Addressed(ContentIds.Halls,
+                Addressing.Address(Addressing.HallGroup, ContentPaths.Halls, ContentIds.Halls, ".png")));
+            events.Rebind(Addressed(ContentIds.Events,
+                Addressing.Address(Addressing.EventGroup, ContentPaths.Events, ContentIds.Events, ".png")));
 
             heroPack.Bind(AssetDatabase.LoadAssetAtPath<TextAsset>(ContentPaths.HeroPackText));
             locales.Rebind(Translations());
@@ -303,13 +306,27 @@ namespace RelicRun.Editor.Importers
         }
 
         /// <summary>Binds whole images, one per id, named after the id.</summary>
-        private static List<SpriteBook.Entry> FromFolder(string folder, IReadOnlyList<string> ids)
+        /// <summary>
+        /// Binds ids to the addresses the same pass just handed out.
+        /// </summary>
+        /// <remarks>
+        /// The GUIDs come from the addressing rather than from a second lookup, so there is one
+        /// place that decides what an id points at. Two passes would agree until the day one of
+        /// them changed.
+        ///
+        /// An id with no GUID is bound to nothing rather than skipped. A missing row and a row
+        /// pointing nowhere are different failures and the audit says which.
+        /// </remarks>
+        private static List<AddressBook.Entry> Addressed(IReadOnlyList<string> ids,
+            IDictionary<string, string> guids)
         {
-            var bound = new List<SpriteBook.Entry>(ids.Count);
+            var bound = new List<AddressBook.Entry>(ids.Count);
+
             foreach (string id in ids)
             {
-                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(folder + "/" + id + ".png");
-                bound.Add(new SpriteBook.Entry(id, sprite));
+                string guid;
+                bound.Add(new AddressBook.Entry(id,
+                    guids.TryGetValue(id, out guid) ? new AssetReferenceSprite(guid) : null));
             }
 
             return bound;
@@ -324,16 +341,24 @@ namespace RelicRun.Editor.Importers
 
             if (!Directory.Exists(folder)) return found;
 
-            var names = new List<string>(Directory.GetFiles(folder, "*.json"));
-            names.Sort();
-
-            foreach (string file in names)
+            var languages = new List<string>();
+            foreach (string file in Directory.GetFiles(folder, "*.json"))
             {
-                string language = Path.GetFileNameWithoutExtension(file);
-                var strings = AssetDatabase.LoadAssetAtPath<TextAsset>(
-                    ContentPaths.Locales + "/" + language + ".json");
+                languages.Add(Path.GetFileNameWithoutExtension(file));
+            }
 
-                found.Add(new LocaleBook.Translation(language, strings));
+            languages.Sort();
+
+            IDictionary<string, string> guids = Addressing.Address(
+                Addressing.LocaleGroup, ContentPaths.Locales, languages, ".json");
+
+            foreach (string language in languages)
+            {
+                string guid;
+                found.Add(new LocaleBook.Translation(language,
+                    guids.TryGetValue(language, out guid)
+                        ? new AssetReferenceT<TextAsset>(guid)
+                        : null));
             }
 
             return found;
@@ -348,9 +373,15 @@ namespace RelicRun.Editor.Importers
             var said = new System.Text.StringBuilder("Relic Run content");
             if (copied > 0) said.Append(" — ").Append(copied).Append(" file(s) copied in");
 
-            foreach (SpriteBook book in content.Books)
+            foreach (SpriteBook book in content.Resident)
             {
                 said.Append("\n  ").Append(book.Entries.Count).Append(' ').Append(book.What);
+            }
+
+            foreach (AddressBook book in content.Fetched)
+            {
+                said.Append("\n  ").Append(book.Entries.Count).Append(' ').Append(book.What)
+                    .Append(", addressed");
             }
 
             if (content.Locales != null)

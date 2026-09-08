@@ -5,6 +5,7 @@ using RelicRun.Editor.Importers;
 using RelicRun.Game.Data;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace RelicRun.Tests.Editor
 {
@@ -237,9 +238,17 @@ namespace RelicRun.Tests.Editor
             foreach (LocaleBook.Translation translation in _content.Locales.Languages)
             {
                 Assert.That(translation.Strings, Is.Not.Null, translation.Language + " has no strings");
-                Assert.That(translation.Strings.name, Is.EqualTo(translation.Language),
-                    "declared as " + translation.Language + " but the file is " + translation.Strings.name);
-                Assert.That(translation.Strings.text, Is.Not.Empty, translation.Language + " is empty");
+                Assert.That(translation.Strings.RuntimeKeyIsValid(), Is.True,
+                    translation.Language + " points nowhere");
+
+                // editorAsset resolves the address without going through Addressables, which is
+                // the only way to look behind one of these outside a running game.
+                var strings = translation.Strings.editorAsset as TextAsset;
+
+                Assert.That(strings, Is.Not.Null, translation.Language + " does not address a text asset");
+                Assert.That(strings.name, Is.EqualTo(translation.Language),
+                    "declared as " + translation.Language + " but the file is " + strings.name);
+                Assert.That(strings.text, Is.Not.Empty, translation.Language + " is empty");
 
                 if (translation.Language == LocaleBook.Fallback) english = true;
             }

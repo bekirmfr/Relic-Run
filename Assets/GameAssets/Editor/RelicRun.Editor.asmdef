@@ -7,7 +7,10 @@
         "GameLift",
         "Unity.2D.Sprite.Editor",
         "Unity.TextMeshPro",
-        "Unity.TextMeshPro.Editor"
+        "Unity.TextMeshPro.Editor",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.Addressables.Editor"
     ],
     "includePlatforms": [
         "Editor"

@@ -7,6 +7,7 @@ using RelicRun.Game.Data;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.TextCore.LowLevel;
 
 namespace RelicRun.Tests.Editor
@@ -276,8 +277,11 @@ namespace RelicRun.Tests.Editor
         /// <summary>What a language needs, from the tables the build actually ships.</summary>
         private IReadOnlyList<int> Needed(string language)
         {
-            TextAsset strings = _content.Locales.For(language);
-            Assert.That(strings, Is.Not.Null, "no strings for " + language);
+            AssetReferenceT<TextAsset> address = _content.Locales.For(language);
+            Assert.That(address, Is.Not.Null, "no strings for " + language);
+
+            var strings = address.editorAsset as TextAsset;
+            Assert.That(strings, Is.Not.Null, language + " addresses no text asset");
 
             var lines = new List<string>();
             foreach (JProperty line in JObject.Parse(strings.text).Properties())
