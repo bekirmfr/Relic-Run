@@ -235,6 +235,16 @@ namespace RelicRun.Tests.Editor
             Assert.That(claiming, Is.EqualTo(1),
                 claiming + " configs claim " + GameLift.Scene.SceneKeys.GameScene +
                 " — only the first is ever reached");
+
+            // Whichever way the Start In The Fight toggle is set, startup has to land somewhere.
+            // AppStartupOrchestrator reads DefaultSceneConfig.SceneKey without asking whether it
+            // is there, so an unset default is not a game that opens on nothing — it is a game
+            // that throws on its first line, and a black screen says nothing about why.
+            Assert.That(listed.DefaultSceneConfig, Is.Not.Null,
+                "nothing is set to start, and startup dereferences it");
+
+            Assert.That(listed.SceneConfigs, Does.Contain(listed.DefaultSceneConfig),
+                "startup opens on a config the service cannot look up");
         }
 
         /// <summary>The two prefabs the view spawns exist and carry their text.</summary>

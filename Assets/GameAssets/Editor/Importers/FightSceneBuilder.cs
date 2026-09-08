@@ -47,7 +47,10 @@ namespace RelicRun.Editor.Importers
         /// <summary>The canvas is authored at this size and scales to whatever it lands on.</summary>
         private static readonly Vector2 Reference = new Vector2(1080f, 1920f);
 
-        [MenuItem("Tools/Relic Run/Build Fight Scene", priority = 120)]
+        /// <summary>Named, so the things that need it run first can say so.</summary>
+        private const string BuildItem = "Tools/Relic Run/Build Fight Scene";
+
+        [MenuItem(BuildItem, priority = 120)]
         public static void Build()
         {
             var content = AssetDatabase.LoadAssetAtPath<GameContent>(ContentPaths.GameContentAsset);
@@ -89,6 +92,91 @@ namespace RelicRun.Editor.Importers
             Debug.Log("wired the fight into " + ScenePath + " and registered it as " +
                       SceneKeys.GameScene + ". It is a scaffold: legible, and nothing more.",
                       AssetDatabase.LoadAssetAtPath<GameObject>(ScenePath));
+        }
+
+        /// <summary>Where the toggle that decides what the app opens on lives.</summary>
+        private const string StartItem = "Tools/Relic Run/Start In The Fight";
+
+        /// <summary>
+        /// Sends startup to the fight rather than to the menu, and back again.
+        /// </summary>
+        /// <remarks>
+        /// Registering the scene made it reachable; this is what makes it REACHED. The two are
+        /// worth keeping apart, and the confusion between them is easy: a scene can be perfectly
+        /// loadable and still never load, because nothing asks for it.
+        ///
+        /// In this project only one thing asks. <c>AppStartupOrchestrator</c> — the sample's
+        /// copy, under <c>Assets/</c> — calls <c>LoadScene(DefaultSceneConfig.SceneKey)</c>
+        /// directly and never reaches <c>SceneFlowController.LoadFirstScene</c>, so the package's
+        /// own <c>LoadImmediateUntil</c> shortcut is not consulted at all. Which is just as well:
+        /// that path calls <c>LoadNextLevelData</c> first, and with an empty <c>Levels</c> list —
+        /// this project has one — it divides by zero before it ever gets to the scene.
+        ///
+        /// A toggle rather than a one-way switch, and a checked one, so the menu says where
+        /// startup currently goes instead of making somebody open an asset to find out. This
+        /// matters more than it sounds: the menu scene is presently EMPTY, so a build that opens
+        /// on it shows a blank canvas and looks broken rather than looking like a menu.
+        /// </remarks>
+        [MenuItem(StartItem, priority = 121)]
+        private static void StartInTheFight()
+        {
+            SceneServiceSettings settings = Settings();
+            if (settings == null) return;
+
+            SceneConfig fight = AssetDatabase.LoadAssetAtPath<SceneConfig>(ConfigPath);
+            if (fight == null)
+            {
+                Debug.LogError("there is no fight to start in — run " + BuildItem + " first");
+                return;
+            }
+
+            SceneConfig going = Starting(settings) ? Claiming(settings, SceneKeys.MenuScene) : fight;
+
+            // Never to nothing. The orchestrator reads DefaultSceneConfig.SceneKey without
+            // asking whether it is there, so an unset default is not a game that starts on
+            // nothing — it is a game that throws on its first line and shows a black screen.
+            if (going == null)
+            {
+                Debug.LogError("nothing claims " + SceneKeys.MenuScene + " to go back to, and " +
+                               "startup with no default config throws rather than doing nothing");
+                return;
+            }
+
+            settings.DefaultSceneConfig = going;
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log("the app now opens on " + going.SceneKey, going);
+        }
+
+        [MenuItem(StartItem, validate = true)]
+        private static bool ShowWhereStartupGoes()
+        {
+            // Quietly. This is asked every single time the Tools menu is opened, and a
+            // project with no settings asset would print the same error forever.
+            SceneServiceSettings settings = Settings(false);
+            Menu.SetChecked(StartItem, settings != null && Starting(settings));
+            return true;
+        }
+
+        /// <summary>Whether startup currently goes to the fight.</summary>
+        private static bool Starting(SceneServiceSettings settings)
+        {
+            return settings.DefaultSceneConfig != null
+                && settings.DefaultSceneConfig.SceneKey == SceneKeys.GameScene;
+        }
+
+        /// <summary>The listed config claiming a key, or null if none does.</summary>
+        private static SceneConfig Claiming(SceneServiceSettings settings, string key)
+        {
+            if (settings.SceneConfigs == null) return null;
+
+            foreach (SceneConfig config in settings.SceneConfigs)
+            {
+                if (config != null && config.SceneKey == key) return config;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -179,17 +267,21 @@ namespace RelicRun.Editor.Importers
         /// service reads whichever one it was given, and a config added to the other would look
         /// exactly like a config that did nothing.
         /// </remarks>
-        private static SceneServiceSettings Settings()
+        private static SceneServiceSettings Settings(bool complain = true)
         {
             string[] found = AssetDatabase.FindAssets("t:SceneServiceSettings");
 
             if (found.Length == 0)
             {
-                Debug.LogError("this project has no SceneServiceSettings, so no scene is loadable");
+                if (complain)
+                {
+                    Debug.LogError("this project has no SceneServiceSettings, so no scene is loadable");
+                }
+
                 return null;
             }
 
-            if (found.Length > 1)
+            if (found.Length > 1 && complain)
             {
                 Debug.LogWarning(found.Length + " SceneServiceSettings assets — registering in " +
                                  AssetDatabase.GUIDToAssetPath(found[0]) + ", which may not be " +
