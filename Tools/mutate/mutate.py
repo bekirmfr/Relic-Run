@@ -53,6 +53,11 @@ TREES = [
 
 TEST_PROJECT = os.path.join("Tools", "dotnet", "RelicRun.Core.Tests")
 
+# How long one mutant's suite may take before it is called hung. The clean suite runs in about
+# twenty seconds, so this is generous by an order of magnitude and still catches a loop that
+# will never end.
+DEADLINE = 300
+
 # Build leftovers would be copied stale and then rebuilt anyway.
 IGNORE = shutil.ignore_patterns("bin", "obj", "*.meta", "*.user")
 
@@ -90,10 +95,20 @@ def run_tests(where):
     # Decoded as UTF-8 rather than as the console's own codepage. A failing test prints the
     # strings it compared, and the game speaks Arabic, Japanese and Russian — on a Windows
     # console that is cp1252, and reading it as such kills the reader thread mid-suite.
-    result = subprocess.run(
-        ["dotnet", "test", TEST_PROJECT, "--nologo"],
-        cwd=where, capture_output=True, text=True,
-        encoding="utf-8", errors="replace")
+    #
+    # And a deadline, because a mutant can hang rather than fail. A cursor that stops advancing
+    # turns any `while not finished` loop into a forever, and a suite that never returns wedges
+    # the harness with no output at all — which is how this one sat for an hour looking like a
+    # slow machine. A mutant that hangs is a mutant that was NOT killed, so a timeout counts as
+    # a survivor and says so.
+    try:
+        result = subprocess.run(
+            ["dotnet", "test", TEST_PROJECT, "--nologo"],
+            cwd=where, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=DEADLINE)
+    except subprocess.TimeoutExpired:
+        return True, True
+
     return result.returncode == 0, "error CS" not in result.stdout
 
 

@@ -1,0 +1,89 @@
+{
+  "name": "what a delver reads while a fight happens",
+  "mutants": [
+    {
+      "name": "the delver's own strike reads as a relic's",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "                    return shown.Source == \"you\"",
+      "replace": "                    return shown.Source != \"you\""
+    },
+    {
+      "name": "a foe's thorns read as the foe hitting you",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            if (shown.Foe == true)\n            {\n                return Line(LineKind.EnemyChain,\n                    Rival() + \"'s \" + Name(RelicId.ThornVest) + \" bites for \" + Amount(shown), shown);\n            }\n",
+      "replace": ""
+    },
+    {
+      "name": "a critical hit reads like any other",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            if (shown.EnemyCrit == true)\n            {\n                return Line(LineKind.Hurt,\n                    Foe(shown) + \" lands a CRITICAL hit for \" + Amount(shown) + \"!\", shown);\n            }\n",
+      "replace": ""
+    },
+    {
+      "name": "a rival is called by their avatar's name",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            return _rival ?? Say(\"en\" + shown.State.EnemyIndex);",
+      "replace": "            return Say(\"en\" + shown.State.EnemyIndex);"
+    },
+    {
+      "name": "a rival's relics belong to nobody in particular",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "        private string Rival() { return _rival ?? \"Rival\"; }",
+      "replace": "        private string Rival() { return \"Rival\"; }"
+    },
+    {
+      "name": "every foe is the first in the bestiary",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            return _rival ?? Say(\"en\" + shown.State.EnemyIndex);",
+      "replace": "            return _rival ?? Say(\"en0\");"
+    },
+    {
+      "name": "a relic's name never follows the language",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            return text.Translated ? Say(text.NameKey) : text.Name;",
+      "replace": "            return text.Name;"
+    },
+    {
+      "name": "a relic with no translation shows its key",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            return text.Translated ? Say(text.NameKey) : text.Name;",
+      "replace": "            return Say(text.NameKey);"
+    },
+    {
+      "name": "the depth of a chain is forgotten",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            return new CombatLine(kind, text, shown.Depth);",
+      "replace": "            return new CombatLine(kind, text, 0);"
+    },
+    {
+      "name": "an event with no amount says nothing about it",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            return shown.Amount.HasValue ? shown.Amount.Value.ToString() : \"0\";",
+      "replace": "            return shown.Amount.HasValue ? shown.Amount.Value.ToString() : \"\";"
+    },
+    {
+      "name": "a foe entering keeps the space where its number would go",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "                    return Line(LineKind.Enter, Say(\"logEnter\", \"i\", \"\", \"n\", Foe(shown)).Trim(), shown);",
+      "replace": "                    return Line(LineKind.Enter, Say(\"logEnter\", \"i\", \"\", \"n\", Foe(shown)), shown);"
+    },
+    {
+      "name": "a heal from a relic reads as the delver's own",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "                    return Line(LineKind.Good, shown.Source == \"you\"",
+      "replace": "                    return Line(LineKind.Good, shown.Source != \"you\""
+    },
+    {
+      "name": "one of the untranslated lines is left off the list",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "            CombatEventType.EnemyDashOpen, CombatEventType.Luck, CombatEventType.First,",
+      "replace": "            CombatEventType.EnemyDashOpen, CombatEventType.Luck,"
+    },
+    {
+      "name": "an unknown event kind says something rather than nothing",
+      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
+      "find": "                default:\n                    return new CombatLine(LineKind.Silent, \"\", shown.Depth);",
+      "replace": "                default:\n                    return new CombatLine(LineKind.Dim, \"...\", shown.Depth);"
+    }
+  ]
+}

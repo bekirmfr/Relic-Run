@@ -318,6 +318,9 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
   fight replaces the `later()`/`schedNext()`/`_ptk` single-flight dance, and pause is an await
   gate rather than a 180ms poll
 - **`CombatPlaybackController` (Game, done)** — the clock made of frames, and the token
+- **`CombatLog` (Core, done)** — the log's view-model: an event becomes a `LineKind` and a line
+  of text, with the chain depth carried rather than drawn. Nine of the twenty kinds are
+  English-only and one is half-localised; see `docs/testing.md`
 - `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,
   relic tray with the `relicMeter` charge/uses gauges, hall pan
 - Death shatter / blood / dust via UI-Particle (replaces `pileFrom`/`shatterOf` pixel reads)

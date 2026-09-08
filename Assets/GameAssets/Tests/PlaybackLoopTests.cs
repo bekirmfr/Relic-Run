@@ -55,6 +55,12 @@ namespace RelicRun.Tests
             private void Note(string what)
             {
                 Told.Add(what);
+
+                // A loop that stops advancing would run here forever, and a hung test is worse
+                // than a failing one: mutation runs the suite dozens of times unattended, and a
+                // wedged run looks exactly like a slow machine.
+                if (Told.Count > 64) throw new InvalidOperationException("playback is not advancing");
+
                 if (After != null) After(this);
             }
         }

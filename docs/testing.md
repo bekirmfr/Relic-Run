@@ -994,6 +994,43 @@ when the step is produced, so the beat being watched when the button goes down p
 length it was given. Cutting the current wait short would let a press land in the middle of a
 2600ms gap and skip most of it, which reads as the button having skipped an event.
 
+## Half a log in English
+
+`CombatLog` is the view-model for the combat log, and the fairest test of invariant 5: an event
+carries its own snapshot, so the log needs no memory of the fight. `TheLogRemembersNothingAboutTheFight`
+reads a recorded fight forwards, then reads it again backwards out of a fresh log, and demands
+every line come out the same.
+
+There is nothing to diff against — the source's `lineFor` is a component method the lifter cannot
+slice, and the corpus records events rather than the words they become. So the gates are the ones
+that can be stated: every event kind says *something*, every localisation key it asks for exists
+in `en.json`, no line comes out as its own key, and every event of a recorded fight survives being
+turned into a line.
+
+**Nine of the twenty event kinds never reach the locale at all**, and being hit is worse than
+untranslated rather than better: an ordinary blow is localised, a critical one and a foe's thorns
+are not, so the same event reads in two languages depending on how hard it landed. That is the
+source's own arrangement, carried across rather than quietly fixed — inventing eight translations
+is not a porting decision — and `CombatLog.English` names them so whoever does that work has the
+list.
+
+The test for it was written the obvious way first and failed, which is the interesting part. A
+whole-line comparison against a locale that reverses its strings came back with the foe's name
+reversed and the sentence around it in English: **the bestiary IS translated, so a delver reading
+Japanese sees a Japanese rat sidestepping in English.** Half-and-half is worse than neither, and
+only a fragment-level assertion could see it.
+
+## A mutant can hang instead of failing
+
+`mutate.py` had no deadline, and a mutant that stops the playback cursor advancing turns every
+`while not finished` loop into a forever. One run sat wedged for an hour looking exactly like a
+slow machine — no output, because the harness buffers until the suite returns.
+
+Two fixes, and the second matters more. The tests that walk a playback to its end now count their
+own iterations and fail rather than spin. And `mutate.py` runs each suite under a five-minute
+deadline and **counts a timeout as a survivor**, because a mutant that hangs the harness is a
+mutant nothing killed.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1050,3 +1087,4 @@ node Tools/extract/validate.mjs
 | Phase 8h — what is fetched, not held | none — invariants | Test Runner only; 30 addresses against the catalogs |
 | Phase 9a — how long a fight takes | none — ported by hand | passing, the ATB clock drives playback |
 | Phase 9b — walking a finished fight | none — invariants | passing, the stepper and the loop |
+| Phase 9c — what a delver reads | none — invariants | passing, 20 event kinds · **9 lines English-only** |

@@ -695,6 +695,77 @@ ${relics.map((r) => `            new RelicArtDef(RelicId.${names.get(r.id)}, ` +
 }
 `);
 
+/* ---------- RelicText ---------- */
+
+/* What a relic is CALLED, which is not one question but two. Nineteen of the fifty are in the
+   locale tables under it_<id>_n and translate; the other thirty-one live in the expansion table
+   in the source and are English wherever you read them. That split is a tracked gap in
+   validate.mjs and it is carried here rather than flattened, so a line of the combat log can ask
+   for a translation when one exists and fall back to the shipped English when it does not —
+   instead of every relic name being English because one table was easier to read. */
+write("RelicText.cs", header(`names for ${relics.length} relics, ${relics.filter((r) => r.text.source === "strings").length} of them translatable`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>What one relic is called.</summary>
+    public sealed class RelicTextDef
+    {
+        public readonly RelicId Id;
+
+        /// <summary>The shipped English name. Always present.</summary>
+        public readonly string Name;
+
+        /// <summary>
+        /// The locale key its name lives under, or null when it has none.
+        /// </summary>
+        /// <remarks>
+        /// Thirty-one of the fifty have none: they were added in the source's expansion table,
+        /// which is English and was never handed to a translator. A caller asks for the key when
+        /// there is one and shows <see cref="Name"/> when there is not.
+        /// </remarks>
+        public readonly string NameKey;
+
+        public RelicTextDef(RelicId id, string name, string nameKey)
+        {
+            Id = id;
+            Name = name;
+            NameKey = nameKey;
+        }
+
+        /// <summary>Whether this relic's name reaches a delver in their own language.</summary>
+        public bool Translated { get { return NameKey != null; } }
+    }
+
+    /// <summary>
+    /// The relic names, and which of them a translator has seen.
+    /// </summary>
+    /// <remarks>
+    /// Presentation, not rules. Nothing in the engine reads this; the combat log and the relic
+    /// book do.
+    /// </remarks>
+    public static class RelicText
+    {
+        public static readonly IReadOnlyList<RelicTextDef> All = new[]
+        {
+${relics.map((r) => `            new RelicTextDef(RelicId.${names.get(r.id)}, ${JSON.stringify(r.text.name)}, ` +
+  `${r.text.source === "strings" ? JSON.stringify("it_" + r.id + "_n") : "null"}),`).join("\n")}
+        };
+
+        public static RelicTextDef Get(RelicId id)
+        {
+            for (int i = 0; i < All.Count; i++)
+            {
+                if (All[i].Id == id) return All[i];
+            }
+
+            return null;
+        }
+    }
+}
+`);
+
 /* ---------- EventArt ---------- */
 
 /* Events are addressed by index everywhere, so their art is a list rather than a table. The

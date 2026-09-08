@@ -149,6 +149,11 @@ namespace RelicRun.Tests
                  step = playing.Next())
             {
                 actions.Add(step.Action + ":" + step.Index);
+
+                // A cursor that stops advancing turns this loop into a forever, and a test that
+                // hangs is worse than one that fails: mutation runs it dozens of times with no
+                // console to watch, and a wedged suite looks exactly like a slow one.
+                Assert.That(actions.Count, Is.LessThan(32), "playback is not advancing");
             }
 
             Assert.That(actions, Is.EqualTo(new[]
