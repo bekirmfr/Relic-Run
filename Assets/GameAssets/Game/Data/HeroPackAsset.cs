@@ -20,12 +20,21 @@ namespace RelicRun.Game.Data
     public sealed class HeroPackAsset : ScriptableObject
     {
         [SerializeField]
-        [Tooltip("hero-pack.json, imported as text. Filled by Tools ▸ Relic Run ▸ Import Art.")]
+        [Tooltip("hero-pack.json, imported as text. Filled by Tools ▸ Relic Run ▸ Import Content.")]
         private TextAsset _pack;
 
         /// <summary>The pack, unparsed. Parsing it is the loader's job, once, at startup.</summary>
         public TextAsset Json { get { return _pack; } }
 
         public bool IsBound { get { return _pack != null; } }
+
+        /// <summary>Points this at a pack. The importer's one way in.</summary>
+        /// <remarks>
+        /// Public on a runtime type for an Editor caller's sake, which is a small ugliness with
+        /// a smaller alternative than it looks. Writing the field through a
+        /// <c>SerializedObject</c> instead would mean naming it as a string, and a rename would
+        /// then break the importer silently rather than at compile time.
+        /// </remarks>
+        public void Bind(TextAsset pack) { _pack = pack; }
     }
 }

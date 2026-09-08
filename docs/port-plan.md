@@ -263,9 +263,13 @@ only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
 - `HeroPackAsset` (the pack as text), `LocaleBook` (a `TextAsset` per language),
   `PresentationSettings` (authored pacing — the one asset that is *not* extracted), and one
   `GameContent` that binds them for VContainer
-- Sprite import: Point filter, no compression, Multiple mode with grid slicing —
+- `ContentImporter` (**Tools ▸ Relic Run ▸ Import Content**) — copies only the art the catalogs
+  ask for out of `.port/assets/`, sets the import settings, cuts the sheets, fills the books and
+  audits itself. Idempotent: cells keep their file ids, unchanged files are not rewritten
+- Sprite import: Point filter, no compression, full-rect mesh, no extrude —
   enemies `192×832` @ 64px (3 cols = rank, 13 rows = species) · relic icons `480×384` @ 48px (10×8) ·
-  halls `650×181` · cards `50×72`
+  halls `650×181` · cards `50×72`. Cells are cut by content id, not by Unity's grid slicer:
+  only the 49 relic cells that were drawn, each named after the relic that draws it
 - `HeroPackImporter`: `hero-pack.json` → per-part/state/frame sprites into a SpriteAtlas, pixels encoded by
   **color-role index**; runtime `HeroCompositor` stacks 12 images in `stack` order and a `PaletteSwap`
   shader maps role index → color from a palette texture. Port only the color math

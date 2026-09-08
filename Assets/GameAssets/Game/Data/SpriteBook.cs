@@ -36,7 +36,7 @@ namespace RelicRun.Game.Data
         }
 
         [SerializeField]
-        [Tooltip("Filled by Tools ▸ Relic Run ▸ Import Art. Editing by hand is allowed but audited.")]
+        [Tooltip("Filled by Tools ▸ Relic Run ▸ Import Content. Editing by hand is allowed but audited.")]
         private Entry[] _entries = new Entry[0];
 
         [NonSerialized] private Dictionary<string, Sprite> _byId;

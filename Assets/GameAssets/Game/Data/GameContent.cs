@@ -42,6 +42,27 @@ namespace RelicRun.Game.Data
         public LocaleBook Locales { get { return _locales; } }
         public PresentationSettings Presentation { get { return _presentation; } }
 
+        /// <summary>
+        /// Points this at everything. The importer's one way in.
+        /// </summary>
+        /// <remarks>
+        /// Seven parameters, named at the call site, rather than seven strings through a
+        /// <c>SerializedObject</c>. A renamed field should break the importer where a compiler
+        /// can say so, not on the next person to run it.
+        /// </remarks>
+        public void Bind(RelicIconBook relicIcons, HallBook halls, EventBook events,
+            EnemyBook enemies, HeroPackAsset heroPack, LocaleBook locales,
+            PresentationSettings presentation)
+        {
+            _relicIcons = relicIcons;
+            _halls = halls;
+            _events = events;
+            _enemies = enemies;
+            _heroPack = heroPack;
+            _locales = locales;
+            _presentation = presentation;
+        }
+
         /// <summary>The books that bind ids to sprites, in the order worth reading them.</summary>
         public IEnumerable<SpriteBook> Books
         {
