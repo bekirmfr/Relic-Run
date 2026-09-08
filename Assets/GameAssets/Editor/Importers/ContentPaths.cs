@@ -28,6 +28,7 @@ namespace RelicRun.Editor.Importers
         public const string Halls = Art + "/Halls";
         public const string Events = Art + "/Events";
         public const string Fonts = Art + "/Fonts";
+        public const string Fallbacks = Fonts + "/Borrowed";
 
         public const string Content = "Assets/GameAssets/Content";
         public const string Text = Content + "/Text";

@@ -844,7 +844,7 @@ The flip is checked twice, once by walking the writer's own arithmetic and once 
 with its top two rows deliberately bare — the second is the one that would catch a flip in the
 wrong direction, since the first would agree with it.
 
-## Three languages nobody can read
+## Three languages that borrow their fonts
 
 The port ships two pixel faces and eight languages, and those two facts are in tension. Measured
 after `Locale.Clean` has taken the icons off the buttons:
@@ -855,12 +855,21 @@ after `Locale.Clean` has taken the icons off the buttons:
 | Jacquard 12 | 100% | 100% | 100% | 100% | 49% | 53% | 12% | 10% |
 
 Neither face has a single Japanese or Chinese glyph in it, and both are missing half of Arabic.
-That is a decision about what the game looks like — bundle a CJK face and it is ten to sixteen
-megabytes, fall back to a system font and a 1983 pixel face sits next to Noto Sans — so the
-`FontBook` has a fallback slot, it is empty, and `LegibilityTests` asserts the three languages
-as **unreadable on purpose**. Adding a face that fixes one of them breaks that test, which is
-what should happen: nobody should be able to fix this quietly, and nobody should ship without
-having decided.
+The choice was between bundling ten to sixteen megabytes of CJK for three languages and
+borrowing the reader's own fonts; **borrowing won**. `FontBook.Fallbacks` holds a chain of
+`DynamicOS` font assets — a family name and no glyphs at all — and the device rasterises what it
+needs, so a delver reading Japanese sees their platform's Japanese face beside a 1983 pixel one.
+
+That is a compromise somebody chose, and it has a limit worth naming. A fallback resolves by
+family name **on the device**, and the importer can only create one for a family the machine it
+runs on can see. A build made on Windows carries Yu Gothic, Microsoft YaHei and Segoe UI; a
+phone that has none of those falls through to boxes again. The list is serialized rather than
+computed precisely so a platform's own families can be added by hand.
+
+The measurement stays asserted on both sides. `LegibilityTests` still says neither TTF can draw
+those three, because that is a fact about the files and the reason the chain exists at all.
+`FontAssetTests` says the chain is there, is on both faces, and borrows rather than bundles —
+and deliberately does not pretend to know what is installed on somebody's phone.
 
 `Tools/capture/fonts.mjs` records the faces' own character maps out of the TTF and nothing else.
 What a language *needs* is decided in C#, from the locale tables and `Locale.Clean` — recording
@@ -926,4 +935,4 @@ node Tools/extract/validate.mjs
 | Phase 8d — content bindings | none — invariants | passing, 50 relics, 10 halls, 12 events, 39 foes |
 | Phase 8e — the assets themselves | none — invariants | Test Runner only; audits the real `.asset` files |
 | Phase 8f — a delver, indexed | `hero.json` | passing, 93 heroes round-trip pixel for pixel |
-| Phase 8g — what a face can draw | `fonts.json` | passing, 2 faces × 8 languages · **3 languages unreadable** |
+| Phase 8g — what a face can draw | `fonts.json` | passing, 2 faces × 8 languages · ja/zh/ar borrow the system's |

@@ -285,8 +285,9 @@ only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
 - TMP font assets from `Jacquard12.ttf` and `PressStart2P.ttf`, baked static at the sizes they
   were drawn for (8px and 12px), RASTER rather than SDF, atlases point-filtered. Bound by ROLE
   (`ui`, `display`) rather than by typeface. **The web build used Silkscreen, Space Grotesk and
-  Baloo 2 from Google Fonts**; these two are the offline stand-ins, and neither can draw
-  Japanese, Chinese or Arabic — see `docs/testing.md`
+  Baloo 2 from Google Fonts**; these two are the offline stand-ins. Neither can draw Japanese,
+  Chinese or Arabic, so those three fall through to a chain of `DynamicOS` faces the reader's own
+  device resolves by family name — borrowed, not bundled. See `docs/testing.md`
 - Addressables groups
 
 **Gate:** every id the catalogs will ask for is bound exactly once, to something, and nothing

@@ -102,28 +102,40 @@ namespace RelicRun.Tests.Editor
             }
         }
 
-        /// <summary>The atlases and materials travel with the asset, not beside it.</summary>
+        /// <summary>
+        /// Every face carries its own atlas and material, borrowed ones included.
+        /// </summary>
         /// <remarks>
-        /// A texture left outside the font asset is a texture somebody can delete, move or fail
-        /// to include in a build, and the face then draws nothing at all.
+        /// TMP hands back a font asset holding a LOOSE texture and a loose material, belonging to
+        /// no file. Save the font asset alone and both are gone by the next domain reload: the
+        /// face keeps its glyph table and draws nothing, which reads as a broken shader rather
+        /// than a missing sub-asset. The borrowed faces are checked as well because they were the
+        /// ones that had this wrong.
         /// </remarks>
         [Test]
-        public void EachFaceCarriesItsOwnAtlasAndMaterial()
+        public void EveryFaceCarriesItsOwnAtlasAndMaterial()
         {
-            foreach (string role in FontBook.Roles)
+            foreach (string role in FontBook.Roles) Whole(Face(role), role);
+
+            foreach (TMP_FontAsset fallback in Book().Fallbacks)
             {
-                TMP_FontAsset face = Face(role);
-                string path = AssetDatabase.GetAssetPath(face);
+                Whole(fallback, "the borrowed " + fallback.name);
+            }
+        }
 
-                Assert.That(face.material, Is.Not.Null, role + " has no material");
-                Assert.That(AssetDatabase.GetAssetPath(face.material), Is.EqualTo(path),
-                    role + "'s material lives somewhere else");
+        private static void Whole(TMP_FontAsset face, string what)
+        {
+            string path = AssetDatabase.GetAssetPath(face);
 
-                foreach (Texture2D atlas in face.atlasTextures)
-                {
-                    Assert.That(AssetDatabase.GetAssetPath(atlas), Is.EqualTo(path),
-                        role + "'s atlas lives somewhere else");
-                }
+            Assert.That(face.material, Is.Not.Null, what + " has no material");
+            Assert.That(AssetDatabase.GetAssetPath(face.material), Is.EqualTo(path),
+                what + "'s material lives somewhere else");
+
+            foreach (Texture2D atlas in face.atlasTextures)
+            {
+                Assert.That(atlas, Is.Not.Null, what + " has an empty atlas slot");
+                Assert.That(AssetDatabase.GetAssetPath(atlas), Is.EqualTo(path),
+                    what + "'s atlas lives somewhere else");
             }
         }
 
@@ -154,27 +166,53 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
-        /// Three languages have nothing to draw them, and nothing is pretending otherwise.
+        /// The three languages neither face can draw borrow the reader's own fonts.
         /// </summary>
         /// <remarks>
-        /// The same tracked gap <c>LegibilityTests</c> records against the font files, asserted
-        /// here against the built assets and the fallback list. It fails the day somebody adds a
-        /// fallback — which is the point. Nobody should be able to fix this quietly, and nobody
-        /// should be able to ship without having decided.
+        /// Both halves are asserted, because both are the decision. The faces themselves still
+        /// cannot draw Japanese, Chinese or Arabic — that has not changed and is not fixable
+        /// without bundling ten megabytes — and every one of them now has somewhere to fall
+        /// through to.
+        ///
+        /// What a fallback actually resolves to is the device's business: these carry a family
+        /// name and no glyphs, and the phone rasterises what it needs. So this asks the
+        /// questions the Editor can answer — that the chain exists, that it is on both faces,
+        /// and that it borrows rather than bundles — and does not pretend to know what a phone
+        /// in somebody's pocket has installed.
         /// </remarks>
         [Test]
-        public void JapaneseChineseAndArabicStillHaveNothingToDrawThem()
+        public void JapaneseChineseAndArabicFallThroughToTheSystem()
         {
-            Assert.That(Book().Fallbacks, Is.Empty,
-                "a fallback face has appeared — say which languages it fixes, here and in " +
-                "LegibilityTests");
+            IReadOnlyList<TMP_FontAsset> borrowed = Book().Fallbacks;
 
-            foreach (string language in new[] { "ja", "zh", "ar" })
+            Assert.That(borrowed, Is.Not.Empty,
+                "nothing to fall through to — run Tools > Relic Run > Import Content on a " +
+                "machine with system fonts for Japanese, Chinese and Arabic");
+
+            foreach (TMP_FontAsset fallback in borrowed)
             {
-                foreach (string role in FontBook.Roles)
+                Assert.That(fallback, Is.Not.Null, "an empty row in the fallback chain");
+                Assert.That(fallback.atlasPopulationMode, Is.EqualTo(AtlasPopulationMode.DynamicOS),
+                    fallback.name + " is bundled rather than borrowed");
+                Assert.That(fallback.faceInfo.familyName, Is.Not.Null.And.Not.Empty,
+                    fallback.name + " names no family, so no device can resolve it");
+            }
+
+            foreach (string role in FontBook.Roles)
+            {
+                TMP_FontAsset face = Face(role);
+
+                Assert.That(face.fallbackFontAssetTable, Is.Not.Null.And.Not.Empty,
+                    role + " has no fallback chain, so it draws boxes and stops there");
+                Assert.That(face.fallbackFontAssetTable.Count, Is.EqualTo(borrowed.Count),
+                    role + " and the book disagree about how many faces are borrowed");
+
+                // Still true, and still the reason any of this exists.
+                foreach (string language in new[] { "ja", "zh", "ar" })
                 {
-                    Assert.That(Gap(Face(role), language), Is.GreaterThan(0),
-                        role + " can now draw " + language);
+                    Assert.That(Gap(face, language), Is.GreaterThan(0),
+                        role + " can now draw " + language + " on its own — say so in " +
+                        "LegibilityTests, which asserts that it cannot");
                 }
             }
         }

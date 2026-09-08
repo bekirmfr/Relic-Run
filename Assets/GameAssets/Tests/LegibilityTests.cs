@@ -103,13 +103,19 @@ namespace RelicRun.Tests
         }
 
         /// <summary>
-        /// Three languages cannot be drawn at all, and this is the record of it.
+        /// Three languages cannot be drawn by either shipped face, and borrow instead.
         /// </summary>
         /// <remarks>
-        /// A tracked gap in the same sense as the four in <c>validate.mjs</c>, and asserted the
-        /// same way — as the thing that is currently true. Adding a fallback face that reads
-        /// Japanese breaks this test, which is exactly what should happen: nobody should be able
-        /// to fix this quietly, and nobody should be able to ship without having decided.
+        /// This is a fact about the two TTFs and it does not change: a face drawn on a
+        /// five-by-seven grid has no Japanese in it and never will. What changed is what is done
+        /// about it — <c>FontBook</c> now carries a chain of system faces that the reader's own
+        /// device resolves, so those three languages render in whatever the platform has rather
+        /// than in boxes. That decision is asserted next door, in <c>FontAssetTests</c>, where
+        /// there are real assets to ask.
+        ///
+        /// Kept as an assertion rather than deleted, because it is the reason the chain exists.
+        /// A face that grew Japanese would make the borrowing pointless, and the test that
+        /// noticed should be this one.
         /// </remarks>
         [Test]
         public void JapaneseChineseAndArabicCannotBeDrawnByEitherFace()

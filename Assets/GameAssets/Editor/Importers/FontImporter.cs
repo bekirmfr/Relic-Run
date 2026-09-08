@@ -53,10 +53,44 @@ namespace RelicRun.Editor.Importers
         /// </remarks>
         private const int NoPadding = 0;
 
+        /// <summary>
+        /// The scripts no shipped face can draw, and the families that can.
+        /// </summary>
+        /// <remarks>
+        /// Tried in order; every one the machine running the importer can see becomes a fallback,
+        /// and the rest are reported. The order is deliberate — the platform's own UI face first,
+        /// then the Noto families, which is what most Linux and Android images carry.
+        ///
+        /// A device resolves these by family name at run time, so a build made on Windows and
+        /// played on a phone will find whichever of these that phone has. It may find none, and
+        /// then the text is boxes again. That is the honest limit of borrowing somebody else's
+        /// fonts and the reason the book's list is serialized rather than computed: a platform
+        /// this machine has never seen can have its families added by hand.
+        /// </remarks>
+        private static readonly string[][] Borrowed =
+        {
+            new[] { "Yu Gothic", "Meiryo", "MS Gothic", "Hiragino Sans", "Noto Sans CJK JP", "Noto Sans JP" },
+            new[] { "Microsoft YaHei", "SimSun", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC" },
+            new[] { "Segoe UI", "Geeza Pro", "Noto Sans Arabic", "Arial" },
+        };
+
+        /// <summary>
+        /// A borrowed face is not pixel art and is not sampled like one.
+        /// </summary>
+        /// <remarks>
+        /// System fonts are outline faces meant to scale, and a delver reading Japanese is
+        /// reading a system font whatever is drawn around it. Rasterising one at eight pixels
+        /// would make it illegible rather than making it match.
+        /// </remarks>
+        private const int BorrowedSize = 48;
+
         /// <summary>Copies the faces in, bakes them, and binds them.</summary>
-        public static List<FontBook.Face> Import()
+        public static List<FontBook.Face> Import(List<TMP_FontAsset> fallbacks)
         {
             ContentPaths.EnsureFolder(ContentPaths.Fonts);
+
+            fallbacks.Clear();
+            fallbacks.AddRange(Borrow());
 
             var bound = new List<FontBook.Face>(Cuts.Length);
             string wanted = Wanted();
@@ -67,10 +101,68 @@ namespace RelicRun.Editor.Importers
                 if (!Copy(cut.File, ttf)) continue;
 
                 TMP_FontAsset face = Bake(cut, ttf, wanted);
+                if (face != null) face.fallbackFontAssetTable = new List<TMP_FontAsset>(fallbacks);
+
                 bound.Add(new FontBook.Face(cut.Role, face));
             }
 
             return bound;
+        }
+
+        /// <summary>
+        /// Makes a font asset for each system family that can stand in for a script.
+        /// </summary>
+        /// <remarks>
+        /// These are DynamicOS assets: they carry no glyphs at all, only a family name, and the
+        /// device rasterises what it needs when it needs it. That is what makes borrowing free —
+        /// nothing is bundled and nothing is baked — and it is also what makes it uncertain,
+        /// since a family that is not installed simply fails to load and the chain moves on.
+        /// </remarks>
+        private static List<TMP_FontAsset> Borrow()
+        {
+            ContentPaths.EnsureFolder(ContentPaths.Fallbacks);
+
+            var borrowed = new List<TMP_FontAsset>();
+            var absent = new List<string>();
+
+            foreach (string[] script in Borrowed)
+            {
+                foreach (string family in script)
+                {
+                    string path = ContentPaths.Fallbacks + "/" + family.Replace(' ', '-') + ".asset";
+
+                    var already = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
+                    if (already != null)
+                    {
+                        borrowed.Add(already);
+                        continue;
+                    }
+
+                    TMP_FontAsset face = TMP_FontAsset.CreateFontAsset(family, "Regular", BorrowedSize);
+                    if (face == null)
+                    {
+                        absent.Add(family);
+                        continue;
+                    }
+
+                    face.name = family;
+                    AssetDatabase.CreateAsset(face, path);
+                    Seal(face, path, family, false);
+
+                    borrowed.Add(face);
+                }
+            }
+
+            if (absent.Count > 0)
+            {
+                Debug.Log("not installed on this machine, so not borrowed: " +
+                          string.Join(", ", absent) +
+                          "\n  a device that has one will still not use it — a fallback is made " +
+                          "from a family the importer can see. Add them by hand on a machine " +
+                          "that has them, or accept that those platforms fall through.");
+            }
+
+            return borrowed;
         }
 
         /// <summary>
@@ -128,6 +220,48 @@ namespace RelicRun.Editor.Importers
         }
 
         /// <summary>
+        /// Puts a font asset's atlas and material inside it, where they cannot be lost.
+        /// </summary>
+        /// <remarks>
+        /// <c>CreateFontAsset</c> hands back a font asset holding a loose texture and a loose
+        /// material, and neither belongs to any file. Save only the font asset and both are gone
+        /// on the next domain reload — the face keeps its glyph table and draws nothing, which
+        /// reads as a broken shader rather than as a missing sub-asset.
+        ///
+        /// <paramref name="pixels"/> says whether the atlas holds pixel art. A borrowed system
+        /// face does not: it is a distance field meant to scale, and point filtering one would
+        /// make it worse rather than sharper.
+        /// </remarks>
+        private static void Seal(TMP_FontAsset face, string path, string name, bool pixels)
+        {
+            foreach (Texture2D atlas in face.atlasTextures)
+            {
+                if (atlas == null) continue;
+
+                atlas.name = name + " atlas";
+                if (pixels)
+                {
+                    atlas.filterMode = FilterMode.Point;
+                    atlas.wrapMode = TextureWrapMode.Clamp;
+                    atlas.anisoLevel = 0;
+                }
+
+                if (AssetDatabase.GetAssetPath(atlas) != path) AssetDatabase.AddObjectToAsset(atlas, face);
+            }
+
+            if (face.material != null)
+            {
+                face.material.name = name + " material";
+                if (AssetDatabase.GetAssetPath(face.material) != path)
+                {
+                    AssetDatabase.AddObjectToAsset(face.material, face);
+                }
+            }
+
+            EditorUtility.SetDirty(face);
+        }
+
+        /// <summary>
         /// Bakes one face.
         /// </summary>
         /// <remarks>
@@ -174,29 +308,7 @@ namespace RelicRun.Editor.Importers
             face.TryAddCharacters(wanted, out missing);
 
             face.atlasPopulationMode = AtlasPopulationMode.Static;
-
-            foreach (Texture2D atlas in face.atlasTextures)
-            {
-                if (atlas == null) continue;
-
-                atlas.name = cut.Role + " atlas";
-                atlas.filterMode = FilterMode.Point;
-                atlas.wrapMode = TextureWrapMode.Clamp;
-                atlas.anisoLevel = 0;
-
-                if (AssetDatabase.GetAssetPath(atlas) != path) AssetDatabase.AddObjectToAsset(atlas, face);
-            }
-
-            if (face.material != null)
-            {
-                face.material.name = cut.Role + " material";
-                if (AssetDatabase.GetAssetPath(face.material) != path)
-                {
-                    AssetDatabase.AddObjectToAsset(face.material, face);
-                }
-            }
-
-            EditorUtility.SetDirty(face);
+            Seal(face, path, cut.Role, true);
             Report(cut, face, wanted, missing);
 
             return face;

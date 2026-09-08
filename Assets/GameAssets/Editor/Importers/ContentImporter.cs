@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using RelicRun.Core.Content;
 using RelicRun.Game.Data;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 
@@ -47,10 +48,11 @@ namespace RelicRun.Editor.Importers
                     EnemyCatalog.SheetCell, EnemyCatalog.SheetRows);
 
                 EditorUtility.DisplayProgressBar("Relic Run", "baking the fonts", 0.75f);
-                List<FontBook.Face> faces = FontImporter.Import();
+                var fallbacks = new List<TMP_FontAsset>();
+                List<FontBook.Face> faces = FontImporter.Import(fallbacks);
 
                 EditorUtility.DisplayProgressBar("Relic Run", "binding", 0.9f);
-                GameContent content = Bind(faces);
+                GameContent content = Bind(faces, fallbacks);
 
                 AssetDatabase.SaveAssets();
                 Report(content, copied);
@@ -231,7 +233,8 @@ namespace RelicRun.Editor.Importers
 
         /* ---------- binding ---------- */
 
-        private static GameContent Bind(IList<FontBook.Face> faces)
+        private static GameContent Bind(IList<FontBook.Face> faces,
+            IList<TMP_FontAsset> fallbacks)
         {
             ContentPaths.EnsureFolder(ContentPaths.Content);
 
@@ -252,7 +255,7 @@ namespace RelicRun.Editor.Importers
 
             heroPack.Bind(AssetDatabase.LoadAssetAtPath<TextAsset>(ContentPaths.HeroPackText));
             locales.Rebind(Translations());
-            fonts.Rebind(faces);
+            fonts.Rebind(faces, fallbacks);
 
             content.Bind(relicIcons, halls, events, enemies, heroPack, locales, fonts, presentation);
 
@@ -353,6 +356,17 @@ namespace RelicRun.Editor.Importers
             if (content.Locales != null)
             {
                 said.Append("\n  ").Append(content.Locales.Languages.Count).Append(" languages");
+            }
+
+            if (content.Fonts != null)
+            {
+                said.Append("\n  ").Append(content.Fonts.Faces.Count).Append(" faces");
+
+                if (content.Fonts.Fallbacks.Count > 0)
+                {
+                    said.Append(", and ").Append(content.Fonts.Fallbacks.Count)
+                        .Append(" borrowed from the system for ja, zh and ar");
+                }
             }
 
             if (trouble.Length == 0)
