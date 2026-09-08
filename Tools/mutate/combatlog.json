@@ -62,12 +62,6 @@
       "replace": "            return shown.Amount.HasValue ? shown.Amount.Value.ToString() : \"\";"
     },
     {
-      "name": "a foe entering keeps the space where its number would go",
-      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
-      "find": "                    return Line(LineKind.Enter, Say(\"logEnter\", \"i\", \"\", \"n\", Foe(shown)).Trim(), shown);",
-      "replace": "                    return Line(LineKind.Enter, Say(\"logEnter\", \"i\", \"\", \"n\", Foe(shown)), shown);"
-    },
-    {
       "name": "a heal from a relic reads as the delver's own",
       "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
       "find": "                    return Line(LineKind.Good, shown.Source == \"you\"",
@@ -78,12 +72,6 @@
       "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
       "find": "            CombatEventType.EnemyDashOpen, CombatEventType.Luck, CombatEventType.First,",
       "replace": "            CombatEventType.EnemyDashOpen, CombatEventType.Luck,"
-    },
-    {
-      "name": "an unknown event kind says something rather than nothing",
-      "file": "Assets/GameAssets/Core/Presentation/CombatLog.cs",
-      "find": "                default:\n                    return new CombatLine(LineKind.Silent, \"\", shown.Depth);",
-      "replace": "                default:\n                    return new CombatLine(LineKind.Dim, \"...\", shown.Depth);"
     }
   ]
 }

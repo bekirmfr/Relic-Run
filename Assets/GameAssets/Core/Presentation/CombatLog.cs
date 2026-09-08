@@ -108,7 +108,11 @@ namespace RelicRun.Core.Presentation
             switch (shown.Type)
             {
                 case CombatEventType.Enter:
-                    return Line(LineKind.Enter, Say("logEnter", "i", "", "n", Foe(shown)).Trim(), shown);
+                    // No trim. The source needs one because its own lookup does not clean,
+                    // and "{i} {n} blocks the way" with no number leaves a leading space.
+                    // Locale.Clean already trims, so a second one here is dead code that
+                    // reads as though it were load-bearing.
+                    return Line(LineKind.Enter, Say("logEnter", "i", "", "n", Foe(shown)), shown);
 
                 case CombatEventType.EnemyDamage:
                     return shown.Source == "you"

@@ -165,6 +165,60 @@ namespace RelicRun.Tests
             Assert.That(thorns.Text, Does.Contain("Thorn Vest"));
         }
 
+        /// <summary>Each species is called by its own name.</summary>
+        /// <remarks>
+        /// Obvious until it is not: every line naming a foe reads the bestiary by index, and an
+        /// index dropped on the floor gives every creature in the game the first one's name. The
+        /// log would still make sense — it would just be about a rat, always.
+        /// </remarks>
+        [Test]
+        public void EachSpeciesIsCalledByItsOwnName()
+        {
+            CombatLog log = Reading();
+            var named = new HashSet<string>();
+
+            for (int species = 0; species < EnemyCatalog.All.Count; species++)
+            {
+                CombatLine line = log.For(An(CombatEventType.Kill, enemyIndex: species));
+
+                Assert.That(named.Add(line.Text), Is.True,
+                    "species " + species + " is called what another one is called");
+            }
+        }
+
+        /// <summary>A relic's heal is the relic's, not the delver's.</summary>
+        /// <remarks>
+        /// The same line for both would take the credit from the Alchemist's Vial and give it to
+        /// the person wearing it — which is most of what a delver is reading the log to find out.
+        /// </remarks>
+        [Test]
+        public void AHealFromARelicIsTheRelicsToClaim()
+        {
+            CombatLog log = Reading();
+
+            CombatLine own = log.For(An(CombatEventType.Heal, 6, "you"));
+            CombatLine relic = log.For(An(CombatEventType.Heal, 6, "Alchemist's Vial"));
+
+            Assert.That(own.Text, Is.Not.EqualTo(relic.Text));
+            Assert.That(relic.Text, Does.Contain("Alchemist's Vial"));
+            Assert.That(own.Text, Does.Not.Contain("Alchemist's Vial"));
+        }
+
+        /// <summary>A foe entering reads cleanly, with no gap where a number would go.</summary>
+        /// <remarks>
+        /// The line is "{i} {n} blocks the way" and nothing fills the first slot, so it arrives
+        /// with a space in front of it. <see cref="Locale.Clean"/> takes that off — which is why
+        /// the extra trim the source needs is dead code here rather than a safeguard.
+        /// </remarks>
+        [Test]
+        public void AFoeEnteringHasNoGapInFrontOfIt()
+        {
+            CombatLine line = Reading().For(An(CombatEventType.Enter));
+
+            Assert.That(line.Text, Is.EqualTo(line.Text.Trim()));
+            Assert.That(line.Text, Does.Not.StartWith(" "));
+        }
+
         /// <summary>A duel is against somebody with a name.</summary>
         /// <remarks>
         /// Calling a rival "Skeleton" because their avatar happens to be one would read as a bug
