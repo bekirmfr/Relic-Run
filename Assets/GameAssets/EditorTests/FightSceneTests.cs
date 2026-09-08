@@ -247,6 +247,38 @@ namespace RelicRun.Tests.Editor
                 "startup opens on a config the service cannot look up");
         }
 
+        /// <summary>
+        /// Nothing in the scene starts the fight except the scene.
+        /// </summary>
+        /// <remarks>
+        /// <c>SceneService</c> instantiates the prefab and then awaits <c>Initialize</c>, so a
+        /// component that also begins work from <c>Awake</c> or <c>Start</c> does it twice —
+        /// once on its own and once when asked. That happened: the harness self-started, and
+        /// two fights ran over one view, spawning every log line twice. The doubled log read as
+        /// a fight in which every blow landed twice, which is a plausible-looking wrong answer
+        /// and so took a screenshot to notice.
+        ///
+        /// Asked by reflection because the rule is about the ABSENCE of a method, and there is
+        /// no other way to ask about something that is not there. The two names are Unity's and
+        /// cannot drift.
+        /// </remarks>
+        [Test]
+        public void TheHarnessDoesNotStartItself()
+        {
+            const System.Reflection.BindingFlags Declared =
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.DeclaredOnly;
+
+            foreach (string magic in new[] { "Awake", "Start" })
+            {
+                Assert.That(typeof(FightHarness).GetMethod(magic, Declared), Is.Null,
+                    "FightHarness." + magic + " runs on its own as well as when the scene asks, " +
+                    "so the fight would play twice over one view");
+            }
+        }
+
         /// <summary>The two prefabs the view spawns exist and carry their text.</summary>
         [Test]
         public void TheSpawnedPrefabsAreWholeToo()

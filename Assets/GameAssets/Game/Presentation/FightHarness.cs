@@ -39,21 +39,35 @@ namespace RelicRun.Game.Presentation
         [Min(1)] [SerializeField] private int _level = 1;
 
         [Header("Watching")]
-        [SerializeField] private bool _playOnStart = true;
-
         [Tooltip("Skips the walk down the hall, which is three and a half seconds of scenery.")]
         [SerializeField] private bool _skipIntro;
 
         private CombatPlaybackController _showing;
+        private bool _fighting;
 
-        private void Start()
-        {
-            if (_playOnStart) Fight().Forget();
-        }
-
-        /// <summary>Resolves a fight and shows it, start to end.</summary>
+        /// <summary>
+        /// Resolves a fight and shows it, start to end.
+        /// </summary>
+        /// <remarks>
+        /// Started by <see cref="FightScene"/> and by nothing else. This used to also start
+        /// itself from <c>Start</c>, which meant that once the scene was loaded through the
+        /// service two fights ran over one view: every log line spawned twice, and the doubled
+        /// list looked like a fight where every blow landed twice rather than like a bug in the
+        /// wiring. Deleting the second caller is the fix; the guard below is so there can never
+        /// be a third.
+        ///
+        /// The guard returns rather than queueing. Two fights on one screen is not a thing that
+        /// can be done slightly — the second would draw over the first's widgets — so the honest
+        /// answer to being asked twice is to say so and refuse.
+        /// </remarks>
         public async UniTask Fight()
         {
+            if (_fighting)
+            {
+                Debug.LogWarning("a fight is already on screen; ignoring the second", this);
+                return;
+            }
+
             if (_view == null || _content == null)
             {
                 Debug.LogError("the harness has nothing to show or nothing to show it with", this);
@@ -69,15 +83,27 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
-            IReadOnlyList<CombatEvent> events = Resolve();
-            Debug.Log("seed " + _seed + ", floor " + _floor + ": " + events.Count + " events", this);
+            _fighting = true;
 
-            Pacing pacing = Pacing.For(events.Count, false, 1, _content.Presentation.ToPacing());
+            try
+            {
+                IReadOnlyList<CombatEvent> events = Resolve();
+                Debug.Log("seed " + _seed + ", floor " + _floor + ": " + events.Count + " events", this);
 
-            _view.Begin(events, pacing, Reading());
-            _showing = new CombatPlaybackController(_content.Presentation);
+                Pacing pacing = Pacing.For(events.Count, false, 1, _content.Presentation.ToPacing());
 
-            await _showing.Show(events, _view, _skipIntro);
+                _view.Begin(events, pacing, Reading());
+                _showing = new CombatPlaybackController(_content.Presentation);
+
+                await _showing.Show(events, _view, _skipIntro);
+            }
+            finally
+            {
+                // In a finally, because a fight that is abandoned still ends. Left set, the
+                // guard above would turn one cancelled fight into a screen that refuses to show
+                // any more of them — quietly, which is the worst way to refuse.
+                _fighting = false;
+            }
         }
 
         /// <summary>
