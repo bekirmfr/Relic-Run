@@ -34,11 +34,26 @@ namespace RelicRun.Tests.Editor
             Assert.That(_content, Is.Not.Null, "run Tools > Relic Run > Import Content first");
         }
 
+        /// <summary>
+        /// The font book, or a failure that says what to do about it.
+        /// </summary>
+        /// <remarks>
+        /// Every test here goes through this rather than touching the field, because a book that
+        /// is not bound at all is the one failure with an obvious remedy — the content was
+        /// imported before the fonts existed — and a null reference exception is the worst
+        /// possible way to say so.
+        /// </remarks>
+        private FontBook Book()
+        {
+            Assert.That(_content.Fonts, Is.Not.Null,
+                "no font book is bound — run Tools > Relic Run > Import Content");
+
+            return _content.Fonts;
+        }
+
         private TMP_FontAsset Face(string role)
         {
-            Assert.That(_content.Fonts, Is.Not.Null, "no font book is bound");
-
-            TMP_FontAsset face = _content.Fonts.For(role);
+            TMP_FontAsset face = Book().For(role);
             Assert.That(face, Is.Not.Null, "nothing fills the " + role + " role");
 
             return face;
@@ -47,10 +62,10 @@ namespace RelicRun.Tests.Editor
         [Test]
         public void EveryRoleIsFilledExactlyOnce()
         {
-            BindingAudit audit = _content.Fonts.Audit();
+            BindingAudit audit = Book().Audit();
             Assert.That(audit.Passed, Is.True, audit.Report());
 
-            Assert.That(_content.Fonts.Faces.Count, Is.EqualTo(FontBook.Roles.Count));
+            Assert.That(Book().Faces.Count, Is.EqualTo(FontBook.Roles.Count));
         }
 
         /// <summary>
@@ -150,7 +165,7 @@ namespace RelicRun.Tests.Editor
         [Test]
         public void JapaneseChineseAndArabicStillHaveNothingToDrawThem()
         {
-            Assert.That(_content.Fonts.Fallbacks, Is.Empty,
+            Assert.That(Book().Fallbacks, Is.Empty,
                 "a fallback face has appeared — say which languages it fixes, here and in " +
                 "LegibilityTests");
 
