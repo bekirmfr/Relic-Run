@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using RelicRun.Core.Presentation;
 using RelicRun.Editor.Importers;
 using RelicRun.Game.Presentation;
 using UnityEditor;
@@ -108,23 +109,65 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
-        /// The canvas scales rather than assuming a screen.
+        /// The canvas scales by a whole number, and something keeps it that way.
         /// </summary>
         /// <remarks>
-        /// Left on Constant Pixel Size it looks right on the machine it was built on and wrong on
-        /// every other, which is the sort of thing nobody notices until a screenshot arrives from
-        /// a tablet.
+        /// This test used to assert the opposite — Scale With Screen Size, which is the sensible
+        /// default for almost every interface and is wrong for this one. It gives whatever
+        /// fraction makes the reference fit, about 1.118 on a common phone, and the ui face is a
+        /// bitmap baked on an eight-pixel grid. At 1.118 times, some rows of a glyph get five
+        /// screen pixels and the next gets six. That is what "the fonts look ugly" turned out to
+        /// mean, and it survived a change of typeface because it was never about the typeface.
+        ///
+        /// Both halves are asked. The mode alone is not enough: <c>ConstantPixelSize</c> with
+        /// nothing maintaining the factor is a canvas frozen at whatever the last person typed,
+        /// which is right on one screen and wrong on all the others.
         /// </remarks>
         [Test]
-        public void TheCanvasScalesRatherThanAssumingAScreen()
+        public void TheCanvasScalesByAWholeNumberOfPixels()
         {
             var scaler = Find<UnityEngine.UI.CanvasScaler>();
 
             Assert.That(scaler, Is.Not.Null);
             Assert.That(scaler.uiScaleMode,
-                Is.EqualTo(UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize));
-            Assert.That(scaler.referenceResolution.x, Is.GreaterThan(0f));
-            Assert.That(scaler.referenceResolution.y, Is.GreaterThan(0f));
+                Is.EqualTo(UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize),
+                "a fractional scale smears a face baked on a pixel grid");
+
+            Assert.That(scaler.scaleFactor, Is.EqualTo(Mathf.Round(scaler.scaleFactor)),
+                "the authored factor is already fractional");
+
+            Assert.That(Find<PixelCanvas>(), Is.Not.Null,
+                "nothing recomputes the factor, so it is frozen at whatever was authored");
+        }
+
+        /// <summary>
+        /// Every text in the scene is a size the baked face can actually draw.
+        /// </summary>
+        /// <remarks>
+        /// The other half of the same rule, and the half a person breaks by accident. The ui face
+        /// is baked at eight pixels, so a size of twenty draws it at two and a half times and one
+        /// row in every two has to round. Twenty is not a silly number to type — that is exactly
+        /// why this is asked of the built asset rather than trusted to the builder, which is
+        /// where somebody will eventually type it.
+        ///
+        /// Walked, not listed, for the same reason the references are.
+        /// </remarks>
+        [Test]
+        public void EveryTextIsASizeTheFaceCanDraw()
+        {
+            var wrong = new List<string>();
+
+            foreach (TMPro.TMP_Text text in _scene.GetComponentsInChildren<TMPro.TMP_Text>(true))
+            {
+                if (text.fontSize % PixelScale.Grid != 0f)
+                {
+                    wrong.Add(text.name + " at " + text.fontSize);
+                }
+            }
+
+            Assert.That(wrong, Is.Empty,
+                "these draw the ui face at a fraction of the size it was baked at: " +
+                string.Join(", ", wrong));
         }
 
         /// <summary>Both healths and both gauges fill rather than stretch.</summary>
@@ -288,6 +331,18 @@ namespace RelicRun.Tests.Editor
 
             Assert.That(flier, Is.Not.Null, "no flying number to spawn");
             Assert.That(line, Is.Not.Null, "no log line to spawn");
+
+            // These live outside the scene and are spawned into it, so the walk above never sees
+            // them — and between them they are most of the text a delver actually reads.
+            foreach (GameObject spawned in new[] { flier, line })
+            {
+                foreach (TMPro.TMP_Text text in spawned.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                {
+                    Assert.That(text.fontSize % PixelScale.Grid, Is.Zero,
+                        spawned.name + " draws at " + text.fontSize +
+                        ", a fraction of the size the face was baked at");
+                }
+            }
 
             Filled(flier.GetComponent<FlyingNumber>());
             Filled(line.GetComponent<LogLine>());

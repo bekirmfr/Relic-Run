@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using GameLift.Scene;
+using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using RelicRun.Game.Presentation;
 using TMPro;
@@ -44,8 +45,24 @@ namespace RelicRun.Editor.Importers
         public const string FlierPrefab = "Assets/GameAssets/Game/Presentation/FlyingNumber.prefab";
         public const string LinePrefab = "Assets/GameAssets/Game/Presentation/LogLine.prefab";
 
-        /// <summary>The canvas is authored at this size and scales to whatever it lands on.</summary>
-        private static readonly Vector2 Reference = new Vector2(1080f, 1920f);
+        /// <summary>
+        /// Every size below is in authored pixels, and every text size is a multiple of eight.
+        /// </summary>
+        /// <remarks>
+        /// The canvas is <c>ConstantPixelSize</c> at a whole factor, so one unit here is one, two
+        /// or three screen pixels and never one and a half. The layout was first written against
+        /// a 1080-wide reference and is halved: on the commonest phone the factor is two, so the
+        /// canvas is 540 units across and everything lands where it did — but sharp.
+        ///
+        /// Text sizes go through <see cref="PixelScale.Snap"/> rather than being typed, because
+        /// the ui face is a bitmap baked at eight pixels and a size of twenty draws it at two and
+        /// a half times. Twenty is the exact kind of number that looks reasonable in a source
+        /// file and puts the smear straight back, so it is not possible to write one here.
+        /// </remarks>
+        private static int Text(int size)
+        {
+            return PixelScale.Snap(size);
+        }
 
         /// <summary>Named, so the things that need it run first can say so.</summary>
         private const string BuildItem = "Tools/Relic Run/Build Fight Scene";
@@ -323,32 +340,32 @@ namespace RelicRun.Editor.Importers
             var view = canvas.AddComponent<CombatView>();
 
             GameObject foe = Panel(canvas, "Foe", new Vector2(0f, 1f), new Vector2(1f, 1f),
-                new Vector2(0f, -520f), new Vector2(-80f, 460f));
-            GameObject art = Box(foe, "Art", new Vector2(0f, 0.5f), new Vector2(192f, 192f),
-                new Vector2(140f, 40f));
-            GameObject foeName = Say(foe, face, "Foe", 34f, TextAlignmentOptions.Left,
-                new Vector2(0f, 190f), new Vector2(600f, 44f));
+                new Vector2(0f, -260f), new Vector2(-40f, 230f));
+            GameObject art = Box(foe, "Art", new Vector2(0f, 0.5f), new Vector2(96f, 96f),
+                new Vector2(70f, 20f));
+            GameObject foeName = Say(foe, face, "Foe", Text(17), TextAlignmentOptions.Left,
+                new Vector2(0f, 95f), new Vector2(300f, 32f));
             GameObject foeHealth = Bar(foe, "Health", new Color(0.62f, 0.24f, 0.20f),
-                new Vector2(0f, 120f));
+                new Vector2(0f, 60f));
             GameObject foeGauge = Bar(foe, "Gauge", new Color(0.75f, 0.60f, 0.25f),
-                new Vector2(0f, 84f), 14f);
-            GameObject foeFliers = Anchor(foe, "Fliers", new Vector2(140f, 140f));
+                new Vector2(0f, 42f), 8f);
+            GameObject foeFliers = Anchor(foe, "Fliers", new Vector2(70f, 70f));
 
             GameObject delver = Panel(canvas, "Delver", new Vector2(0f, 0f), new Vector2(1f, 0f),
-                new Vector2(0f, 260f), new Vector2(-80f, 300f));
+                new Vector2(0f, 130f), new Vector2(-40f, 150f));
             GameObject heroHealth = Bar(delver, "Health", new Color(0.35f, 0.62f, 0.35f),
-                new Vector2(0f, 60f));
+                new Vector2(0f, 30f));
             GameObject heroGauge = Bar(delver, "Gauge", new Color(0.75f, 0.60f, 0.25f),
-                new Vector2(0f, 24f), 14f);
-            GameObject heroText = Say(delver, face, "100", 40f, TextAlignmentOptions.Left,
-                new Vector2(0f, 120f), new Vector2(400f, 48f));
-            GameObject heroFliers = Anchor(delver, "Fliers", new Vector2(-260f, 120f));
+                new Vector2(0f, 12f), 8f);
+            GameObject heroText = Say(delver, face, "100", Text(20), TextAlignmentOptions.Left,
+                new Vector2(0f, 60f), new Vector2(200f, 32f));
+            GameObject heroFliers = Anchor(delver, "Fliers", new Vector2(-130f, 60f));
 
             GameObject purse = Panel(canvas, "Purse", new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-180f, -80f), new Vector2(300f, 80f));
-            GameObject gold = Say(purse, face, "0", 40f, TextAlignmentOptions.Right,
-                Vector2.zero, new Vector2(280f, 60f));
-            GameObject goldFliers = Anchor(purse, "Fliers", new Vector2(0f, -40f));
+                new Vector2(-90f, -40f), new Vector2(150f, 40f));
+            GameObject gold = Say(purse, face, "0", Text(20), TextAlignmentOptions.Right,
+                Vector2.zero, new Vector2(140f, 32f));
+            GameObject goldFliers = Anchor(purse, "Fliers", new Vector2(0f, -20f));
 
             GameObject log = Log(canvas);
 
@@ -428,19 +445,23 @@ namespace RelicRun.Editor.Importers
         private static GameObject Canvas()
         {
             var canvas = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas),
-                typeof(CanvasScaler), typeof(GraphicRaycaster));
+                typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(PixelCanvas));
 
             canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
 
             CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = Reference;
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
+
+            // Set here as well as at run time so the prefab is not misleading to open. What is
+            // authored is a starting point; PixelCanvas replaces the factor with the one the
+            // actual screen earns, every time the screen changes.
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            scaler.scaleFactor = 1f;
 
             // One canvas unit to one authored pixel, which is what keeps a point-filtered sprite
             // landing on whole pixels instead of between two of them.
             scaler.referencePixelsPerUnit = 100f;
+
+            Wire(canvas.GetComponent<PixelCanvas>(), new[] { Pair("_scaler", scaler) });
 
             return canvas;
         }
@@ -484,7 +505,7 @@ namespace RelicRun.Editor.Importers
 
         /// <summary>A bar that fills from the left, which is what both gauges and both healths are.</summary>
         private static GameObject Bar(GameObject parent, string name, Color colour, Vector2 at,
-            float height = 26f)
+            float height = 13f)
         {
             var bar = new GameObject(name, typeof(RectTransform), typeof(Image));
             var rect = (RectTransform)bar.transform;
@@ -493,7 +514,7 @@ namespace RelicRun.Editor.Importers
             rect.anchorMin = new Vector2(0f, 0.5f);
             rect.anchorMax = new Vector2(0f, 0.5f);
             rect.pivot = new Vector2(0f, 0.5f);
-            rect.sizeDelta = new Vector2(600f, height);
+            rect.sizeDelta = new Vector2(300f, height);
             rect.anchoredPosition = at;
 
             Image image = bar.GetComponent<Image>();
@@ -507,7 +528,7 @@ namespace RelicRun.Editor.Importers
         }
 
         private static GameObject Say(GameObject parent, TMP_FontAsset face, string what,
-            float size, TextAlignmentOptions how, Vector2 at, Vector2 box)
+            int size, TextAlignmentOptions how, Vector2 at, Vector2 box)
         {
             var said = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             var rect = (RectTransform)said.transform;
@@ -555,7 +576,7 @@ namespace RelicRun.Editor.Importers
         private static GameObject Log(GameObject parent)
         {
             GameObject panel = Panel(parent, "Log", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, -80f), new Vector2(900f, 620f));
+                new Vector2(0f, -40f), new Vector2(450f, 310f));
 
             var group = panel.AddComponent<VerticalLayoutGroup>();
             group.childAlignment = TextAnchor.LowerLeft;
@@ -563,7 +584,7 @@ namespace RelicRun.Editor.Importers
             group.childForceExpandWidth = true;
             group.childControlHeight = true;
             group.childControlWidth = true;
-            group.spacing = 4f;
+            group.spacing = 2f;
 
             return panel;
         }
@@ -576,12 +597,12 @@ namespace RelicRun.Editor.Importers
                 typeof(TextMeshProUGUI), typeof(FlyingNumber));
 
             var text = made.GetComponent<TextMeshProUGUI>();
-            text.fontSize = 40f;
+            text.fontSize = Text(20);
             text.alignment = TextAlignmentOptions.Center;
             if (face != null) text.font = face;
 
             var rect = (RectTransform)made.transform;
-            rect.sizeDelta = new Vector2(260f, 56f);
+            rect.sizeDelta = new Vector2(130f, 32f);
 
             Wire(made.GetComponent<FlyingNumber>(), new[] { Pair("_text", text) });
 
@@ -594,7 +615,7 @@ namespace RelicRun.Editor.Importers
                 typeof(TextMeshProUGUI), typeof(LogLine));
 
             var text = made.GetComponent<TextMeshProUGUI>();
-            text.fontSize = 24f;
+            text.fontSize = Text(12);
             text.alignment = TextAlignmentOptions.Left;
             text.textWrappingMode = TextWrappingModes.Normal;
             if (face != null) text.font = face;

@@ -1,0 +1,89 @@
+{
+  "name": "the integer pixel scale",
+  "mutants": [
+    {
+      "name": "round the scale instead of flooring it",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int across = screenWidth / designWidth;\n            int down = screenHeight / designHeight;",
+      "replace": "            int across = (screenWidth + designWidth / 2) / designWidth;\n            int down = (screenHeight + designHeight / 2) / designHeight;"
+    },
+    {
+      "name": "take the larger of the two fits, not the smaller",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int fits = across < down ? across : down;",
+      "replace": "            int fits = across > down ? across : down;"
+    },
+    {
+      "name": "fit on width alone and ignore height",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int fits = across < down ? across : down;",
+      "replace": "            int fits = across;"
+    },
+    {
+      "name": "fit on height alone and ignore width",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int fits = across < down ? across : down;",
+      "replace": "            int fits = down;"
+    },
+    {
+      "name": "let a tiny screen scale to nothing",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            return fits < 1 ? 1 : fits;",
+      "replace": "            return fits;"
+    },
+    {
+      "name": "a design area of nothing divides by zero",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            if (designWidth <= 0 || designHeight <= 0) return 1;",
+      "replace": "            if (designWidth < 0 || designHeight < 0) return 1;"
+    },
+    {
+      "name": "the design area is a phone one size smaller",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "        public const int DesignWidth = 390;",
+      "replace": "        public const int DesignWidth = 375;"
+    },
+    {
+      "name": "the design area is as tall as the source's scale divisor",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "        public const int DesignHeight = 844;",
+      "replace": "        public const int DesignHeight = 848;"
+    },
+    {
+      "name": "the grid is the other pixel face's size",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "        public const int Grid = 8;",
+      "replace": "        public const int Grid = 12;"
+    },
+    {
+      "name": "sizes round down to the grid instead of to nearest",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int cells = (size + Grid / 2) / Grid;",
+      "replace": "            int cells = size / Grid;"
+    },
+    {
+      "name": "sizes round up to the grid instead of to nearest",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int cells = (size + Grid / 2) / Grid;",
+      "replace": "            int cells = (size + Grid - 1) / Grid;"
+    },
+    {
+      "name": "halves round down rather than up",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            int cells = (size + Grid / 2) / Grid;",
+      "replace": "            int cells = (size + Grid / 2 - 1) / Grid;"
+    },
+    {
+      "name": "a small size is allowed to snap to nothing",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            if (size <= Grid) return Grid;",
+      "replace": "            if (size <= 0) return 0;"
+    },
+    {
+      "name": "the canvas is the screen, undivided",
+      "file": "Assets/GameAssets/Core/Presentation/PixelScale.cs",
+      "find": "            return screenPixels / scale;",
+      "replace": "            return screenPixels;"
+    }
+  ]
+}

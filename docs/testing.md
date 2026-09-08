@@ -1126,10 +1126,47 @@ than by naming them. Naming them would mean the builder and the test both had to
 and the entire reason the builder exists is that remembering fifteen things is what people are
 bad at.
 
-Two of its checks can only be answered by an asset, never by code. The canvas must scale rather
-than assume a screen: left on Constant Pixel Size it looks right on the machine it was built on
-and wrong on every other. And all four bars must be **Filled** images — one left on Simple
-ignores `fillAmount` entirely and sits there full while the delver dies behind it.
+Two of its checks can only be answered by an asset, never by code. All four bars must be
+**Filled** images — one left on Simple ignores `fillAmount` entirely and sits there full while
+the delver dies behind it. And the canvas must scale by a whole number, which is its own story.
+
+## A fraction of a pixel, and what it cost to find
+
+The first screenshot of the fight came back looking doubled — every letter with a ghost of itself
+a pixel to the right. It was diagnosed twice and both diagnoses were wrong before the arithmetic
+came out.
+
+It was not the log, though the log WAS also broken: `FightHarness` started itself from `Start`
+and `FightScene.Initialize` started it too, so two playbacks ran over one view and every event
+spawned its line twice. That is a bug worth its own entry, because the doubled log did not look
+like broken wiring — it looked like a fight in which every blow landed twice, which is a
+plausible wrong answer, and plausible wrong answers are the expensive kind.
+
+It was not the typeface either, though the typeface WAS also wrong: the port had bundled Press
+Start 2P and Jacquard 12, neither of which appears anywhere in the source. Fixing that changed
+how the text looked and did not make it sharp.
+
+What it was: `ScaleWithScreenSize` against a 1080×1920 reference gives a factor of about 1.118 on
+a 1080×2400 phone. The ui face is a bitmap baked on an 8-pixel grid. At 1.118× some rows of a
+glyph get five screen pixels and the next gets six, and no typeface fixes division.
+
+So the canvas is `ConstantPixelSize` at a whole factor from `PixelScale`, and `PixelCanvas`
+recomputes it whenever the screen changes. The source does the opposite — it takes
+`min(1, (innerHeight - 24) / 848)` and keeps the fraction — and is right to, because a browser
+rasterises outlines afresh at every size. Recording the number the port deliberately does NOT use
+is what makes that a decision rather than an oversight, which is why `shell.json` holds it.
+
+Three of the gates here are the kind that only exist because the failure was invisible in code:
+
+- `PixelScaleTests` asserts the design area against `shell.json`, read from the markup by
+  `Tools/capture/shell.mjs`. Mutation testing is what demanded it: 390→375 and 844→848 both
+  survived every other test in the file, because every other test derives its expectations from
+  the constants it is checking. A number that agrees only with itself is not being checked.
+- `FightSceneTests` asks the built prefab that every `TMP_Text` size is a multiple of 8 — walked,
+  not listed, and asked of the asset rather than the builder, because the builder is where
+  somebody will eventually type 20. Twenty is not a silly number. That is the whole problem.
+- `FightSceneTests` also asserts that something recomputes the factor. `ConstantPixelSize` alone
+  is a canvas frozen at whatever the last person typed: right on one screen, wrong on the rest.
 
 ## The corpus
 

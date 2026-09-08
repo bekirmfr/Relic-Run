@@ -338,6 +338,21 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
   widgets a scene attaches. They decide nothing; the frame does
 - `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,
   relic tray with the `relicMeter` charge/uses gauges, hall pan
+- **`PixelScale` (Core, done) + `PixelCanvas` (Game, done)** — the canvas scales by a WHOLE
+  number of screen pixels per authored pixel, and every text size is a multiple of 8.
+  `ScaleWithScreenSize` is the sensible default for almost any interface and is wrong for this
+  one: it gave ~1.118 on a common phone, and the ui face is a bitmap baked on an 8px grid, so
+  some rows of a glyph got five screen pixels and the next got six. That is what "the fonts look
+  ugly" turned out to mean — it survived a change of typeface, because it was never about the
+  typeface.
+  The source does the opposite and is right to: it scales its shell by
+  `min(1, (innerHeight - 24) / 848)`, fractional and only ever shrinking, because a browser
+  rasterises Silkscreen's outlines afresh at every size. Magnifying a baked bitmap cannot, so the
+  port floors instead. What is guaranteed is the **area** — 390×844, the source's own `.dd-shell`,
+  recorded from the markup by `Tools/capture/shell.mjs` rather than typed — and anything beyond
+  it is room the layout may use. A canvas is therefore a different number of units wide on
+  different devices (540 at 2×, 480 at 3×); that cost is paid in layout, where it is cheap,
+  rather than in glyphs, where it is not
 - **`RelicMeter` (Core, done)** — what one COPY of a relic has to show: a socketed trigger's
   progress, its own rhythm, and what is left of its budget. Two clocks can run at once
 - **`FightFrame.SoundOf` (Core, done)** — six of the twenty event kinds make a noise

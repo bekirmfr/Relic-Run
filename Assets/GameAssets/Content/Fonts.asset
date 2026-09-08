@@ -18,6 +18,8 @@ MonoBehaviour:
   - Role: display
     Font: {fileID: 11400000, guid: ca6a4e0206406df46ad3fc4d3ead4d8e, type: 2}
   _fallbacks:
+  - {fileID: 11400000, guid: a2b5cc8b94860f1458b464f88014687c, type: 2}
+  - {fileID: 11400000, guid: fa600dffb3d568840b868af3cb183946, type: 2}
   - {fileID: 11400000, guid: 949ab4abf49296541bb1b05778be6d10, type: 2}
   - {fileID: 11400000, guid: 26c59c515e9b4054d870526a36ab9cd1, type: 2}
   - {fileID: 11400000, guid: 182e6cb028366db49832db6170455c3e, type: 2}
