@@ -844,6 +844,36 @@ The flip is checked twice, once by walking the writer's own arithmetic and once 
 with its top two rows deliberately bare — the second is the one that would catch a flip in the
 wrong direction, since the first would agree with it.
 
+## Three languages nobody can read
+
+The port ships two pixel faces and eight languages, and those two facts are in tension. Measured
+after `Locale.Clean` has taken the icons off the buttons:
+
+| | en | es | fr | tr | ru | ar | ja | zh |
+|---|---|---|---|---|---|---|---|---|
+| Press Start 2P | 100% | 100% | 100% | 100% | 100% | 53% | 12% | 10% |
+| Jacquard 12 | 100% | 100% | 100% | 100% | 49% | 53% | 12% | 10% |
+
+Neither face has a single Japanese or Chinese glyph in it, and both are missing half of Arabic.
+That is a decision about what the game looks like — bundle a CJK face and it is ten to sixteen
+megabytes, fall back to a system font and a 1983 pixel face sits next to Noto Sans — so the
+`FontBook` has a fallback slot, it is empty, and `LegibilityTests` asserts the three languages
+as **unreadable on purpose**. Adding a face that fixes one of them breaks that test, which is
+what should happen: nobody should be able to fix this quietly, and nobody should ship without
+having decided.
+
+`Tools/capture/fonts.mjs` records the faces' own character maps out of the TTF and nothing else.
+What a language *needs* is decided in C#, from the locale tables and `Locale.Clean` — recording
+the intersection would have made the answer agree with the question, which is the mistake the
+palette recorder made once already.
+
+Two things the shipped data cannot exercise, both found by mutation and both stated by hand
+instead. A character above the basic plane is one character and not two halves: the tables hold
+five of them and every one is an emoji the cleaning removes, so a version that read surrogate
+pairs as two separate characters passed every other test. And the thirteen English characters no
+pixel font has ever had are all arrows and pictograms that never reach the screen — counting them
+would make every face fail for a reason nobody could act on.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -896,3 +926,4 @@ node Tools/extract/validate.mjs
 | Phase 8d — content bindings | none — invariants | passing, 50 relics, 10 halls, 12 events, 39 foes |
 | Phase 8e — the assets themselves | none — invariants | Test Runner only; audits the real `.asset` files |
 | Phase 8f — a delver, indexed | `hero.json` | passing, 93 heroes round-trip pixel for pixel |
+| Phase 8g — what a face can draw | `fonts.json` | passing, 2 faces × 8 languages · **3 languages unreadable** |

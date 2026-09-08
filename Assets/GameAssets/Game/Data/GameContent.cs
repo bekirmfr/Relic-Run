@@ -30,6 +30,7 @@ namespace RelicRun.Game.Data
         [Header("Text")]
         [SerializeField] private HeroPackAsset _heroPack;
         [SerializeField] private LocaleBook _locales;
+        [SerializeField] private FontBook _fonts;
 
         [Header("Authored")]
         [SerializeField] private PresentationSettings _presentation;
@@ -40,6 +41,7 @@ namespace RelicRun.Game.Data
         public EnemyBook Enemies { get { return _enemies; } }
         public HeroPackAsset HeroPack { get { return _heroPack; } }
         public LocaleBook Locales { get { return _locales; } }
+        public FontBook Fonts { get { return _fonts; } }
         public PresentationSettings Presentation { get { return _presentation; } }
 
         /// <summary>
@@ -51,7 +53,7 @@ namespace RelicRun.Game.Data
         /// can say so, not on the next person to run it.
         /// </remarks>
         public void Bind(RelicIconBook relicIcons, HallBook halls, EventBook events,
-            EnemyBook enemies, HeroPackAsset heroPack, LocaleBook locales,
+            EnemyBook enemies, HeroPackAsset heroPack, LocaleBook locales, FontBook fonts,
             PresentationSettings presentation)
         {
             _relicIcons = relicIcons;
@@ -60,6 +62,7 @@ namespace RelicRun.Game.Data
             _enemies = enemies;
             _heroPack = heroPack;
             _locales = locales;
+            _fonts = fonts;
             _presentation = presentation;
         }
 
@@ -75,7 +78,7 @@ namespace RelicRun.Game.Data
             }
         }
 
-        /// <summary>Which of the seven references nobody filled in.</summary>
+        /// <summary>Which of the eight references nobody filled in.</summary>
         public IReadOnlyList<string> Unbound()
         {
             var missing = new List<string>();
@@ -86,6 +89,7 @@ namespace RelicRun.Game.Data
             if (_enemies == null) missing.Add("enemies");
             if (_heroPack == null || !_heroPack.IsBound) missing.Add("hero pack");
             if (_locales == null) missing.Add("locales");
+            if (_fonts == null) missing.Add("fonts");
             if (_presentation == null) missing.Add("presentation");
 
             return missing;
@@ -107,7 +111,7 @@ namespace RelicRun.Game.Data
             IReadOnlyList<string> unbound = Unbound();
             if (unbound.Count > 0)
             {
-                said.Append(unbound.Count).Append(" of 7 references are empty: ")
+                said.Append(unbound.Count).Append(" of 8 references are empty: ")
                     .Append(string.Join(", ", unbound));
             }
 
@@ -131,6 +135,15 @@ namespace RelicRun.Game.Data
             }
 
             return said.ToString();
+        }
+
+        private static void Say(StringBuilder said, BindingAudit audit)
+        {
+            if (audit.Passed) return;
+
+            if (said.Length > 0) said.Append('
+');
+            said.Append(audit.Report());
         }
     }
 }

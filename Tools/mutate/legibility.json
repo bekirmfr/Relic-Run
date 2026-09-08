@@ -1,0 +1,71 @@
+{
+  "name": "whether a face can draw what a language says",
+  "mutants": [
+    {
+      "name": "the decoration is counted, so every face is asked for emoji",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "                string shown = Locale.Clean(line);",
+      "replace": "                string shown = line;"
+    },
+    {
+      "name": "the needed characters come back in the order they were met",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "            points.Sort();",
+      "replace": ""
+    },
+    {
+      "name": "a character is counted once per appearance",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "                    if (seen.Add(point)) points.Add(point);",
+      "replace": "                    seen.Add(point);\n                    points.Add(point);"
+    },
+    {
+      "name": "a surrogate pair is read as two separate characters",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "                    int point = paired ? char.ConvertToUtf32(shown[i], shown[i + 1]) : shown[i];",
+      "replace": "                    int point = shown[i];"
+    },
+    {
+      "name": "a face is missing exactly what it has",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "                if (!glyphs.Contains(needed[i])) missing.Add(needed[i]);",
+      "replace": "                if (glyphs.Contains(needed[i])) missing.Add(needed[i]);"
+    },
+    {
+      "name": "one missing character is close enough",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "        public bool Readable { get { return Missing.Count == 0; } }",
+      "replace": "        public bool Readable { get { return Missing.Count <= 1; } }"
+    },
+    {
+      "name": "the percentage counts what is missing rather than what is there",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "            get { return Needs == 0 ? 100 : 100 * (Needs - Missing.Count) / Needs; }",
+      "replace": "            get { return Needs == 0 ? 100 : 100 * Missing.Count / Needs; }"
+    },
+    {
+      "name": "a language with nothing in it is unreadable",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "            get { return Needs == 0 ? 100 : 100 * (Needs - Missing.Count) / Needs; }",
+      "replace": "            get { return Needs == 0 ? 0 : 100 * (Needs - Missing.Count) / Needs; }"
+    },
+    {
+      "name": "a readable face still has something to report",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "            if (Readable) return \"\";",
+      "replace": "            if (Readable) return Face;"
+    },
+    {
+      "name": "the report names eight and says nothing about the rest",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "            if (Missing.Count > 8) said.Append(\" and \").Append(Missing.Count - 8).Append(\" more\");",
+      "replace": ""
+    },
+    {
+      "name": "the report counts the characters it left out as the ones it named",
+      "file": "Assets/GameAssets/Core/Content/Legibility.cs",
+      "find": "                .Append(Missing.Count).Append(\" of \").Append(Needs)",
+      "replace": "                .Append(Needs).Append(\" of \").Append(Missing.Count)"
+    }
+  ]
+}

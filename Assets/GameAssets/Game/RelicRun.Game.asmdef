@@ -5,7 +5,8 @@
         "RelicRun.Core",
         "VContainer",
         "UniTask",
-        "GameLift"
+        "GameLift",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

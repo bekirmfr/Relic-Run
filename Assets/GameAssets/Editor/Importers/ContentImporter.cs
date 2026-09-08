@@ -46,8 +46,11 @@ namespace RelicRun.Editor.Importers
                 SpriteSheet.Cut(ContentPaths.EnemySheet, SpriteSheet.EnemyCells(),
                     EnemyCatalog.SheetCell, EnemyCatalog.SheetRows);
 
-                EditorUtility.DisplayProgressBar("Relic Run", "binding", 0.85f);
-                GameContent content = Bind();
+                EditorUtility.DisplayProgressBar("Relic Run", "baking the fonts", 0.75f);
+                List<FontBook.Face> faces = FontImporter.Import();
+
+                EditorUtility.DisplayProgressBar("Relic Run", "binding", 0.9f);
+                GameContent content = Bind(faces);
 
                 AssetDatabase.SaveAssets();
                 Report(content, copied);
@@ -228,7 +231,7 @@ namespace RelicRun.Editor.Importers
 
         /* ---------- binding ---------- */
 
-        private static GameContent Bind()
+        private static GameContent Bind(IList<FontBook.Face> faces)
         {
             ContentPaths.EnsureFolder(ContentPaths.Content);
 
@@ -238,6 +241,7 @@ namespace RelicRun.Editor.Importers
             EnemyBook enemies = Asset<EnemyBook>(ContentPaths.EnemyBookAsset);
             HeroPackAsset heroPack = Asset<HeroPackAsset>(ContentPaths.HeroPackAssetPath);
             LocaleBook locales = Asset<LocaleBook>(ContentPaths.LocaleBookAsset);
+            FontBook fonts = Asset<FontBook>(ContentPaths.FontBookAsset);
             PresentationSettings presentation = Asset<PresentationSettings>(ContentPaths.PresentationAsset);
             GameContent content = Asset<GameContent>(ContentPaths.GameContentAsset);
 
@@ -248,11 +252,12 @@ namespace RelicRun.Editor.Importers
 
             heroPack.Bind(AssetDatabase.LoadAssetAtPath<TextAsset>(ContentPaths.HeroPackText));
             locales.Rebind(Translations());
+            fonts.Rebind(faces);
 
-            content.Bind(relicIcons, halls, events, enemies, heroPack, locales, presentation);
+            content.Bind(relicIcons, halls, events, enemies, heroPack, locales, fonts, presentation);
 
             foreach (Object asset in new Object[]
-                     { relicIcons, halls, events, enemies, heroPack, locales, presentation, content })
+                     { relicIcons, halls, events, enemies, heroPack, locales, fonts, presentation, content })
             {
                 EditorUtility.SetDirty(asset);
             }

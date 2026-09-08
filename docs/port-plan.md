@@ -282,7 +282,11 @@ only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
   swatch drag rewrites 90 texels and every delver on screen recolours; nothing recomposes.
   The colour maths (`hexToHsl`/`hslToHex`/`applyShade`/`shade`) is ported and gated at 12,650
   colours.
-- TMP font assets from `Jacquard12.ttf` and `PressStart2P.ttf`
+- TMP font assets from `Jacquard12.ttf` and `PressStart2P.ttf`, baked static at the sizes they
+  were drawn for (8px and 12px), RASTER rather than SDF, atlases point-filtered. Bound by ROLE
+  (`ui`, `display`) rather than by typeface. **The web build used Silkscreen, Space Grotesk and
+  Baloo 2 from Google Fonts**; these two are the offline stand-ins, and neither can draw
+  Japanese, Chinese or Arabic — see `docs/testing.md`
 - Addressables groups
 
 **Gate:** every id the catalogs will ask for is bound exactly once, to something, and nothing

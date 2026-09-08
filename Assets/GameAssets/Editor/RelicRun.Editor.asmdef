@@ -5,7 +5,9 @@
         "RelicRun.Core",
         "RelicRun.Game",
         "GameLift",
-        "Unity.2D.Sprite.Editor"
+        "Unity.2D.Sprite.Editor",
+        "Unity.TextMeshPro",
+        "Unity.TextMeshPro.Editor"
     ],
     "includePlatforms": [
         "Editor"

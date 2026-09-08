@@ -27,6 +27,7 @@ namespace RelicRun.Editor.Importers
         public const string Sheets = Art + "/Sheets";
         public const string Halls = Art + "/Halls";
         public const string Events = Art + "/Events";
+        public const string Fonts = Art + "/Fonts";
 
         public const string Content = "Assets/GameAssets/Content";
         public const string Text = Content + "/Text";
@@ -43,6 +44,7 @@ namespace RelicRun.Editor.Importers
         public const string HeroPackAssetPath = Content + "/HeroPack.asset";
         public const string LocaleBookAsset = Content + "/Locales.asset";
         public const string PresentationAsset = Content + "/Presentation.asset";
+        public const string FontBookAsset = Content + "/Fonts.asset";
         public const string GameContentAsset = Content + "/GameContent.asset";
 
         /// <summary>The folder holding <c>Assets/</c>, which is where the source drop lives.</summary>
