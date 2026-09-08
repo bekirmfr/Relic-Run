@@ -115,24 +115,10 @@ namespace RelicRun.Game.Data
                     .Append(string.Join(", ", unbound));
             }
 
-            foreach (SpriteBook book in Books)
-            {
-                BindingAudit audit = book.Audit();
-                if (audit.Passed) continue;
+            foreach (SpriteBook book in Books) Say(said, book.Audit());
 
-                if (said.Length > 0) said.Append('\n');
-                said.Append(audit.Report());
-            }
-
-            if (_locales != null)
-            {
-                BindingAudit locales = _locales.Audit();
-                if (!locales.Passed)
-                {
-                    if (said.Length > 0) said.Append('\n');
-                    said.Append(locales.Report());
-                }
-            }
+            if (_locales != null) Say(said, _locales.Audit());
+            if (_fonts != null) Say(said, _fonts.Audit());
 
             return said.ToString();
         }
@@ -141,8 +127,7 @@ namespace RelicRun.Game.Data
         {
             if (audit.Passed) return;
 
-            if (said.Length > 0) said.Append('
-');
+            if (said.Length > 0) said.Append('\n');
             said.Append(audit.Report());
         }
     }
