@@ -334,7 +334,15 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
 - Death shatter / blood / dust via UI-Particle (replaces `pileFrom`/`shatterOf` pixel reads)
 - 8 SFX clips through `IAudioService`
 
-**Gate:** a full delve run playable end to end.
+- **`FightSceneBuilder` + `FightScene` + `FightHarness` (done)** —
+  `Tools ▸ Relic Run ▸ Build Fight Scene` wires the fight into `GameScene.prefab`. **A scene here
+  is a prefab**: `Corescene.unity` is empty and GameLift's `SceneService` loads scene prefabs by
+  key through a `SceneConfig`, with an `ISceneObject` on the root. Loading it resolves one real
+  fight at a fixed seed and watches it. A scaffold: no art, no hall, no run around it — but the
+  whole chain, visible
+
+**Gate:** a full delve run playable end to end. **One fight** is playable now; the run around it
+(draft, descend, bazaar, cash-out) is Phase 10's screens.
 
 ### Phase 10 — UI screens & meta
 - 12 screens (`title modes levels run staging over xp board profile bestiary relbook how`) + 9 modals

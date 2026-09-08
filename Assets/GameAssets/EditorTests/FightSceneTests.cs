@@ -3,54 +3,62 @@ using NUnit.Framework;
 using RelicRun.Editor.Importers;
 using RelicRun.Game.Presentation;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace RelicRun.Tests.Editor
 {
     /// <summary>
-    /// The fight scene, wired.
+    /// The fight, wired into the game scene.
     /// </summary>
     /// <remarks>
-    /// A scene is the one place in a Unity project where a mistake is silent by construction: an
-    /// empty reference looks exactly like one nobody has got round to, and the twelve
-    /// <see cref="CombatView"/> needs are twelve chances to be ninety per cent wired.
+    /// A scene here is a PREFAB under <c>Assets/Scenes/</c> — <c>Corescene.unity</c> is empty and
+    /// the GameLift package's <c>SceneService</c> loads scene prefabs by key. So this asks its
+    /// questions of an asset rather than of an open scene, which is also why it can ask them at
+    /// all without entering play mode.
     ///
-    /// So the same rule the content bindings live under applies here — everything that can be
-    /// filled is filled — and it is asked GENERICALLY, by walking every object reference the
-    /// component has rather than by naming them. A field added tomorrow and forgotten fails this
-    /// test without anybody remembering to come back and add it.
+    /// A prefab is where a mistake is silent by construction: an empty reference looks exactly
+    /// like one nobody has got round to, and <see cref="CombatView"/> needs fifteen. So the same
+    /// rule the content bindings live under applies here — everything fillable is filled — and it
+    /// is asked GENERICALLY, by walking every object reference the component has rather than by
+    /// naming them. A field added tomorrow and forgotten fails this without anybody remembering
+    /// to come back and add it.
     /// </remarks>
     [TestFixture]
     public class FightSceneTests
     {
-        private Scene _scene;
+        private GameObject _scene;
 
         [OneTimeSetUp]
-        public void OpenTheScene()
+        public void LoadTheScene()
         {
-            Assert.That(System.IO.File.Exists(FightSceneBuilder.ScenePath), Is.True,
-                FightSceneBuilder.ScenePath + " is missing — run Tools > Relic Run > Build Fight Scene");
+            _scene = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.ScenePath);
 
-            _scene = EditorSceneManager.OpenScene(FightSceneBuilder.ScenePath, OpenSceneMode.Additive);
-        }
-
-        [OneTimeTearDown]
-        public void CloseTheScene()
-        {
-            if (_scene.IsValid()) EditorSceneManager.CloseScene(_scene, true);
+            Assert.That(_scene, Is.Not.Null,
+                FightSceneBuilder.ScenePath + " is missing — this project keeps its scenes as " +
+                "prefabs, and this one should already exist");
         }
 
         private T Find<T>() where T : Component
         {
-            foreach (GameObject root in _scene.GetRootGameObjects())
-            {
-                T found = root.GetComponentInChildren<T>(true);
-                if (found != null) return found;
-            }
+            return _scene.GetComponentInChildren<T>(true);
+        }
 
-            return null;
+        /// <summary>
+        /// The scene answers to the service that loads it.
+        /// </summary>
+        /// <remarks>
+        /// On the ROOT, because <c>SceneService</c> asks the object it instantiates for an
+        /// <c>ISceneObject</c> and does not go hunting through the children. A screen that
+        /// implemented it one level down would load, sit there, and never be initialised or
+        /// cleared — which looks like a screen that simply does nothing.
+        /// </remarks>
+        [Test]
+        public void TheSceneRootIsSomethingTheServiceCanLoad()
+        {
+            Assert.That(_scene.GetComponent<GameLift.Scene.ISceneObject>(), Is.Not.Null,
+                "the root implements no ISceneObject, so nothing will initialise it");
+
+            Assert.That(_scene.GetComponent<FightScene>(), Is.Not.Null);
         }
 
         [Test]
@@ -62,21 +70,22 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
-        /// Every reference the view and the harness need is filled.
+        /// Every reference the fight needs is filled.
         /// </summary>
         /// <remarks>
-        /// Walked rather than listed. Naming the fields here would mean this test and the builder
-        /// both had to be remembered, and the whole reason the builder exists is that remembering
-        /// twelve things is what people are bad at.
+        /// Walked rather than listed. Naming the fields here would mean the builder and the test
+        /// both had to be remembered, and the entire reason the builder exists is that
+        /// remembering fifteen things is what people are bad at.
         /// </remarks>
         [Test]
         public void EverythingTheSceneNeedsIsWired()
         {
-            Empty(Find<CombatView>());
-            Empty(Find<FightHarness>());
+            Filled(_scene.GetComponent<FightScene>());
+            Filled(Find<CombatView>());
+            Filled(Find<FightHarness>());
         }
 
-        private static void Empty(Component component)
+        private static void Filled(Component component)
         {
             Assert.That(component, Is.Not.Null);
 
@@ -99,12 +108,12 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
-        /// The canvas is authored at one size and scales, rather than being drawn for one phone.
+        /// The canvas scales rather than assuming a screen.
         /// </summary>
         /// <remarks>
-        /// A canvas left on Constant Pixel Size looks right on the machine it was built on and
-        /// wrong on every other, which is the sort of thing nobody notices until a screenshot
-        /// arrives from a tablet.
+        /// Left on Constant Pixel Size it looks right on the machine it was built on and wrong on
+        /// every other, which is the sort of thing nobody notices until a screenshot arrives from
+        /// a tablet.
         /// </remarks>
         [Test]
         public void TheCanvasScalesRatherThanAssumingAScreen()
@@ -118,7 +127,7 @@ namespace RelicRun.Tests.Editor
             Assert.That(scaler.referenceResolution.y, Is.GreaterThan(0f));
         }
 
-        /// <summary>Both bars fill rather than stretch.</summary>
+        /// <summary>Both healths and both gauges fill rather than stretch.</summary>
         /// <remarks>
         /// An <c>Image</c> left on Simple ignores <c>fillAmount</c> entirely, so a health bar
         /// would sit permanently full while the delver died behind it. Nothing in the code can
@@ -129,13 +138,10 @@ namespace RelicRun.Tests.Editor
         {
             var bars = new List<UnityEngine.UI.Image>();
 
-            foreach (GameObject root in _scene.GetRootGameObjects())
+            foreach (UnityEngine.UI.Image image in
+                     _scene.GetComponentsInChildren<UnityEngine.UI.Image>(true))
             {
-                foreach (UnityEngine.UI.Image image in
-                         root.GetComponentsInChildren<UnityEngine.UI.Image>(true))
-                {
-                    if (image.name == "Health" || image.name == "Gauge") bars.Add(image);
-                }
+                if (image.name == "Health" || image.name == "Gauge") bars.Add(image);
             }
 
             Assert.That(bars.Count, Is.EqualTo(4), "two healths and two gauges");
@@ -149,6 +155,33 @@ namespace RelicRun.Tests.Editor
             }
         }
 
+        /// <summary>
+        /// Rebuilding replaces the fight and leaves the rest of the scene alone.
+        /// </summary>
+        /// <remarks>
+        /// The builder deletes exactly one child by name. Everything else — the lifetime scope on
+        /// the root, the camera, whatever somebody adds tomorrow — has to survive, because a
+        /// generator that tidied up after other people would eventually tidy away something that
+        /// mattered.
+        /// </remarks>
+        [Test]
+        public void TheRestOfTheSceneIsLeftAlone()
+        {
+            Assert.That(_scene.GetComponent<VContainer.Unity.LifetimeScope>(), Is.Not.Null,
+                "the scene's lifetime scope has gone");
+
+            Assert.That(Find<Camera>(), Is.Not.Null, "the scene's camera has gone");
+
+            var built = 0;
+            foreach (Transform child in _scene.transform)
+            {
+                if (child.name == FightSceneBuilder.RootName) built++;
+            }
+
+            Assert.That(built, Is.EqualTo(1),
+                "the fight is in the scene " + built + " times — a rebuild should replace it");
+        }
+
         /// <summary>The two prefabs the view spawns exist and carry their text.</summary>
         [Test]
         public void TheSpawnedPrefabsAreWholeToo()
@@ -159,8 +192,8 @@ namespace RelicRun.Tests.Editor
             Assert.That(flier, Is.Not.Null, "no flying number to spawn");
             Assert.That(line, Is.Not.Null, "no log line to spawn");
 
-            Empty(flier.GetComponent<FlyingNumber>());
-            Empty(line.GetComponent<LogLine>());
+            Filled(flier.GetComponent<FlyingNumber>());
+            Filled(line.GetComponent<LogLine>());
         }
     }
 }

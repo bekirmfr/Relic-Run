@@ -195,6 +195,27 @@ namespace RelicRun.Tests
             IReadOnlyList<Flier> onHero = Frame(new[] { Blow(0) }, 0).Fliers;
             Assert.That(onHero[0].Where, Is.EqualTo(FlierAt.Hero));
             Assert.That(onHero[0].Kind, Is.EqualTo(FlierKind.Hurt));
+            Assert.That(onHero[0].Text, Is.EqualTo("-5"));
+        }
+
+        /// <summary>
+        /// A blow that landed hard says so where the delver is looking.
+        /// </summary>
+        /// <remarks>
+        /// The log says it too, and the log is not where anybody's eyes are during a fight. A
+        /// critical that read as an ordinary blow on the number flying off the delver would make
+        /// the fight feel arbitrary — a sudden third of their health gone for no visible reason.
+        /// </remarks>
+        [Test]
+        public void ACriticalBlowSaysSoOnTheNumberThatFliesOff()
+        {
+            Flier hard = Frame(new[]
+            {
+                At(0, CombatEventType.PlayerDamage, amount: 19, crit: true),
+            }, 0).Fliers[0];
+
+            Assert.That(hard.Text, Is.EqualTo("CRIT! -19"));
+            Assert.That(hard.Kind, Is.EqualTo(FlierKind.Hurt), "still the delver's own hurt");
         }
 
         /// <summary>

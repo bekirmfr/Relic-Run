@@ -60,6 +60,15 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
+            if (_content.Presentation == null)
+            {
+                // Everything else here has a sensible nothing to fall back on. The pacing does
+                // not: with no numbers there is no beat, and a fight would either flash past or
+                // never move.
+                Debug.LogError("no pacing is authored — run Tools > Relic Run > Import Content", this);
+                return;
+            }
+
             IReadOnlyList<CombatEvent> events = Resolve();
             Debug.Log("seed " + _seed + ", floor " + _floor + ": " + events.Count + " events", this);
 
@@ -134,6 +143,19 @@ namespace RelicRun.Game.Presentation
 #else
             return null;
 #endif
+        }
+
+        /// <summary>
+        /// Stops whatever is on screen.
+        /// </summary>
+        /// <remarks>
+        /// Called when the screen is taken down, not only when the object dies. A playback loop
+        /// that outlived its screen would go on drawing into destroyed widgets — a null
+        /// reference per beat, which reads as the NEXT screen being broken.
+        /// </remarks>
+        public void Abandon()
+        {
+            if (_showing != null) _showing.Abandon();
         }
 
         private void OnDestroy()

@@ -1026,10 +1026,20 @@ only a fragment-level assertion could see it.
 `while not finished` loop into a forever. One run sat wedged for an hour looking exactly like a
 slow machine — no output, because the harness buffers until the suite returns.
 
-Two fixes, and the second matters more. The tests that walk a playback to its end now count their
-own iterations and fail rather than spin. And `mutate.py` runs each suite under a five-minute
-deadline and **counts a timeout as a survivor**, because a mutant that hangs the harness is a
-mutant nothing killed.
+Three fixes, and it took two attempts to get the first one right.
+
+`mutate.py` runs each suite under a five-minute deadline and **counts a timeout as a survivor**,
+because a mutant that hangs the harness is a mutant nothing killed. It also kills the process
+**tree**: `dotnet test` spawns a test host, and killing only the launched process left that host
+spinning on the very loop that caused the timeout — one pegged core per hung mutant, quietly
+making every later mutant slower. One hang turned into an afternoon of a machine that seemed
+inexplicably tired.
+
+The bound in the tests went in the wrong place first. Counting what the screen is TOLD misses a
+loop spinning on a step that shows nothing; counting what the clock is ASKED misses one that
+waits for nothing. The mutant that turns the loop's exit into a `continue` does both. The guard
+that works is on `Paused` — asked once per turn round the loop, whatever the step turns out to
+be.
 
 ## The gauges are the fight's clock made visible
 
@@ -1083,6 +1093,33 @@ toward nothing and showing either as the other would read as good news.
 And silence is a rule. Six of the twenty event kinds make a noise; the rest say nothing, because
 a chain of eight relics firing would otherwise be eight noises on top of one another and a delver
 would learn nothing from any of them.
+
+## A scene is where a mistake is silent
+
+**A scene in this project is a prefab.** `Corescene.unity` is empty and stays empty; the GameLift
+package's `SceneService` loads scene PREFABS from `Assets/Scenes/` by key, through a `SceneConfig`
+that addresses one and an `ISceneObject` on its root. Getting that wrong is easy and quiet — a
+screen whose `ISceneObject` sits one level down loads, sits there, and is never initialised or
+cleared, which looks exactly like a screen that does nothing.
+
+So `Tools ▸ Relic Run ▸ Build Fight Scene` edits `GameScene.prefab` — which already carries the
+game's `LifetimeScope` and camera — rather than writing a second scene beside it. It replaces
+exactly one child by name and leaves everything else alone, because a generator that tidied up
+after other people would eventually tidy away something that mattered.
+
+Same reasoning as the content importer: a hand-assembled hierarchy is one nobody can diff, nobody
+can rebuild after a mistake, and nobody can describe except by opening it.
+
+`FightSceneTests` asks of the prefab what `BindingAudit` asks of assets — everything fillable is
+filled — and asks it **generically**, by walking every object reference the component has rather
+than by naming them. Naming them would mean the builder and the test both had to be remembered,
+and the entire reason the builder exists is that remembering fifteen things is what people are
+bad at.
+
+Two of its checks can only be answered by an asset, never by code. The canvas must scale rather
+than assume a screen: left on Constant Pixel Size it looks right on the machine it was built on
+and wrong on every other. And all four bars must be **Filled** images — one left on Simple
+ignores `fillAmount` entirely and sits there full while the delver dies behind it.
 
 ## The corpus
 
@@ -1143,3 +1180,4 @@ node Tools/extract/validate.mjs
 | Phase 9c — what a delver reads | none — invariants | passing, 20 event kinds · **9 lines English-only** |
 | Phase 9d — what a screen draws | none — invariants | passing, the fliers and the two gauges |
 | Phase 9e — what a relic has left | none — invariants | passing, two clocks and a budget per copy |
+| Phase 9f — the fight scene | none — invariants | Test Runner only; every reference wired |

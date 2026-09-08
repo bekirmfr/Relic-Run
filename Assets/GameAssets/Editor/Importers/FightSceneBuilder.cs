@@ -2,29 +2,37 @@ using RelicRun.Game.Data;
 using RelicRun.Game.Presentation;
 using TMPro;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace RelicRun.Editor.Importers
 {
     /// <summary>
-    /// Builds the fight scene, so nobody has to drag twelve references into an Inspector.
+    /// Wires the fight into the game scene, so nobody has to drag fifteen references in by hand.
     /// </summary>
     /// <remarks>
-    /// Generated rather than authored, for the same reason the content is. A scene assembled by
-    /// hand is a scene nobody can diff, nobody can rebuild after a mistake, and nobody can
-    /// describe except by opening it — and the twelve references <see cref="CombatView"/> needs
-    /// are exactly the kind of thing that is ninety per cent wired and silently wrong.
+    /// A scene in this project is a PREFAB under <c>Assets/Scenes/</c>. <c>Corescene.unity</c> is
+    /// empty and stays that way; the GameLift package's <c>SceneService</c> loads a scene prefab
+    /// by key through a <c>SceneConfig</c> that addresses it. So this edits
+    /// <c>GameScene.prefab</c> — which already carries the game's <c>LifetimeScope</c> and its
+    /// camera — rather than writing a second scene beside it.
+    ///
+    /// Generated rather than authored, for the same reason the content is: a hierarchy assembled
+    /// by hand is one nobody can diff, nobody can rebuild after a mistake, and nobody can
+    /// describe except by opening it — and fifteen references are fifteen chances to be ninety
+    /// per cent wired and silently wrong.
     ///
     /// It is a scaffold, not a screen. The layout is legible and nothing more: no art, no frames,
-    /// no hall behind it. What it is for is pressing Play and watching a real fight play out at
-    /// its real pace, which is the first moment any of the last three phases can be seen at all.
+    /// no hall behind it. What it is for is watching a real fight play out at its real pace,
+    /// which is the first moment any of the last three phases can be seen at all.
     /// </remarks>
     public static class FightSceneBuilder
     {
-        public const string ScenePath = "Assets/Scenes/Fight.unity";
+        /// <summary>The scene prefab the fight is built into.</summary>
+        public const string ScenePath = "Assets/Scenes/GameScene.prefab";
+
+        /// <summary>What the built hierarchy is called, so a rebuild replaces it.</summary>
+        public const string RootName = "Fight";
         public const string FlierPrefab = "Assets/GameAssets/Game/Presentation/FlyingNumber.prefab";
         public const string LinePrefab = "Assets/GameAssets/Game/Presentation/LogLine.prefab";
 
@@ -41,14 +49,67 @@ namespace RelicRun.Editor.Importers
                 return;
             }
 
-            TMP_FontAsset face = content.Fonts == null ? null : content.Fonts.For(FontBook.Ui);
+            GameObject scene = PrefabUtility.LoadPrefabContents(ScenePath);
+            if (scene == null)
+            {
+                Debug.LogError("no scene prefab at " + ScenePath);
+                return;
+            }
 
-            FlyingNumber flier = Flier(face);
-            LogLine line = Line(face);
+            try
+            {
+                TMP_FontAsset face = content.Fonts == null ? null : content.Fonts.For(FontBook.Ui);
 
-            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                FlyingNumber flier = Flier(face);
+                LogLine line = Line(face);
+
+                Replace(scene);
+                Fit(scene, content, face, flier, line);
+
+                PrefabUtility.SaveAsPrefabAsset(scene, ScenePath);
+            }
+            finally
+            {
+                // Prefab contents live outside any scene and leak if they are not unloaded, which
+                // shows up as an editor that grows heavier every time the menu item is used.
+                PrefabUtility.UnloadPrefabContents(scene);
+            }
+
+            AssetDatabase.Refresh();
+
+            Debug.Log("wired the fight into " + ScenePath + "." +
+                      "It is a scaffold: legible, and nothing more.",
+                      AssetDatabase.LoadAssetAtPath<GameObject>(ScenePath));
+        }
+
+        /// <summary>
+        /// Throws away whatever the last run built, so a rebuild replaces rather than repeats.
+        /// </summary>
+        /// <remarks>
+        /// By name, and only the one name. Everything else in the scene prefab — the lifetime
+        /// scope, the camera, whatever somebody adds tomorrow — is left exactly alone, because a
+        /// generator that tidied up after other people would eventually tidy away something that
+        /// mattered.
+        /// </remarks>
+        private static void Replace(GameObject scene)
+        {
+            for (int i = scene.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform child = scene.transform.GetChild(i);
+                if (child.name == RootName) Object.DestroyImmediate(child.gameObject);
+            }
+        }
+
+        /// <summary>Builds the fight's whole hierarchy under one child of the scene.</summary>
+        private static void Fit(GameObject scene, GameContent content, TMP_FontAsset face,
+            FlyingNumber flier, LogLine line)
+        {
+            var root = new GameObject(RootName);
+            root.transform.SetParent(scene.transform, false);
 
             GameObject canvas = Canvas();
+            canvas.transform.SetParent(root.transform, false);
+
             var view = canvas.AddComponent<CombatView>();
 
             GameObject foe = Panel(canvas, "Foe", new Vector2(0f, 1f), new Vector2(1f, 1f),
@@ -100,27 +161,15 @@ namespace RelicRun.Editor.Importers
                 Pair("_content", content),
             });
 
-            var harness = new GameObject("Harness").AddComponent<FightHarness>();
-            Wire(harness, new[]
-            {
-                Pair("_view", view),
-                Pair("_content", content),
-            });
+            var harness = root.AddComponent<FightHarness>();
+            Wire(harness, new[] { Pair("_view", view), Pair("_content", content) });
 
-            new GameObject("EventSystem",
-                typeof(UnityEngine.EventSystems.EventSystem),
-                typeof(UnityEngine.EventSystems.StandaloneInputModule));
+            // On the SCENE's root, not on the fight's. SceneService looks for one of these on the
+            // object it instantiates, and it will not go hunting through the children for it.
+            var entry = scene.GetComponent<FightScene>();
+            if (entry == null) entry = scene.AddComponent<FightScene>();
 
-            System.IO.Directory.CreateDirectory(
-                System.IO.Path.GetDirectoryName(System.IO.Path.Combine(
-                    ContentPaths.ProjectRoot, ScenePath.Replace('/', System.IO.Path.DirectorySeparatorChar))));
-
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            AssetDatabase.Refresh();
-
-            Debug.Log("built " + ScenePath + " — open it and press Play to watch a fight.\n" +
-                      "It is a scaffold: legible, and nothing more.",
-                      AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath));
+            Wire(entry, new[] { Pair("_view", view), Pair("_harness", harness) });
         }
 
         /* ---------- wiring ---------- */
