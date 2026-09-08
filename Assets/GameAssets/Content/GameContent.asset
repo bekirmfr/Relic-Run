@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a101a499dbff7f94f9e5c9b6cb1f8a33, type: 3}
+  m_Name: GameContent
+  m_EditorClassIdentifier: 
+  _relicIcons: {fileID: 11400000, guid: 2045db7ef839bbc46a925db7d049e937, type: 2}
+  _halls: {fileID: 11400000, guid: 1277cfb03572606478244d8460903964, type: 2}
+  _events: {fileID: 11400000, guid: 1252e9dcf566d2043a2a535f4a3e88cb, type: 2}
+  _enemies: {fileID: 11400000, guid: 4351332963a91474a9701f178157c3cd, type: 2}
+  _heroPack: {fileID: 11400000, guid: abd419060eacfbb4a9deb046801c96d6, type: 2}
+  _locales: {fileID: 11400000, guid: 4ca115f5c291d144ca7539beec58fe48, type: 2}
+  _presentation: {fileID: 11400000, guid: 7756123d30ed61147a65b26e347d6832, type: 2}

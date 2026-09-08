@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50f0403120474616aa1744ef31ef0b9f, type: 3}
+  m_Name: RelicIcons
+  m_EditorClassIdentifier: 
+  _entries:
+  - Id: whetstone
+    Sprite: {fileID: -521168167, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: heart
+    Sprite: {fileID: -1164655415, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: magnet
+    Sprite: {fileID: -232977446, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: alchemist
+    Sprite: {fileID: -1983322494, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: altar
+    Sprite: {fileID: -868188754, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: thorns
+    Sprite: {fileID: -569036219, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: tooth
+    Sprite: {fileID: -1220451655, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: midas
+    Sprite: {fileID: 971591530, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: greed
+    Sprite: {fileID: -1491194541, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: boots
+    Sprite: {fileID: -737107219, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: dash
+    Sprite: {fileID: 1372910069, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: clover
+    Sprite: {fileID: 1822259015, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: iron
+    Sprite: {fileID: 2106412560, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: adrenaline
+    Sprite: {fileID: -2074787052, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: piggy
+    Sprite: {fileID: 1100276143, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: berserk
+    Sprite: {fileID: -1197987115, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: rabbit
+    Sprite: {fileID: -1885233932, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: cutpurse
+    Sprite: {fileID: -562742539, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: dice
+    Sprite: {fileID: 1047204794, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: marrow
+    Sprite: {fileID: 508479004, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: stomach
+    Sprite: {fileID: -1636266921, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: martyr
+    Sprite: {fileID: 1172524527, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: bloodpact
+    Sprite: {fileID: -1740980200, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: soil
+    Sprite: {fileID: 1250694401, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: hide
+    Sprite: {fileID: -1750237414, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: mirrorscale
+    Sprite: {fileID: 609133834, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: anvil
+    Sprite: {fileID: 284121499, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: sentinel
+    Sprite: {fileID: 1486455808, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: fortunesedge
+    Sprite: {fileID: -899910830, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: quickpulse
+    Sprite: {fileID: 547475573, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: duelist
+    Sprite: {fileID: 1746595838, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: quenched
+    Sprite: {fileID: -3974974, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: executioner
+    Sprite: {fileID: -5877865, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: windanklet
+    Sprite: {fileID: -1298814810, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: stutter
+    Sprite: {fileID: 979587703, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: momentum
+    Sprite: {fileID: 1709318842, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: haredrum
+    Sprite: {fileID: 46163726, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: horseshoe
+    Sprite: {fileID: 1252953070, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: catwhisker
+    Sprite: {fileID: -1132796697, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: fortunedebt
+    Sprite: {fileID: 1921407633, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: tollring
+    Sprite: {fileID: 788960545, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: merchantthumb
+    Sprite: {fileID: 1835174630, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: auricskin
+    Sprite: {fileID: 816314197, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: embercask
+    Sprite: {fileID: 1927274780, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: coinsinger
+    Sprite: {fileID: 97390303, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: hexthread
+    Sprite: {fileID: -443615890, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: hollowidol
+    Sprite: {fileID: 990021399, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: faminebell
+    Sprite: {fileID: -1409349844, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}
+  - Id: millstone
+    Sprite: {fileID: 818844034, guid: 12a779633f21fbc4e8dd4365d2dea2ca, type: 3}

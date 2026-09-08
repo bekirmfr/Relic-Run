@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f676fe17c21a472e9bf89fc4d319a521, type: 3}
+  m_Name: EventArt
+  m_EditorClassIdentifier: 
+  _entries:
+  - Id: event-pale-merchant
+    Sprite: {fileID: 21300000, guid: 9b4cfbaa64cc1b44f88e7646d975bea3, type: 3}
+  - Id: event-voice-dark
+    Sprite: {fileID: 21300000, guid: 14ef3d0007bbca643a477f9c23f20056, type: 3}
+  - Id: event-scratching-walls
+    Sprite: {fileID: 21300000, guid: 8a1c0ce4e47207d44aa61d1f4bc3e0ea, type: 3}
+  - Id: event-chained-ghost
+    Sprite: {fileID: 21300000, guid: 4a84540f3034db54a8490f0812ab9710, type: 3}
+  - Id: event-knife-throat
+    Sprite: {fileID: 21300000, guid: d97c5f6d03c76c54da0809b325041758, type: 3}
+  - Id: event-glimmering-pool
+    Sprite: {fileID: 21300000, guid: 90069327615af3945bb549a828fc3aed, type: 3}
+  - Id: event-rusted-spikes
+    Sprite: {fileID: 21300000, guid: 08046b437285a0f42a36763005e69276, type: 3}
+  - Id: event-imps-dice
+    Sprite: {fileID: 21300000, guid: a12952699f582054ca2c1694c438c9b4, type: 3}
+  - Id: event-altar-deep
+    Sprite: {fileID: 21300000, guid: 8f11a0b7dbfc7844d96f986030fb9d9a, type: 3}
+  - Id: event-glowing-mushroom
+    Sprite: {fileID: 21300000, guid: d36454ae199dad74298966d1ece9824d, type: 3}
+  - Id: event-miners-map
+    Sprite: {fileID: 21300000, guid: 81dd0d8d98d0fba4886a4a48dcfc23ae, type: 3}
+  - Id: event-chest
+    Sprite: {fileID: 21300000, guid: 35437b29c27e59545bd2a18037431137, type: 3}

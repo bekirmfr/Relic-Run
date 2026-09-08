@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5d0d9b0202559342a1d5ebe4abfbde2, type: 3}
+  m_Name: Locales
+  m_EditorClassIdentifier: 
+  _languages:
+  - Language: ar
+    Strings: {fileID: 4900000, guid: 75aa0d3aac3606c4194f13f4a6445140, type: 3}
+  - Language: en
+    Strings: {fileID: 4900000, guid: 15ccd3241bac6eb4abc99566d44292c1, type: 3}
+  - Language: es
+    Strings: {fileID: 4900000, guid: c5136db48e740ab4092509227d032aa4, type: 3}
+  - Language: fr
+    Strings: {fileID: 4900000, guid: a81da52276bc02447bcf355024e6df85, type: 3}
+  - Language: ja
+    Strings: {fileID: 4900000, guid: bed1e6b543e68604b9ee5bfe956d2368, type: 3}
+  - Language: ru
+    Strings: {fileID: 4900000, guid: 74609e67f78476a428b7f55fdff87de3, type: 3}
+  - Language: tr
+    Strings: {fileID: 4900000, guid: 54c35d6a3e674064581cc910b6d1a999, type: 3}
+  - Language: zh
+    Strings: {fileID: 4900000, guid: 57451c8e816049a4baff78bd1d92a923, type: 3}

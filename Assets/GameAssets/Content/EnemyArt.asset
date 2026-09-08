@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e69a43c71b324b5f8124f239c85a7929, type: 3}
+  m_Name: EnemyArt
+  m_EditorClassIdentifier: 
+  _entries:
+  - Id: rat/guard
+    Sprite: {fileID: 205253206, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: rat/elite
+    Sprite: {fileID: 1270765957, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: rat/boss
+    Sprite: {fileID: 688207220, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: bat/guard
+    Sprite: {fileID: -1881014879, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: bat/elite
+    Sprite: {fileID: 2039642225, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: bat/boss
+    Sprite: {fileID: 1507941278, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: skull/guard
+    Sprite: {fileID: -1685986780, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: skull/elite
+    Sprite: {fileID: 1434201720, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: skull/boss
+    Sprite: {fileID: -312074012, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: slime/guard
+    Sprite: {fileID: -1084173524, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: slime/elite
+    Sprite: {fileID: -88831090, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: slime/boss
+    Sprite: {fileID: -1522226162, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: wraith/guard
+    Sprite: {fileID: -191737228, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: wraith/elite
+    Sprite: {fileID: -1283442909, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: wraith/boss
+    Sprite: {fileID: -554191089, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: coin/guard
+    Sprite: {fileID: 1667405848, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: coin/elite
+    Sprite: {fileID: -163407665, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: coin/boss
+    Sprite: {fileID: 710783335, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: spider/guard
+    Sprite: {fileID: 1898739255, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: spider/elite
+    Sprite: {fileID: -1202425192, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: spider/boss
+    Sprite: {fileID: 549775728, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: ogre/guard
+    Sprite: {fileID: 1529709501, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: ogre/elite
+    Sprite: {fileID: -860953957, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: ogre/boss
+    Sprite: {fileID: 411463017, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: serpent/guard
+    Sprite: {fileID: 509097529, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: serpent/elite
+    Sprite: {fileID: -1043496085, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: serpent/boss
+    Sprite: {fileID: -1514243283, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: crown/guard
+    Sprite: {fileID: 171119046, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: crown/elite
+    Sprite: {fileID: -326004532, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: crown/boss
+    Sprite: {fileID: -261685335, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: ghoolem/guard
+    Sprite: {fileID: 755798422, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: ghoolem/elite
+    Sprite: {fileID: 777332414, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: ghoolem/boss
+    Sprite: {fileID: 1081717886, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: eye/guard
+    Sprite: {fileID: -270333570, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: eye/elite
+    Sprite: {fileID: 502678582, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: eye/boss
+    Sprite: {fileID: -1325834512, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: husk/guard
+    Sprite: {fileID: -801312529, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: husk/elite
+    Sprite: {fileID: 415146358, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
+  - Id: husk/boss
+    Sprite: {fileID: 349917071, guid: b2dd1f0a333c34e44b33f0ac10019b13, type: 3}
