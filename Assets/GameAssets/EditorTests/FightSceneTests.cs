@@ -182,6 +182,61 @@ namespace RelicRun.Tests.Editor
                 "the fight is in the scene " + built + " times — a rebuild should replace it");
         }
 
+        /// <summary>
+        /// The scene is loadable: addressed, configured, and listed.
+        /// </summary>
+        /// <remarks>
+        /// Three separate things, and all three have to be true. A prefab that is not addressable
+        /// cannot be reached, because <c>SceneConfig</c> holds an <c>AssetReference</c> and
+        /// nothing else. A config that names no key is a config nothing asks for. And a config
+        /// the settings asset does not list is one <c>SceneService</c> will never find.
+        ///
+        /// Miss any one and the failure is the same shape: <c>LoadScene</c> is called, nothing
+        /// happens, and nothing is said about it — which is the worst kind of wrong, and the
+        /// reason this asks about all three separately rather than about the scene "working".
+        /// </remarks>
+        [Test]
+        public void TheSceneCanActuallyBeLoaded()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<GameLift.Scene.SceneConfig>(
+                FightSceneBuilder.ConfigPath);
+
+            Assert.That(config, Is.Not.Null,
+                "no scene config — run Tools > Relic Run > Build Fight Scene");
+
+            Assert.That(config.SceneKey, Is.EqualTo(GameLift.Scene.SceneKeys.GameScene));
+            Assert.That(config.SceneReference, Is.Not.Null);
+            Assert.That(config.SceneReference.RuntimeKeyIsValid(), Is.True,
+                "the config addresses nothing");
+
+            Assert.That(AssetDatabase.GUIDToAssetPath(config.SceneReference.AssetGUID),
+                Is.EqualTo(FightSceneBuilder.ScenePath),
+                "the config addresses some other prefab");
+
+            string[] settings = AssetDatabase.FindAssets("t:SceneServiceSettings");
+            Assert.That(settings.Length, Is.EqualTo(1),
+                "there should be exactly one settings asset; the service reads one of them and " +
+                "a config in the other would look like a config that did nothing");
+
+            var listed = AssetDatabase.LoadAssetAtPath<GameLift.Scene.SceneServiceSettings>(
+                AssetDatabase.GUIDToAssetPath(settings[0]));
+
+            Assert.That(listed.SceneConfigs, Does.Contain(config),
+                "the settings asset does not list the game scene, so nothing can load it");
+
+            // GetSceneConfig takes the first match, so a second claimant is not an error and
+            // not reachable either — the scene that loads is whichever was listed first.
+            var claiming = 0;
+            foreach (GameLift.Scene.SceneConfig each in listed.SceneConfigs)
+            {
+                if (each != null && each.SceneKey == GameLift.Scene.SceneKeys.GameScene) claiming++;
+            }
+
+            Assert.That(claiming, Is.EqualTo(1),
+                claiming + " configs claim " + GameLift.Scene.SceneKeys.GameScene +
+                " — only the first is ever reached");
+        }
+
         /// <summary>The two prefabs the view spawns exist and carry their text.</summary>
         [Test]
         public void TheSpawnedPrefabsAreWholeToo()

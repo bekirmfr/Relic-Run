@@ -1,8 +1,11 @@
+using System.Collections.Generic;
+using GameLift.Scene;
 using RelicRun.Game.Data;
 using RelicRun.Game.Presentation;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 
 namespace RelicRun.Editor.Importers
@@ -33,6 +36,11 @@ namespace RelicRun.Editor.Importers
 
         /// <summary>What the built hierarchy is called, so a rebuild replaces it.</summary>
         public const string RootName = "Fight";
+
+        /// <summary>Where the config that makes the scene loadable lives.</summary>
+        /// <remarks>Beside the one the GameLift sample already ships, so both are in one place.</remarks>
+        public const string ConfigPath = "Assets/Samples/Game Lift/1.0.0/Starter/" +
+            "ScriptableObjects/SceneServiceSettings/GameSceneConfig.asset";
         public const string FlierPrefab = "Assets/GameAssets/Game/Presentation/FlyingNumber.prefab";
         public const string LinePrefab = "Assets/GameAssets/Game/Presentation/LogLine.prefab";
 
@@ -76,10 +84,120 @@ namespace RelicRun.Editor.Importers
             }
 
             AssetDatabase.Refresh();
+            Register();
 
-            Debug.Log("wired the fight into " + ScenePath + "." +
-                      "It is a scaffold: legible, and nothing more.",
+            Debug.Log("wired the fight into " + ScenePath + " and registered it as " +
+                      SceneKeys.GameScene + ". It is a scaffold: legible, and nothing more.",
                       AssetDatabase.LoadAssetAtPath<GameObject>(ScenePath));
+        }
+
+        /// <summary>
+        /// Makes the scene loadable: addressed, configured, and listed.
+        /// </summary>
+        /// <remarks>
+        /// Three separate things, and a scene is only loadable when all three are true. The
+        /// prefab has to be addressable, because <c>SceneConfig</c> holds an
+        /// <c>AssetReference</c> and nothing else. A config has to exist and name a key. And the
+        /// settings asset has to list that config, because <c>SceneService</c> looks the key up
+        /// there and there only.
+        ///
+        /// Miss any one and the failure is the same shape: <c>LoadScene</c> is called, nothing
+        /// happens, and nothing is said about it.
+        /// </remarks>
+        private static void Register()
+        {
+            IDictionary<string, string> addressed = Addressing.Address(
+                Addressing.SceneGroup, "Assets/Scenes", new[] { "GameScene" }, ".prefab");
+
+            string guid;
+            if (!addressed.TryGetValue("GameScene", out guid))
+            {
+                Debug.LogError("could not address " + ScenePath + ", so nothing can load it");
+                return;
+            }
+
+            SceneServiceSettings settings = Settings();
+            if (settings == null) return;
+
+            SceneConfig config = Config(guid);
+
+            if (settings.SceneConfigs == null) settings.SceneConfigs = new List<SceneConfig>();
+
+            // The service takes the FIRST config claiming a key. A second one claiming the same
+            // key is not an error anywhere and never will be: it is simply never reached, and
+            // the scene that loads is the one somebody wrote earlier and forgot.
+            foreach (SceneConfig other in settings.SceneConfigs)
+            {
+                if (other == null || other == config) continue;
+                if (other.SceneKey != SceneKeys.GameScene) continue;
+
+                Debug.LogError(other.name + " already claims " + SceneKeys.GameScene +
+                               ", so the fight will never be the scene that loads", other);
+            }
+
+            if (!settings.SceneConfigs.Contains(config))
+            {
+                settings.SceneConfigs.Add(config);
+                EditorUtility.SetDirty(settings);
+            }
+
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// The config for the game scene, made if it is not there.
+        /// </summary>
+        /// <remarks>
+        /// Beside the config the GameLift sample already ships, so the scenes this project has
+        /// are described in one place. <c>RemoveAllOtherScenes</c> is on: a fight drawn over the
+        /// top of the menu is not something anybody wants to look at, and the source has no
+        /// notion of two screens at once.
+        /// </remarks>
+        private static SceneConfig Config(string guid)
+        {
+            var config = AssetDatabase.LoadAssetAtPath<SceneConfig>(ConfigPath);
+            bool made = config == null;
+
+            if (made) config = ScriptableObject.CreateInstance<SceneConfig>();
+
+            config.SceneKey = SceneKeys.GameScene;
+            config.SceneReference = new AssetReference(guid);
+            config.RemoveAllOtherScenes = true;
+
+            if (made) AssetDatabase.CreateAsset(config, ConfigPath);
+            else EditorUtility.SetDirty(config);
+
+            return config;
+        }
+
+        /// <summary>
+        /// The one settings asset the service reads.
+        /// </summary>
+        /// <remarks>
+        /// Found by type rather than by path, because it belongs to the GameLift sample and a
+        /// sample can be re-imported somewhere else. Two of them would be worse than none: the
+        /// service reads whichever one it was given, and a config added to the other would look
+        /// exactly like a config that did nothing.
+        /// </remarks>
+        private static SceneServiceSettings Settings()
+        {
+            string[] found = AssetDatabase.FindAssets("t:SceneServiceSettings");
+
+            if (found.Length == 0)
+            {
+                Debug.LogError("this project has no SceneServiceSettings, so no scene is loadable");
+                return null;
+            }
+
+            if (found.Length > 1)
+            {
+                Debug.LogWarning(found.Length + " SceneServiceSettings assets — registering in " +
+                                 AssetDatabase.GUIDToAssetPath(found[0]) + ", which may not be " +
+                                 "the one the game reads");
+            }
+
+            return AssetDatabase.LoadAssetAtPath<SceneServiceSettings>(
+                AssetDatabase.GUIDToAssetPath(found[0]));
         }
 
         /// <summary>

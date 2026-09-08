@@ -31,6 +31,17 @@ namespace RelicRun.Editor.Importers
         public const string LocaleGroup = "Relic Run Locales";
 
         /// <summary>
+        /// The scene prefabs, which are addressed because the scene service can only
+        /// reach them that way.
+        /// </summary>
+        /// <remarks>
+        /// Not a memory decision like the halls — a scene prefab is loaded once and stays.
+        /// <c>SceneConfig</c> holds an <c>AssetReference</c> and nothing else, so a prefab
+        /// that is not addressable is a scene that cannot be loaded at all.
+        /// </remarks>
+        public const string SceneGroup = "Relic Run Scenes";
+
+        /// <summary>
         /// Puts one folder of assets into a group, addressed by the stem of each filename.
         /// </summary>
         /// <remarks>
