@@ -1,0 +1,26 @@
+{
+    "name": "RelicRun.Tests.Editor",
+    "rootNamespace": "RelicRun.Tests.Editor",
+    "references": [
+        "RelicRun.Core",
+        "RelicRun.Game",
+        "RelicRun.Editor",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

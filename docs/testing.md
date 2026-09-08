@@ -794,6 +794,20 @@ height out of `relic-icons.png` and `enemies-hoard.png` and multiplies the table
 whether they match. Without it, a sheet re-exported one column wider slices every icon after the
 first slightly off — and reads as an art mistake rather than an arithmetic one.
 
+The Editor half lives in `Assets/GameAssets/EditorTests` — **not** under `Assets/GameAssets/Tests`,
+which the `dotnet test` project compiles wholesale. Anything under `Tests/` has to run under both
+runners; anything that reads the project's own `.asset` files through `UnityEditor` cannot, so it
+lives next door and runs from the Test Runner only.
+
+What it checks is what the audit cannot. An audit can say a relic is bound to *something*; it
+would pass just as happily with every icon off by one row, and the port would ship with the wrong
+picture on all fifty relics. So four cells on each sheet are pinned to coordinates worked out by
+hand from the source's own `RELIC_ICON` table — deliberately not recomputed from `RelicArt`,
+because the importer flips the row the same way and a flip in the wrong direction would satisfy
+both. Alongside them: no two ids share a cell, none is off the grid, and every texture is still
+point-filtered and uncompressed, all of which are settings a person can change in the Inspector
+in two seconds and not notice for a week.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -844,3 +858,4 @@ node Tools/extract/validate.mjs
 | Phase 8b — composing a hero | `hero.json` | passing, 483 frames and ~852,000 pixels |
 | Phase 8c — what a delver reads | `strings.json` | passing, 1224 strings in 8 languages |
 | Phase 8d — content bindings | none — invariants | passing, 50 relics, 10 halls, 12 events, 39 foes |
+| Phase 8e — the assets themselves | none — invariants | Test Runner only; audits the real `.asset` files |
