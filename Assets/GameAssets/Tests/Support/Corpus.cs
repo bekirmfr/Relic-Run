@@ -109,6 +109,49 @@ namespace RelicRun.Tests.Support
         }
 
         /// <summary>
+        /// How big one of the shipped sprite sheets actually is, in pixels.
+        /// </summary>
+        /// <remarks>
+        /// Read out of the PNG's own header rather than written down anywhere. The generated
+        /// tables say how many cells a sheet has and how wide a cell is; the file says how wide
+        /// the sheet is. Neither can check itself, and multiplying one out to see whether it
+        /// equals the other is the only thing that catches a sheet that was re-exported a column
+        /// wider — which would slice every icon after the first one slightly wrong, and look for
+        /// all the world like an art mistake.
+        ///
+        /// IHDR is the first chunk of every PNG by the format's own rules, so the width and
+        /// height sit at a fixed offset and no decoder is needed to read them.
+        /// </remarks>
+        public static void SheetSize(string fileName, out int width, out int height)
+        {
+            string path = Path.Combine(
+                Path.GetDirectoryName(Path.GetDirectoryName(Root)), ".port", "assets", fileName);
+
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("a shipped sprite sheet is missing: " + path);
+            }
+
+            byte[] header = new byte[24];
+            using (FileStream file = File.OpenRead(path))
+            {
+                if (file.Read(header, 0, header.Length) != header.Length)
+                {
+                    throw new IOException(fileName + " is too short to be a PNG");
+                }
+            }
+
+            width = Big(header, 16);
+            height = Big(header, 20);
+        }
+
+        /// <summary>A big-endian 32-bit integer, as every number in a PNG header is.</summary>
+        private static int Big(byte[] bytes, int at)
+        {
+            return (bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) | bytes[at + 3];
+        }
+
+        /// <summary>
         /// The shipped hero pack, loaded from <c>.port/hero-pack.json</c>.
         /// </summary>
         /// <remarks>

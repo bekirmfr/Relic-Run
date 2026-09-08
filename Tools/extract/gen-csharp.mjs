@@ -613,6 +613,203 @@ ${soloRows}
 }
 `);
 
+/* ---------- RelicArt ---------- */
+
+/* Where each relic is drawn from. The sheet is 10x8 cells of 48px, which validate.mjs asserts
+   against every recorded cell, so a relic that moved off the sheet fails Phase 0 rather than
+   drawing the wrong icon.
+
+   One relic — debtflesh — has no cell at all and falls back to a procedural glyph. That hole is
+   recorded here rather than excused by hand later: the binding audit reads this list, so nobody
+   can quiet a genuinely missing icon by typing its name into an exception. */
+const ICON_COLS = 10;
+const ICON_ROWS = 8;
+const ICON_CELL = 48;
+
+write("RelicArt.cs", header(`icon cells for ${relics.filter((r) => r.icon).length} of ${relics.length} relics`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>Where one relic's icon comes from.</summary>
+    public sealed class RelicArtDef
+    {
+        public readonly RelicId Id;
+
+        /// <summary>Column on the icon sheet, or <c>-1</c> when there is no cell for it.</summary>
+        public readonly int Column;
+
+        /// <summary>Row on the icon sheet, or <c>-1</c>.</summary>
+        public readonly int Row;
+
+        /// <summary>
+        /// The procedural glyph it falls back to, which every relic has whether it needs it or not.
+        /// </summary>
+        public readonly string Glyph;
+
+        public RelicArtDef(RelicId id, int column, int row, string glyph)
+        {
+            Id = id;
+            Column = column;
+            Row = row;
+            Glyph = glyph;
+        }
+
+        /// <summary>Whether an icon was drawn for it.</summary>
+        public bool OnTheSheet { get { return Column >= 0; } }
+    }
+
+    /// <summary>
+    /// The icon sheet, cell by cell.
+    /// </summary>
+    /// <remarks>
+    /// Presentation, not rules — nothing in the engine reads this. It is in Core so that the
+    /// importer which slices <c>relic-icons.png</c> and the audit which checks the slices agree
+    /// by construction, and so that both can be tested without opening the Editor.
+    /// </remarks>
+    public static class RelicArt
+    {
+        public const int SheetColumns = ${ICON_COLS};
+        public const int SheetRows = ${ICON_ROWS};
+
+        /// <summary>Side of one cell, in pixels.</summary>
+        public const int SheetCell = ${ICON_CELL};
+
+        public static readonly IReadOnlyList<RelicArtDef> All = new[]
+        {
+${relics.map((r) => `            new RelicArtDef(RelicId.${names.get(r.id)}, ` +
+  `${r.icon ? r.icon.col : -1}, ${r.icon ? r.icon.row : -1}, "${r.glyph}"),`).join("\n")}
+        };
+
+        public static RelicArtDef Get(RelicId id)
+        {
+            for (int i = 0; i < All.Count; i++)
+            {
+                if (All[i].Id == id) return All[i];
+            }
+
+            return null;
+        }
+    }
+}
+`);
+
+/* ---------- EventArt ---------- */
+
+/* Events are addressed by index everywhere, so their art is a list rather than a table. The
+   stem of the filename is the id the binding uses, because that is the one thing the importer
+   can see on disk and the audit can check without a second naming scheme in between. */
+const events = load("events.json");
+const stem = (art) => art.replace(/^.*\//, "").replace(/\.[a-z]+$/, "");
+
+write("EventArt.cs", header(`art for ${events.length} dungeon events`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>
+    /// What each dungeon event is illustrated with, indexed as the events themselves are.
+    /// </summary>
+    /// <remarks>
+    /// The rules half lives in <c>DungeonEvents</c> and is hand-ported against the corpus. This
+    /// is only the picture, kept apart so that changing an illustration never touches a file
+    /// that decides what a choice costs.
+    /// </remarks>
+    public static class EventArt
+    {
+        /// <summary>Art id per event index. Position is the event's index.</summary>
+        public static readonly IReadOnlyList<string> All = new[]
+        {
+${events.map((e) => `            "${stem(e.art)}",`).join("\n")}
+        };
+
+        public static string Get(int index) { return All[index]; }
+    }
+}
+`);
+
+/* ---------- EnemyCatalog ---------- */
+
+/* Only the presentation half of the bestiary: what a species is called, and which row of the
+   sheet it is drawn on. Which species owns which floor is a RULE and lives in
+   EnemyPackGenerator, hand-ported and gated by the corpus — it is not repeated here.
+
+   The sheet row is worth generating rather than typing. It is not the bestiary index: the
+   artist drew them in a different order, so eleven of the thirteen disagree, and a transcription
+   slip would put a bat where a rat should be with nothing to catch it but a human eye. */
+const enemies = load("enemies.json");
+
+write("EnemyCatalog.cs",
+  header(`${enemies.species.length} species on a ${enemies.sheet.cols}x${enemies.sheet.rows} sheet`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>One species in the bestiary: what it is called, and where it is drawn.</summary>
+    public sealed class EnemyDef
+    {
+        /// <summary>Bestiary index. What the engine passes around.</summary>
+        public readonly int Index;
+
+        /// <summary>The source game's string id, e.g. "rat". Used to name its art.</summary>
+        public readonly string Key;
+
+        /// <summary>
+        /// Which row of the sheet draws it — NOT the index. The two agree for two species.
+        /// </summary>
+        public readonly int SheetRow;
+
+        public EnemyDef(int index, string key, int sheetRow)
+        {
+            Index = index;
+            Key = key;
+            SheetRow = sheetRow;
+        }
+    }
+
+    /// <summary>
+    /// The bestiary, as far as drawing it is concerned.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately thin. Everything about how a species FIGHTS — which floor fields it, how it
+    /// scales, which of them guards the King — is in <c>EnemyPackGenerator</c>, hand-ported
+    /// against the corpus. This table exists so the art can be found without a second copy of
+    /// the bestiary living in the Editor.
+    /// </remarks>
+    public static class EnemyCatalog
+    {
+        public static readonly IReadOnlyList<EnemyDef> All = new[]
+        {
+${enemies.species.map((s) => `            new EnemyDef(${s.idx}, "${s.id}", ${s.sheetRow}),`).join("\n")}
+        };
+
+        /// <summary>What each sheet column shows: bare, armed, armed and shielded.</summary>
+        /// <remarks>The King has no column of his own — he is drawn as a boss.</remarks>
+        public static readonly IReadOnlyList<string> Ranks = new[]
+        {
+${enemies.sheet.columnIsRank.map((r) => `            "${r}",`).join("\n")}
+        };
+
+        public const int SheetColumns = ${enemies.sheet.cols};
+        public const int SheetRows = ${enemies.sheet.rows};
+
+        /// <summary>Side of one cell, in pixels.</summary>
+        public const int SheetCell = ${enemies.sheet.cell};
+
+        public static EnemyDef Get(int index) { return All[index]; }
+
+        /// <summary>The id its art is bound under: the key, then the rank it is drawn at.</summary>
+        public static string ArtId(int index, int column)
+        {
+            return All[index].Key + "/" + Ranks[column];
+        }
+    }
+}
+`);
+
 console.log(`
   ${relics.length} relics, ${Object.keys(kinds).length} kinds, ` +
             `${channels.length} channels, ${trigList.length} triggers, ${emitList.length} emitters, ` +

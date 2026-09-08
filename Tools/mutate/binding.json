@@ -1,0 +1,191 @@
+{
+  "name": "the join between the content and the assets",
+  "mutants": [
+    {
+      "name": "an id nobody bound goes unreported",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                if (!counts.ContainsKey(id)) missing.Add(id);",
+      "replace": "                if (false) missing.Add(id);"
+    },
+    {
+      "name": "an id bound to an empty slot counts as bound",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                else if (!filled.Contains(id)) blank.Add(id);",
+      "replace": ""
+    },
+    {
+      "name": "whether a slot is filled is never looked at",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                    if (entry.Filled) filled.Add(entry.Id);",
+      "replace": "                    filled.Add(entry.Id);"
+    },
+    {
+      "name": "an id bound twice goes unreported",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                    if (seen == 1) doubled.Add(entry.Id);",
+      "replace": ""
+    },
+    {
+      "name": "an id bound three times is reported twice",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                    if (seen == 1) doubled.Add(entry.Id);",
+      "replace": "                    if (seen >= 1) doubled.Add(entry.Id);"
+    },
+    {
+      "name": "an id nothing asks for is shipped quietly",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                    if (seen == 0 && !wantedSet.Contains(entry.Id)) unknown.Add(entry.Id);",
+      "replace": ""
+    },
+    {
+      "name": "an unknown id bound twice is named twice",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                    if (seen == 0 && !wantedSet.Contains(entry.Id)) unknown.Add(entry.Id);",
+      "replace": "                    if (!wantedSet.Contains(entry.Id)) unknown.Add(entry.Id);"
+    },
+    {
+      "name": "an excuse never expires",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                if (counts.ContainsKey(id) || !wantedSet.Contains(id)) stale.Add(id);",
+      "replace": ""
+    },
+    {
+      "name": "an excuse survives the art arriving",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                if (counts.ContainsKey(id) || !wantedSet.Contains(id)) stale.Add(id);",
+      "replace": "                if (!wantedSet.Contains(id)) stale.Add(id);"
+    },
+    {
+      "name": "an excuse survives the relic being cut",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                if (counts.ContainsKey(id) || !wantedSet.Contains(id)) stale.Add(id);",
+      "replace": "                if (counts.ContainsKey(id)) stale.Add(id);"
+    },
+    {
+      "name": "an excuse forgives an id that is bound to nothing",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                if (counts.ContainsKey(id) || !wantedSet.Contains(id)) stale.Add(id);",
+      "replace": "                if (filled.Contains(id) || !wantedSet.Contains(id)) stale.Add(id);"
+    },
+    {
+      "name": "an expired excuse is not a failure",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                       Blank.Count == 0 && Stale.Count == 0;",
+      "replace": "                       Blank.Count == 0;"
+    },
+    {
+      "name": "art nothing asks for is not a failure",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                return Missing.Count == 0 && Unknown.Count == 0 && Doubled.Count == 0 &&",
+      "replace": "                return Missing.Count == 0 && Doubled.Count == 0 &&"
+    },
+    {
+      "name": "a catalog that repeats an id reports it twice",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "                    if (wantedSet.Add(id)) wanted.Add(id);",
+      "replace": "                    wantedSet.Add(id);\n                    wanted.Add(id);"
+    },
+    {
+      "name": "the report names everything and counts nothing",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "            for (int i = 0; i < ids.Count && i < 12; i++)",
+      "replace": "            for (int i = 0; i < ids.Count; i++)"
+    },
+    {
+      "name": "the report miscounts what it left out",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "            if (ids.Count > 12) said.Append(\", and \").Append(ids.Count - 12).Append(\" more\");",
+      "replace": "            if (ids.Count > 12) said.Append(\", and \").Append(ids.Count).Append(\" more\");"
+    },
+    {
+      "name": "the report says nothing about art nobody asks for",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "            Line(said, \"bound but never asked for\", Unknown);",
+      "replace": ""
+    },
+    {
+      "name": "a passing audit still has something to say",
+      "file": "Assets/GameAssets/Core/Content/ContentBinding.cs",
+      "find": "            if (Passed) return \"\";",
+      "replace": "            if (Passed) return What;"
+    },
+    {
+      "name": "the relics with icons are the ones excused",
+      "file": "Assets/GameAssets/Core/Content/ContentIds.cs",
+      "find": "                    if (!RelicArt.All[i].OnTheSheet) ids.Add(RelicCatalog.KeyOf(RelicArt.All[i].Id));",
+      "replace": "                    if (RelicArt.All[i].OnTheSheet) ids.Add(RelicCatalog.KeyOf(RelicArt.All[i].Id));"
+    },
+    {
+      "name": "a hall is bound under its whole path",
+      "file": "Assets/GameAssets/Core/Content/ContentIds.cs",
+      "find": "                    ids.Add(Stem(DungeonCatalog.All[i].Art));",
+      "replace": "                    ids.Add(DungeonCatalog.All[i].Art);"
+    },
+    {
+      "name": "a stem is cut at the first dot rather than the last",
+      "file": "Assets/GameAssets/Core/Content/ContentIds.cs",
+      "find": "            int dot = path.LastIndexOf('.');",
+      "replace": "            int dot = path.IndexOf('.');"
+    },
+    {
+      "name": "a leading dot is read as an extension",
+      "file": "Assets/GameAssets/Core/Content/ContentIds.cs",
+      "find": "            int end = dot > start ? dot : path.Length;",
+      "replace": "            int end = dot >= 0 ? dot : path.Length;"
+    },
+    {
+      "name": "a backslash is not a folder separator",
+      "file": "Assets/GameAssets/Core/Content/ContentIds.cs",
+      "find": "            int back = path.LastIndexOf('\\\\') + 1;\n            if (back > start) start = back;",
+      "replace": ""
+    },
+    {
+      "name": "only the first rank of each species is asked for",
+      "file": "Assets/GameAssets/Core/Content/ContentIds.cs",
+      "find": "                    for (int column = 0; column < EnemyCatalog.Ranks.Count; column++)",
+      "replace": "                    for (int column = 0; column < 1; column++)"
+    },
+    {
+      "name": "an enemy is bound under its rank and then its name",
+      "file": "Assets/GameAssets/Core/Content/EnemyCatalog.cs",
+      "find": "            return All[index].Key + \"/\" + Ranks[column];",
+      "replace": "            return Ranks[column] + \"/\" + All[index].Key;"
+    },
+    {
+      "name": "a species is drawn on the row of its index",
+      "file": "Assets/GameAssets/Core/Content/EnemyCatalog.cs",
+      "find": "            SheetRow = sheetRow;",
+      "replace": "            SheetRow = index;"
+    },
+    {
+      "name": "a relic in the first column has no icon",
+      "file": "Assets/GameAssets/Core/Content/RelicArt.cs",
+      "find": "        public bool OnTheSheet { get { return Column >= 0; } }",
+      "replace": "        public bool OnTheSheet { get { return Column > 0; } }"
+    },
+    {
+      "name": "the icon sheet is one column narrower",
+      "file": "Assets/GameAssets/Core/Content/RelicArt.cs",
+      "find": "        public const int SheetColumns = 10;",
+      "replace": "        public const int SheetColumns = 9;"
+    },
+    {
+      "name": "the icon sheet has bigger cells",
+      "file": "Assets/GameAssets/Core/Content/RelicArt.cs",
+      "find": "        public const int SheetCell = 48;",
+      "replace": "        public const int SheetCell = 64;"
+    },
+    {
+      "name": "the bestiary sheet is one row shorter",
+      "file": "Assets/GameAssets/Core/Content/EnemyCatalog.cs",
+      "find": "        public const int SheetRows = 13;",
+      "replace": "        public const int SheetRows = 12;"
+    },
+    {
+      "name": "the bestiary has a fourth column for the King",
+      "file": "Assets/GameAssets/Core/Content/EnemyCatalog.cs",
+      "find": "        public const int SheetColumns = 3;",
+      "replace": "        public const int SheetColumns = 4;"
+    }
+  ]
+}

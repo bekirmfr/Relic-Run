@@ -248,7 +248,21 @@ Port order: EDGE → GUARD → FLESH → PACE → LUCK → GREED → CHAIN → C
 - Corpus differ as a test-runner target
 
 ### Phase 8 — Content into Unity
-- Importers: `Tools/out/*.json` → `RelicDefSO`, `DungeonDefSO`, `EventDefSO`, `EnemyDefSO`, `LocaleSO`
+
+**ScriptableObjects bind assets, not rules.** The plan originally called for `RelicDefSO` and
+friends. It changed once two things were true: the content is *extracted* rather than authored,
+so nobody will ever tune it in the Inspector and `validate.mjs` already gates it; and Core sets
+`noEngineReferences`, so its rules run under `dotnet test` in ten seconds. Moving a table into an
+`.asset` file would move it out of the fast loop into the slow manual one, and buy nothing —
+the numbers a designer actually turns live in `RelicTuning`, `CombatRules` and `RunRules`, which
+are code either way. So: rules stay in generated C#, and a ScriptableObject holds exactly what
+only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
+
+- `SpriteBook` and its four books: relic icons, halls, events, enemies. Id → `Sprite`, filled by
+  the importer, audited by `BindingAudit`
+- `HeroPackAsset` (the pack as text), `LocaleBook` (a `TextAsset` per language),
+  `PresentationSettings` (authored pacing — the one asset that is *not* extracted), and one
+  `GameContent` that binds them for VContainer
 - Sprite import: Point filter, no compression, Multiple mode with grid slicing —
   enemies `192×832` @ 64px (3 cols = rank, 13 rows = species) · relic icons `480×384` @ 48px (10×8) ·
   halls `650×181` · cards `50×72`
@@ -259,7 +273,9 @@ Port order: EDGE → GUARD → FLESH → PACE → LUCK → GREED → CHAIN → C
 - TMP font assets from `Jacquard12.ttf` and `PressStart2P.ttf`
 - Addressables groups
 
-**Gate:** a test asserts every ScriptableObject's content equals its source JSON.
+**Gate:** every id the catalogs will ask for is bound exactly once, to something, and nothing
+is bound that the game will never ask for. The rule is `BindingAudit`, tested and mutated under
+`dotnet test`; applying it to the actual `.asset` files needs the Editor and runs there.
 
 ### Phase 9 — Presentation
 - `CombatPlaybackController` — `CancellationTokenSource` per fight replaces the

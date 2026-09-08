@@ -57,10 +57,15 @@ TEST_PROJECT = os.path.join("Tools", "dotnet", "RelicRun.Core.Tests")
 IGNORE = shutil.ignore_patterns("bin", "obj", "*.meta", "*.user")
 
 
-# Single files the tests read that are not worth copying a whole tree for. The hero pack is
-# the shipped art, half a megabyte of it, and it sits beside a directory of PNGs nothing here
-# touches.
-FILES = [os.path.join(".port", "hero-pack.json")]
+# Single files the tests read that are not worth copying a whole tree for. The hero pack is the
+# shipped art, half a megabyte of it, and it sits in a directory of PNGs almost none of which
+# these tests open. The two that are here are opened for their headers alone: they are the only
+# witnesses in the project to how big a sprite sheet actually is.
+FILES = [
+    os.path.join(".port", "hero-pack.json"),
+    os.path.join(".port", "assets", "relic-icons.png"),
+    os.path.join(".port", "assets", "enemies-hoard.png"),
+]
 
 
 def stage(into):

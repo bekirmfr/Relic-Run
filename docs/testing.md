@@ -767,6 +767,33 @@ relic's activation is counted when there is nothing left to hit (it changes only
 which these six relics cannot reach). Both are ported faithfully; neither has a red test behind
 it yet.
 
+## The one gate with no recording behind it
+
+Everything else here is a port, so everything else is gated by replaying recorded JavaScript.
+The binding of content ids to Unity assets is not: nothing in the browser game ever bound a
+relic to a `Sprite`, so there is nothing to record and the rule has to be *stated*.
+
+It is stated in Core, in `BindingAudit`, and it says one thing — every id the catalogs will ask
+for is bound exactly once, to something, and nothing is bound that the game will never ask for.
+That splits cleanly across the two runners. The arithmetic over two lists of strings is
+ordinary C# and runs under `dotnet test`; only the lists themselves need the Editor, because
+only Unity can say whether a `Sprite` reference resolves. So a wrong answer about missing art is
+a second away rather than a domain reload away.
+
+The excuse list is the part worth being careful about. One relic — Debt of Flesh — was never
+drawn an icon and falls back to a procedural glyph, so the audit has to be able to forgive it.
+It is forgiven from `ContentIds.RelicsWithoutIcons`, which is read off the *generated* sheet
+table rather than typed by hand: nobody can quiet a genuinely missing icon by adding a name to
+a list, and drawing the missing icon retires the exception by itself. An excuse that has stopped
+being true — the art arrived, or the relic was cut — is a failure of its own.
+
+Two constants in that layer have no witness inside the project, because every number about the
+art is generated from the same tables and so agrees with itself however wrong it is. The sheets
+themselves are the outside witness: `TheSheetsAreTheSizeTheTablesSayTheyAre` reads the width and
+height out of `relic-icons.png` and `enemies-hoard.png` and multiplies the tables out to see
+whether they match. Without it, a sheet re-exported one column wider slices every icon after the
+first slightly off — and reads as an art mistake rather than an arithmetic one.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -816,3 +843,4 @@ node Tools/extract/validate.mjs
 | Phase 8a — the palette | `palette.json` | passing, 12,650 colours and four 94-key palettes |
 | Phase 8b — composing a hero | `hero.json` | passing, 483 frames and ~852,000 pixels |
 | Phase 8c — what a delver reads | `strings.json` | passing, 1224 strings in 8 languages |
+| Phase 8d — content bindings | none — invariants | passing, 50 relics, 10 halls, 12 events, 39 foes |
