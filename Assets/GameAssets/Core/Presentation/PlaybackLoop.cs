@@ -13,8 +13,16 @@ namespace RelicRun.Core.Presentation
     /// </remarks>
     public interface IPlaybackScreen
     {
-        /// <summary>Draw what this event says happened.</summary>
-        void Show(CombatEvent shown);
+        /// <summary>
+        /// Draw what this event says happened.
+        /// </summary>
+        /// <param name="index">
+        /// Where in the fight it is. Handed over because the loop knows it and the screen would
+        /// otherwise have to search for it — and two events of a fight can be identical in every
+        /// field, so a search would sometimes find the wrong one. A gauge timed off the wrong
+        /// blow winds up against the wrong blow.
+        /// </param>
+        void Show(int index, CombatEvent shown);
 
         /// <summary>Set off down the hall to meet the foe entering at this index.</summary>
         void Walk(int index);
@@ -82,7 +90,7 @@ namespace RelicRun.Core.Presentation
                 if (step.Action == PlaybackAction.Done) return;
 
                 if (step.Action == PlaybackAction.Walk) screen.Walk(step.Index);
-                else screen.Show(playing.At(step.Index));
+                else screen.Show(step.Index, playing.At(step.Index));
 
                 await clock.Wait(step.WaitMs, token);
             }

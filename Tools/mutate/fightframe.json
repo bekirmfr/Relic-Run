@@ -1,0 +1,95 @@
+{
+  "name": "what a screen draws for one event",
+  "mutants": [
+    {
+      "name": "a relic's damage counts as the delver swinging",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            return (shown.Type == CombatEventType.EnemyDamage && shown.Source == \"you\") ||\n                   shown.Type == CombatEventType.EnemyMiss;",
+      "replace": "            return shown.Type == CombatEventType.EnemyDamage ||\n                   shown.Type == CombatEventType.EnemyMiss;"
+    },
+    {
+      "name": "a swing that missed is not a swing",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            return (shown.Type == CombatEventType.EnemyDamage && shown.Source == \"you\") ||\n                   shown.Type == CombatEventType.EnemyMiss;",
+      "replace": "            return shown.Type == CombatEventType.EnemyDamage && shown.Source == \"you\";"
+    },
+    {
+      "name": "a foe's thorns count as the foe taking a turn",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            return (shown.Type == CombatEventType.PlayerDamage && shown.Depth == 0) ||\n                   shown.Type == CombatEventType.Miss;",
+      "replace": "            return shown.Type == CombatEventType.PlayerDamage ||\n                   shown.Type == CombatEventType.Miss;"
+    },
+    {
+      "name": "a gauge winds up past the next foe's entrance",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "                if (events[j].Type == CombatEventType.Enter) return 0;\n                if (hero ? HeroStrikes(events[j]) : EnemyStrikes(events[j])) return waited;",
+      "replace": "                if (hero ? HeroStrikes(events[j]) : EnemyStrikes(events[j])) return waited;"
+    },
+    {
+      "name": "a gauge is timed off the ticks rather than the holds",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "                waited += pacing.Between(events[j - 1].State.Tick, events[j].State.Tick);",
+      "replace": "                waited += events[j].State.Tick - events[j - 1].State.Tick;"
+    },
+    {
+      "name": "a doomed unit's gauge freezes",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            if (until == 0 && mine) return new Gauge(true, Gauge.KeepTheCadence);",
+      "replace": ""
+    },
+    {
+      "name": "every event moves both gauges",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            if (!mine && !entering && shown.Type != theirDash) return Gauge.Untouched;",
+      "replace": ""
+    },
+    {
+      "name": "meeting a foe leaves the gauges alone",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            bool entering = shown.Type == CombatEventType.Enter;",
+      "replace": "            bool entering = false;"
+    },
+    {
+      "name": "a dash still makes its victim wind up first",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            if (entering && Opens(events, index, hero)) return new Gauge(true, 0);",
+      "replace": ""
+    },
+    {
+      "name": "a chain link counts as a critical",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            if (shown.Relic == Content.RelicId.WeightedDice && shown.Depth == 0) return FlierKind.Crit;",
+      "replace": "            if (shown.Relic == Content.RelicId.WeightedDice) return FlierKind.Crit;"
+    },
+    {
+      "name": "a relic's damage flies as the delver's own",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            return shown.Source == \"you\" ? FlierKind.Damage : FlierKind.Chain;",
+      "replace": "            return FlierKind.Damage;"
+    },
+    {
+      "name": "a critical says nothing about being one",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "            return (kind == FlierKind.Crit ? \"CRIT! \" + sign : sign) + Amount(shown);",
+      "replace": "            return sign + Amount(shown);"
+    },
+    {
+      "name": "a blow on the delver never says it was critical",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "                        (shown.EnemyCrit == true ? \"CRIT! -\" : \"-\") + Amount(shown));",
+      "replace": "                        \"-\" + Amount(shown));"
+    },
+    {
+      "name": "gold flies off the delver rather than the purse",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "                    return One(FlierAt.Gold, FlierKind.Gold, \"+\" + Amount(shown));",
+      "replace": "                    return One(FlierAt.Hero, FlierKind.Gold, \"+\" + Amount(shown));"
+    },
+    {
+      "name": "every event throws a number",
+      "file": "Assets/GameAssets/Core/Presentation/FightFrame.cs",
+      "find": "                default:\n                    return Nothing;",
+      "replace": "                default:\n                    return One(FlierAt.Hero, FlierKind.Damage, \"?\");"
+    }
+  ]
+}

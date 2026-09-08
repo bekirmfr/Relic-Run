@@ -17,8 +17,10 @@ MonoBehaviour:
   BusyAfterEvents: 34
   ReducedStepMs: 40
   FloorStepMs: 30
-  HoldMs: 500
-  BusyHoldMs: 350
-  ReducedHoldMs: 0
-  FlyFraction: 0.45
+  PerTickMs: 500
+  BusyPerTickMs: 350
+  LongestWaitMs: 2600
+  ShortestGapPercent: 45
   SpeedSteps: 010000000200000004000000
+  WalkMs: 3350
+  SpeedShortensTheTickWait: 1

@@ -1031,6 +1031,38 @@ own iterations and fail rather than spin. And `mutate.py` runs each suite under 
 deadline and **counts a timeout as a survivor**, because a mutant that hangs the harness is a
 mutant nothing killed.
 
+## The gauges are the fight's clock made visible
+
+`FightFrame` turns one event into everything a screen needs: the log line, the numbers flying
+off, and what each of the two attack gauges should do. All of it derived from the event list and
+where in it we are, so the view holds no combat state and cannot get out of step — a screen
+showing event forty knows exactly what a screen jumping straight to event forty knows.
+
+The gauges are the part worth reading twice. Each fills over **exactly the time until its owner
+strikes again**, so the bar arriving full and the blow landing are the same moment. That is only
+possible because the fight is over before any of it is drawn: the gauge looks *forward* through
+events nobody has seen yet and adds up the holds a delver will actually sit through.
+
+Three rules make it work, and each one is a way it would otherwise be wrong:
+
+- **A relic's damage is not a swing.** It happens on the delver's turn and hurts the foe, but
+  counting it would reset the delver's gauge on every chain link — the bar would tick backwards
+  whenever a good loadout was doing its job.
+- **A foe's thorns are not the foe attacking.** Depth zero only, for the mirror reason.
+- **A gauge stops looking at the next foe's entrance.** A bar that wound up across a change of
+  opponent would arrive full at somebody who was not there when it started filling.
+
+And a unit that never strikes again does not freeze — it restarts at its last cadence. It dies
+first, and a frozen bar would tell the delver so a second before the game does.
+
+The holds are summed rather than the ticks, deliberately: the holds are what a delver waits
+through, capped and floored and divided by whatever speed they chose. A gauge timed off raw ticks
+would drift away from the fight the moment anybody pressed the speed control.
+
+**The randomness stays in the view.** The source scatters each flying number so two in a row do
+not overlap. A view-model that rolled dice would make the same fight look different on replay,
+which is the one thing this layer exists to prevent — `TheSameEventAlwaysDrawsTheSame` says so.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1088,3 +1120,4 @@ node Tools/extract/validate.mjs
 | Phase 9a — how long a fight takes | none — ported by hand | passing, the ATB clock drives playback |
 | Phase 9b — walking a finished fight | none — invariants | passing, the stepper and the loop |
 | Phase 9c — what a delver reads | none — invariants | passing, 20 event kinds · **9 lines English-only** |
+| Phase 9d — what a screen draws | none — invariants | passing, the fliers and the two gauges |

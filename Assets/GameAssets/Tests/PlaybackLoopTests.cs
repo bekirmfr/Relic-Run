@@ -48,7 +48,7 @@ namespace RelicRun.Tests
             /// <summary>Runs after the nth thing it is told. How a delver interrupts.</summary>
             public Action<Notepad> After;
 
-            public void Show(CombatEvent shown) { Note("show " + shown.State.Tick); }
+            public void Show(int index, CombatEvent shown) { Note("show " + shown.State.Tick); }
 
             public void Walk(int index) { Note("walk " + index); }
 
@@ -75,6 +75,12 @@ namespace RelicRun.Tests
             {
                 token.ThrowIfCancellationRequested();
                 Waited.Add(ms);
+
+                // The loop's own bound. The screen counts what it is TOLD, which a loop spinning
+                // on an event that shows nothing never reaches — and mutation found exactly that
+                // hole by hanging here for five minutes instead of failing in two seconds.
+                if (Waited.Count > 64) throw new InvalidOperationException("the loop is not ending");
+
                 return Task.CompletedTask;
             }
 
@@ -166,7 +172,14 @@ namespace RelicRun.Tests
                 _noticed = noticed;
             }
 
-            public Task Wait(int ms, CancellationToken token) { return Task.CompletedTask; }
+            public int Waits;
+
+            public Task Wait(int ms, CancellationToken token)
+            {
+                if (++Waits > 64) throw new InvalidOperationException("the loop is not ending");
+
+                return Task.CompletedTask;
+            }
 
             public Task Until(Func<bool> ready, CancellationToken token)
             {

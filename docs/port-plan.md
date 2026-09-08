@@ -321,6 +321,11 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
 - **`CombatLog` (Core, done)** — the log's view-model: an event becomes a `LineKind` and a line
   of text, with the chain depth carried rather than drawn. Nine of the twenty kinds are
   English-only and one is half-localised; see `docs/testing.md`
+- **`FightFrame` (Core, done)** — one event becomes the fliers and the two gauge instructions.
+  Each gauge fills over exactly the time until its owner strikes again, read forward off the
+  events themselves
+- **`CombatView` + `WindingGauge` + `FlyingNumber` + `LogLine` (Game, written, unwired)** — the
+  widgets a scene attaches. They decide nothing; the frame does
 - `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,
   relic tray with the `relicMeter` charge/uses gauges, hall pan
 - Death shatter / blood / dust via UI-Particle (replaces `pileFrom`/`shatterOf` pixel reads)

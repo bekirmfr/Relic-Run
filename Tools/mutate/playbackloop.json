@@ -28,8 +28,8 @@
     {
       "name": "walking and showing are the other way round",
       "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
-      "find": "                if (step.Action == PlaybackAction.Walk) screen.Walk(step.Index);\n                else screen.Show(playing.At(step.Index));",
-      "replace": "                if (step.Action == PlaybackAction.Walk) screen.Show(playing.At(step.Index));\n                else screen.Walk(step.Index);"
+      "find": "                if (step.Action == PlaybackAction.Walk) screen.Walk(step.Index);\n                else screen.Show(step.Index, playing.At(step.Index));",
+      "replace": "                if (step.Action == PlaybackAction.Walk) screen.Show(step.Index, playing.At(step.Index));\n                else screen.Walk(step.Index);"
     },
     {
       "name": "nothing is held for any length of time",
@@ -40,8 +40,8 @@
     {
       "name": "the screen is shown the wrong event",
       "file": "Assets/GameAssets/Core/Presentation/PlaybackLoop.cs",
-      "find": "                else screen.Show(playing.At(step.Index));",
-      "replace": "                else screen.Show(playing.At(0));"
+      "find": "                else screen.Show(step.Index, playing.At(step.Index));",
+      "replace": "                else screen.Show(0, playing.At(0));"
     },
     {
       "name": "a fight with no screen is played to nobody",
