@@ -808,6 +808,42 @@ both. Alongside them: no two ids share a cell, none is off the grid, and every t
 point-filtered and uncompressed, all of which are settings a person can change in the Inspector
 in two seconds and not notice for a week.
 
+## Re-encoding without a recording
+
+`HeroIndex` is not a port. The source drew straight to CSS box-shadows and never built an index
+grid, so there is nothing to diff against — but there is a recording of what every composition
+*contains*, and a lossless re-encoding has to survive a round trip through it. That is the gate:
+index all ninety-three recorded heroes, read every pixel back, and demand the pixel that went in.
+
+The two ways it can go wrong are both quiet. Two different pixels sharing an index paints a
+shadow in the colour of the thing beside it, which reads as a shading mistake. A table running
+past a byte wraps the two hundred and fifty-seventh colour onto the first one — transparent —
+and puts a hole in a delver. The busiest outfit the shipped wardrobe can assemble needs 55 of
+256, and the test says the number rather than only bounding it, so a change that took it to 200
+is noticed before one takes it to 260.
+
+That busiest outfit — `full/3/idle` — has no transparent pixel anywhere in it, its backdrop
+covering the whole frame. That is why index zero is RESERVED rather than allocated: numbering
+from what a hero happens to contain would give that one delver a different meaning for zero
+than every other, and a renderer reading a grid has nowhere to ask.
+
+One thing the corpus cannot reach: **the deepest tone stack in the entire shipped wardrobe is
+one.** Not a single pixel in any of the ninety-three compositions is toned twice, so a table
+keyed on a pixel's first tone alone passes every corpus test there is — mutation found exactly
+that, and nothing else would have. The compositor stacks tones without limit and lays each over
+the last as transparent paint, so a doubly shadowed pixel really is darker than a singly shadowed
+one; the property is stated directly instead, by hand, because the day a part is drawn with a
+fold in it is the day it starts to matter. Order matters too, but only across families: two
+shadows in either order mix to the same colour, a shadow under a highlight does not.
+
+The Editor half asks what happened to the bytes on the way into a texture, which needs Unity.
+Two mistakes there are invisible to anybody who does not already know what a delver looks like:
+the row flip, because Core counts rows from the top as the art was drawn and a texture counts
+from the bottom; and the colour space, because an sRGB grid would gamma-convert its own indices.
+The flip is checked twice, once by walking the writer's own arithmetic and once by a hero built
+with its top two rows deliberately bare — the second is the one that would catch a flip in the
+wrong direction, since the first would agree with it.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -859,3 +895,4 @@ node Tools/extract/validate.mjs
 | Phase 8c — what a delver reads | `strings.json` | passing, 1224 strings in 8 languages |
 | Phase 8d — content bindings | none — invariants | passing, 50 relics, 10 halls, 12 events, 39 foes |
 | Phase 8e — the assets themselves | none — invariants | Test Runner only; audits the real `.asset` files |
+| Phase 8f — a delver, indexed | `hero.json` | passing, 93 heroes round-trip pixel for pixel |

@@ -270,10 +270,18 @@ only Unity can hold — a reference to a `Sprite`, a `TextAsset`, a font.
   enemies `192×832` @ 64px (3 cols = rank, 13 rows = species) · relic icons `480×384` @ 48px (10×8) ·
   halls `650×181` · cards `50×72`. Cells are cut by content id, not by Unity's grid slicer:
   only the 49 relic cells that were drawn, each named after the relic that draws it
-- `HeroPackImporter`: `hero-pack.json` → per-part/state/frame sprites into a SpriteAtlas, pixels encoded by
-  **color-role index**; runtime `HeroCompositor` stacks 12 images in `stack` order and a `PaletteSwap`
-  shader maps role index → color from a palette texture. Port only the color math
-  (`hexToHsl`/`hslToHex`/`applyShade`/`shade`, ~40 lines) so Changing Room swatches recolor live.
+- **The hero, and why it is not sprites.** The plan called for per-part sprites in a SpriteAtlas.
+  That does not work and cannot: two of the role keys are not colours — a shadow pixel means
+  "whatever is beneath this, one tone darker" — so a pixel's colour depends on everything stamped
+  before it, and the outline is drawn around a silhouette nothing knows until the stack is
+  complete. Neither can be baked. So the pack ships as text, `HeroCompositor` stacks it at
+  runtime (gated at 483 frames and ~852,000 pixels), and the result is re-encoded by `HeroIndex`
+  into one byte per pixel plus a table of that delver's own colours.
+  `HeroTextures` writes the two textures — a linear `R8` grid with the frames side by side, and a
+  one-pixel-tall sRGB palette — and `RelicRun/Hero Palette Swap` looks one up in the other. A
+  swatch drag rewrites 90 texels and every delver on screen recolours; nothing recomposes.
+  The colour maths (`hexToHsl`/`hslToHex`/`applyShade`/`shade`) is ported and gated at 12,650
+  colours.
 - TMP font assets from `Jacquard12.ttf` and `PressStart2P.ttf`
 - Addressables groups
 

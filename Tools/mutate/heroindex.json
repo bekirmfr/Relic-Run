@@ -1,0 +1,89 @@
+{
+  "name": "a delver, re-encoded as indices",
+  "mutants": [
+    {
+      "name": "nothing is not reserved, so index zero means whatever came first",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            var entries = new List<ComposedPixel> { new ComposedPixel(HeroCompositor.Empty) };\n            var seen = new Dictionary<string, byte> { { Key(entries[0]), Nothing } };",
+      "replace": "            var entries = new List<ComposedPixel>();\n            var seen = new Dictionary<string, byte>();"
+    },
+    {
+      "name": "a pixel is identified by its role alone, tones ignored",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            return pixel.Role + pixel.Tones;",
+      "replace": "            return pixel.Role.ToString();"
+    },
+    {
+      "name": "a pixel is identified by its tones alone, role ignored",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            return pixel.Role + pixel.Tones;",
+      "replace": "            return pixel.Tones;"
+    },
+    {
+      "name": "only the first tone counts, so one shadow and two are the same colour",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            return pixel.Role + pixel.Tones;",
+      "replace": "            return pixel.Role + (pixel.Tones.Length > 0 ? pixel.Tones.Substring(0, 1) : \"\");"
+    },
+    {
+      "name": "an entry already in the table is added again",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "                    if (!seen.TryGetValue(key, out at))",
+      "replace": "                    if (true)"
+    },
+    {
+      "name": "the index written is not the one that was handed out",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "                    grid[i] = at;",
+      "replace": "                    grid[i] = Nothing;"
+    },
+    {
+      "name": "the table is numbered from one rather than from its length",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "                        at = (byte)entries.Count;",
+      "replace": "                        at = (byte)(entries.Count - 1);"
+    },
+    {
+      "name": "only the first frame is indexed",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            for (int f = 0; f < hero.Frames.Count; f++)",
+      "replace": "            for (int f = 0; f < 1; f++)"
+    },
+    {
+      "name": "a hero one colour past a byte is allowed to wrap",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "                        if (entries.Count >= Limit)",
+      "replace": "                        if (entries.Count > Limit)"
+    },
+    {
+      "name": "nothing stops a hero running past a byte",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "                        if (entries.Count >= Limit)\n                        {\n                            throw new InvalidOperationException(\n                                \"a hero cannot hold more than \" + Limit + \" colours\");\n                        }\n",
+      "replace": ""
+    },
+    {
+      "name": "the ceiling is twice what a byte can count",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "        public const int Limit = 256;",
+      "replace": "        public const int Limit = 512;"
+    },
+    {
+      "name": "a pixel is read with its rows and columns swapped",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            return Frames[frame][y * Size + x];",
+      "replace": "            return Frames[frame][x * Size + y];"
+    },
+    {
+      "name": "the tones are dropped when the colours are resolved",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "                colours[i] = HeroCompositor.Colour(Entries[i], palette);",
+      "replace": "                colours[i] = HeroCompositor.Colour(new ComposedPixel(Entries[i].Role), palette);"
+    },
+    {
+      "name": "the frame's length is taken from the state rather than from the frame",
+      "file": "Assets/GameAssets/Core/Content/HeroIndex.cs",
+      "find": "            return new HeroIndex(hero.Size, hero.Ms, hero.Mode, entries, frames);",
+      "replace": "            return new HeroIndex(hero.Size, hero.Ms + 1, hero.Mode, entries, frames);"
+    }
+  ]
+}
