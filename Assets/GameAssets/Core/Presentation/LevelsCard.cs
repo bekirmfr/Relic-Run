@@ -106,6 +106,18 @@ namespace RelicRun.Core.Presentation
         /// <summary>What is said where a relic list would be, when the king carries none.</summary>
         public const string NoRelics = "none — raw strength only";
 
+        /// <summary>What the button says when the hall can be entered.</summary>
+        /// <remarks>
+        /// The arrow is a plain U+203A, which both shipped faces cover. That is worth being sure
+        /// of rather than assuming: the arrows in the TRANSLATED strings are inside the range
+        /// Locale.Clean strips, so they never reach a face at all — and a literal like this one
+        /// is not cleaned, so its arrow is really drawn. The tests hold it against the face.
+        /// </remarks>
+        public const string DelveLabel = "DELVE ›";
+
+        /// <summary>And what it says when it cannot.</summary>
+        public const string SealedLabel = "SEALED";
+
         /// <summary>
         /// The seed the boss preview is built from.
         /// </summary>
@@ -257,12 +269,24 @@ namespace RelicRun.Core.Presentation
             return value.ToString(CultureInfo.InvariantCulture);
         }
 
-        /// <summary>A multiplier as the source prints it: two decimals at most, trailing zeros dropped.</summary>
+        /// <summary>
+        /// A multiplier as the source prints it: rounded to two places, then written out.
+        /// </summary>
+        /// <remarks>
+        /// Two steps, and they are not the same step. The ROUNDING is the source's arithmetic —
+        /// <c>Math.round(M * 100) / 100</c>, half-up, which is what JsMath.Round is for. The
+        /// WRITING is what JavaScript does to a number on its way into a string: as few digits as
+        /// say it exactly, so 1.1 is "1.1" and 1 is "1".
+        ///
+        /// It used to round and then format with "0.##", which rounds again — two mechanisms for
+        /// one rule, and mutation testing found it the way it always finds them: the mutant that
+        /// removed the first one survived, because the second was quietly doing its job.
+        /// </remarks>
         private static string Rounded(double value)
         {
             double two = JsMath.Round(value * 100d) / 100d;
 
-            return two.ToString("0.##", CultureInfo.InvariantCulture);
+            return two.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>A rate as the source prints it: always two decimals.</summary>

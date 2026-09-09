@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
+using RelicRun.Core.Determinism;
 using RelicRun.Core.Meta;
 using RelicRun.Core.Presentation;
 using RelicRun.Core.Run;
@@ -136,16 +138,44 @@ namespace RelicRun.Tests
             var save = new SaveState { Unlocked = 10 };
             int count = DungeonCatalog.All.Count;
 
+            // ONE past the end, which is the value that tells a clamp from a loose one. A
+            // mutant that only clamped above count + 100 survived a fixture asking for 999,
+            // because 999 is past that too — the boundary is the only place the two differ.
+            Assert.That(LevelsCards.Of(save, count + 1).Chosen, Is.EqualTo(count));
             Assert.That(LevelsCards.Of(save, 999).Chosen, Is.EqualTo(count));
+
             Assert.That(LevelsCards.Of(save, -5).Chosen, Is.EqualTo(Career.Frontier(save)));
 
-            foreach (int asked in new[] { -5, 0, 1, count, 999 })
+            foreach (int asked in new[] { -5, 0, 1, count, count + 1, 999 })
             {
                 LevelsCard card = LevelsCards.Of(save, asked);
 
                 Assert.That(card.Chosen, Is.InRange(1, count), "asked for " + asked);
                 Assert.That(card.Detail.Tier, Is.EqualTo(card.Chosen));
             }
+        }
+
+        /// <summary>
+        /// A delver with no halls at all is still shown one.
+        /// </summary>
+        /// <remarks>
+        /// The floor of the clamp, and the only way to reach it. Asking for hall zero routes to
+        /// the frontier instead, so the guard below it can only fire when the FRONTIER is zero —
+        /// which is a save whose unlocked count is zero, and that is a real state: the codec
+        /// repairs it on the way in, but nothing repairs a SaveState somebody built directly.
+        ///
+        /// Without this the guard is unreachable, and an unreachable guard is one somebody
+        /// eventually deletes as dead — correctly, on the evidence they have.
+        /// </remarks>
+        [Test]
+        public void ADelverWithNoHallsIsStillShownTheFirst()
+        {
+            var locked = new SaveState { Unlocked = 0 };
+
+            LevelsCard card = LevelsCards.Of(locked, 0);
+
+            Assert.That(card.Chosen, Is.EqualTo(1));
+            Assert.That(card.Detail.Tier, Is.EqualTo(1));
         }
 
         /// <summary>
@@ -225,6 +255,93 @@ namespace RelicRun.Tests
                 "armour is not scaled by the hall");
             Assert.That(Number(last, "SPD"), Is.EqualTo(Number(first, "SPD")),
                 "speed is not scaled by the hall");
+        }
+
+        /// <summary>
+        /// The multiplier is applied exactly once.
+        /// </summary>
+        /// <remarks>
+        /// "Deeper is bigger" is true of a hall scaled once and of one scaled twice, so it cannot
+        /// tell them apart — and scaling twice is what happens the moment somebody hands the pack
+        /// generator a multiplied config AND keeps the multiplication here. The mutant that did
+        /// exactly that lived through every other case in this file.
+        ///
+        /// The first hall is the unscaled one, so every other hall's numbers are its numbers
+        /// times the hall's own multiplier, rounded the way the game rounds.
+        /// </remarks>
+        [Test]
+        public void TheHallsMultiplierIsAppliedOnceAndOnlyOnce()
+        {
+            var save = new SaveState { Unlocked = 10 };
+
+            HallDetail bare = LevelsCards.Of(save, 1).Detail;
+
+            Assert.That(DungeonCatalog.Get(1).Multiplier, Is.EqualTo(1d),
+                "the first hall is the one everything else is measured against");
+
+            for (var tier = 2; tier <= DungeonCatalog.All.Count; tier++)
+            {
+                double multiplier = DungeonCatalog.Get(tier).Multiplier;
+                HallDetail deeper = LevelsCards.Of(save, tier).Detail;
+
+                Assert.That(Number(deeper, "HP"),
+                    Is.EqualTo(JsMath.RoundToInt(Number(bare, "HP") * multiplier)),
+                    "hall " + tier + " hit points");
+                Assert.That(Number(deeper, "ATK"),
+                    Is.EqualTo(JsMath.RoundToInt(Number(bare, "ATK") * multiplier)),
+                    "hall " + tier + " attack");
+            }
+        }
+
+        /// <summary>
+        /// The preview is the deepest floor's king, on the source's own seed.
+        /// </summary>
+        /// <remarks>
+        /// Three mutants survived everything else by staying deterministic while being wrong: one
+        /// previewed the first foe of the pack instead of the last, one rolled the seed from the
+        /// hall's number, and one previewed the FIRST floor. Every one of them still showed the
+        /// same numbers twice in a row, which is all the "same every time" test could see.
+        ///
+        /// So this pins what is actually promised: the deepest floor, that seed, and the king
+        /// rather than his guards.
+        /// </remarks>
+        [Test]
+        public void ThePreviewIsTheKingOfTheDeepestFloor()
+        {
+            Assert.That(LevelsCards.PreviewSeed, Is.EqualTo(7),
+                "the preview seed is the source's, and it is 7");
+
+            var save = new SaveState { Unlocked = 10 };
+
+            for (var tier = 1; tier <= DungeonCatalog.All.Count; tier++)
+            {
+                DungeonDef hall = DungeonCatalog.Get(tier);
+
+                List<EnemyState> pack = EnemyPackGenerator.Build(
+                    EnemyPackGenerator.MaxFloor,
+                    new Mulberry32(LevelsCards.PreviewSeed),
+                    new DungeonConfig
+                    {
+                        Multiplier = 1.0,
+                        BossRelics = hall.BossRelics,
+                        GhoolemBoss = hall.GhoolemBoss,
+                    });
+
+                EnemyState king = pack[pack.Count - 1];
+                HallDetail shown = LevelsCards.Of(save, tier).Detail;
+
+                Assert.That(Number(shown, "HP"),
+                    Is.EqualTo(JsMath.RoundToInt(king.MaxHp * hall.Multiplier)),
+                    "hall " + tier + " previews a different foe");
+                Assert.That(Number(shown, "DEF"), Is.EqualTo(king.Armor), "hall " + tier);
+
+                // The king is the strongest thing on his floor, which is what makes taking the
+                // last of the pack the right answer rather than a lucky one.
+                foreach (EnemyState guard in pack)
+                {
+                    Assert.That(guard.MaxHp, Is.LessThanOrEqualTo(king.MaxHp), "hall " + tier);
+                }
+            }
         }
 
         /// <summary>
@@ -315,6 +432,8 @@ namespace RelicRun.Tests
 
             lines.Add(LevelsCards.KingName);
             lines.Add(LevelsCards.NoRelics);
+            lines.Add(LevelsCards.DelveLabel);
+            lines.Add(LevelsCards.SealedLabel);
 
             Legibility read = Legibility.Of("en", "silkscreen", lines, Face("silkscreen"), false);
 

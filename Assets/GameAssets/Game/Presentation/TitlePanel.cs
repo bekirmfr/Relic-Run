@@ -1,5 +1,8 @@
 using System;
+using RelicRun.Core.Determinism;
+using RelicRun.Core.Meta;
 using RelicRun.Core.Presentation;
+using RelicRun.Game.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,12 +17,11 @@ namespace RelicRun.Game.Presentation
     /// <see cref="TitleCard"/> that Core built, and the only decisions here are the ones a widget
     /// is allowed to make: what colour a locked banner is, and how wide a bar looks.
     ///
-    /// That division is the same one the fight uses, and it is what makes the title testable at
-    /// all — "what does a level-two delver see" is a question about a struct, answered by
-    /// <c>dotnet test</c>, rather than a question about a screen nobody can open on a build
-    /// server.
+    /// That division is what makes the title testable at all — "what does a level-two delver see"
+    /// is a question about a struct, answered by <c>dotnet test</c>, rather than a question about
+    /// a screen nobody can open on a build server.
     /// </remarks>
-    public sealed class TitleView : MonoBehaviour
+    public sealed class TitlePanel : MetaPanel
     {
         [SerializeField] private TMP_Text _name;
         [SerializeField] private TMP_Text _level;
@@ -43,7 +45,7 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Button _how;
 
         /// <summary>
-        /// What a shut mode looks like.
+        /// What an open mode's captions look like, and what a shut one's do.
         /// </summary>
         /// <remarks>
         /// Dimmed rather than hidden, because a delver who cannot see the arena has no reason to
@@ -51,51 +53,72 @@ namespace RelicRun.Game.Presentation
         /// the level that opens them across the front — the lock IS the advertisement.
         ///
         /// The colours live here rather than in Core for the reason every colour in this port
-        /// does: a view-model that carried them could not be read by anything that was not a
-        /// screen.
+        /// does: a view-model carrying them could not be read by anything that was not a screen.
         /// </remarks>
         private static readonly Color Open = new Color(0.90f, 0.87f, 0.80f);
 
         private static readonly Color Shut = new Color(0.55f, 0.52f, 0.46f);
 
-        /// <summary>Pressed when the delver wants to play whatever is being offered.</summary>
-        public event Action Played;
+        public override Page Shows
+        {
+            get { return Page.Title; }
+        }
 
-        /// <summary>Pressed on the Daily banner.</summary>
-        public event Action ChoseDaily;
+        /// <summary>The clock counts today's Daily down, so this one really does tick.</summary>
+        public override bool Ticks
+        {
+            get { return true; }
+        }
 
-        /// <summary>Pressed on the Versus banner.</summary>
-        public event Action ChoseVersus;
-
-        /// <summary>Pressed on the how-to-play button.</summary>
-        public event Action AskedHow;
+        /// <summary>Where PLAY would go, as of the last draw.</summary>
+        /// <remarks>
+        /// Kept because the button is pressed later than it is drawn, and the answer can change
+        /// underneath it — at midnight, or when a run finishes. Read at press time rather than
+        /// captured when the handler was attached.
+        /// </remarks>
+        private Play _goes;
 
         private void Awake()
         {
-            Listen(_play, () => Played);
-            Listen(_daily, () => ChoseDaily);
-            Listen(_versus, () => ChoseVersus);
-            Listen(_how, () => AskedHow);
+            // Bound once, and each reads its answer when pressed rather than when bound. Go
+            // looks up the listener at call time, and PLAY looks up its destination too — the
+            // scene wires itself after Awake, and the destination changes at midnight.
+            Press(_play, () => Go(_goes.Goes));
+            Press(_daily, () => Go(Page.Modes));
+            Press(_versus, () => Go(Page.Staging));
+            Press(_how, () => Go(Page.How));
         }
 
-        /// <summary>
-        /// Puts a card on the screen.
-        /// </summary>
+        private static void Press(Button button, Action what)
+        {
+            if (button != null) button.onClick.AddListener(() => what());
+        }
+
+        public override void Draw(SaveVault vault, DateTimeOffset now)
+        {
+            SaveState earned = vault.Earned;
+            bool done = earned.DailyDone.Contains(DailySeed.For(now));
+
+            Show(TitleCards.Of(earned, vault.Chosen, done, false, now));
+        }
+
+        /// <summary>Puts a card on the screen.</summary>
         /// <remarks>
-        /// Called whenever anything changes rather than every frame, except for the clock — the
-        /// countdown moves once a second and the rest of the card is rebuilt with it, because a
-        /// card is cheap and a screen that updated only the parts it thought had changed would
-        /// eventually be wrong about one of them.
+        /// The whole card each time, not just the clock. A screen that redrew only the parts it
+        /// believed had changed would eventually be wrong about one of them, and a card is a
+        /// struct and some strings.
         /// </remarks>
         public void Show(TitleCard card)
         {
+            _goes = card.Play;
+
             Put(_name, card.Name);
             Put(_level, "LV " + card.Level);
 
             if (_levelBar != null)
             {
                 // A capped delver gets a full bar rather than a fraction of a level that does not
-                // exist, which is the alternative reading of a progress of zero at the top.
+                // exist, which is the other reading of a progress of zero at the top.
                 _levelBar.fillAmount = card.Capped ? 1f : Mathf.Clamp01((float)card.Progress);
             }
 
@@ -133,26 +156,6 @@ namespace RelicRun.Game.Presentation
         private static void Put(TMP_Text text, string what)
         {
             if (text != null) text.text = what;
-        }
-
-        /// <summary>
-        /// Hooks a button up to whichever handler is attached at the moment it is pressed.
-        /// </summary>
-        /// <remarks>
-        /// The indirection is not decoration. Subscribing the event directly would capture
-        /// whoever was listening when <c>Awake</c> ran, which is nobody — the scene wires its
-        /// handlers up afterwards, and a button bound too early is a button that silently does
-        /// nothing for the whole life of the screen.
-        /// </remarks>
-        private static void Listen(Button button, Func<Action> handler)
-        {
-            if (button == null) return;
-
-            button.onClick.AddListener(() =>
-            {
-                Action now = handler();
-                if (now != null) now();
-            });
         }
     }
 }

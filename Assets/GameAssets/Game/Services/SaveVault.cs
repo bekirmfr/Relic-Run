@@ -104,6 +104,17 @@ namespace RelicRun.Game.Services
         private Progress _progress;
         private Choices _choices;
 
+        /// <param name="saves">
+        /// Where the two files live, or null for a vault that keeps everything in memory and
+        /// forgets it.
+        /// </param>
+        /// <remarks>
+        /// The null case is not a convenience for tests. It is what a screen gets when the
+        /// application scope could not be reached, and it exists so that failure shows a delver
+        /// who has never played rather than a screen that throws on its first read. Losing a
+        /// save is bad; a game that will not open is worse, and only one of the two can be
+        /// reported to anybody.
+        /// </remarks>
         public SaveVault(ISaveService saves)
         {
             _saves = saves;
@@ -128,13 +139,17 @@ namespace RelicRun.Game.Services
         /// <summary>Writes the progression back to disk.</summary>
         public void CommitProgress()
         {
-            ProgressFile().Save(OpenProgress());
+            SaveRepository<Progress> file = ProgressFile();
+
+            if (file != null) file.Save(OpenProgress());
         }
 
         /// <summary>Writes the settings back to disk.</summary>
         public void CommitChoices()
         {
-            ChoicesFile().Save(OpenChoices());
+            SaveRepository<Choices> file = ChoicesFile();
+
+            if (file != null) file.Save(OpenChoices());
         }
 
         /// <summary>Reads both files again, discarding what is held.</summary>
@@ -152,9 +167,11 @@ namespace RelicRun.Game.Services
         {
             if (_progress != null) return _progress;
 
+            SaveRepository<Progress> file = ProgressFile();
+
             // A repository that returns nothing is a package contract this does not rely on, and
             // a null here would fail later and somewhere else.
-            _progress = ProgressFile().Load() ?? new Progress();
+            _progress = file == null ? new Progress() : file.Load() ?? new Progress();
 
             if (_progress.Damaged > 0)
             {
@@ -169,12 +186,19 @@ namespace RelicRun.Game.Services
 
         private Choices OpenChoices()
         {
-            return _choices ?? (_choices = ChoicesFile().Load() ?? new Choices());
+            if (_choices != null) return _choices;
+
+            SaveRepository<Choices> file = ChoicesFile();
+
+            _choices = file == null ? new Choices() : file.Load() ?? new Choices();
+
+            return _choices;
         }
 
         private SaveRepository<Progress> ProgressFile()
         {
             if (_progressFile != null) return _progressFile;
+            if (_saves == null) return null;
 
             _saves.Register<Progress>(ProgressKey);
             _progressFile = _saves.GetRepository<Progress>();
@@ -185,6 +209,7 @@ namespace RelicRun.Game.Services
         private SaveRepository<Choices> ChoicesFile()
         {
             if (_choicesFile != null) return _choicesFile;
+            if (_saves == null) return null;
 
             _saves.Register<Choices>(ChoicesKey);
             _choicesFile = _saves.GetRepository<Choices>();

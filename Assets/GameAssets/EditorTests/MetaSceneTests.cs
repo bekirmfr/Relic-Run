@@ -16,25 +16,25 @@ namespace RelicRun.Tests.Editor
     /// <remarks>
     /// The same questions the fight's scene is asked, for the same reason: a prefab is where a
     /// mistake is silent by construction. An empty reference looks exactly like one nobody has
-    /// got round to, and <see cref="TitleView"/> needs fifteen of them.
+    /// got round to, and <see cref="TitlePanel"/> needs fifteen of them.
     ///
     /// So the references are asked about GENERICALLY, by walking every object reference a
     /// component has rather than by naming them. A field added tomorrow and forgotten fails this
     /// without anybody remembering to come back and add it.
     /// </remarks>
     [TestFixture]
-    public class TitleSceneTests
+    public class MetaSceneTests
     {
         private GameObject _scene;
 
         [OneTimeSetUp]
         public void LoadTheScene()
         {
-            _scene = AssetDatabase.LoadAssetAtPath<GameObject>(TitleSceneBuilder.ScenePath);
+            _scene = AssetDatabase.LoadAssetAtPath<GameObject>(MetaSceneBuilder.ScenePath);
 
             Assert.That(_scene, Is.Not.Null,
-                TitleSceneBuilder.ScenePath + " is missing — run Tools ▸ Relic Run ▸ " +
-                "Build Title Scene");
+                MetaSceneBuilder.ScenePath + " is missing — run Tools ▸ Relic Run ▸ " +
+                "Build Menu Scene");
         }
 
         private T Find<T>() where T : Component
@@ -57,7 +57,7 @@ namespace RelicRun.Tests.Editor
             Assert.That(_scene.GetComponent<ISceneObject>(), Is.Not.Null,
                 "the root implements no ISceneObject, so nothing will initialise it");
 
-            Assert.That(_scene.GetComponent<TitleScene>(), Is.Not.Null);
+            Assert.That(_scene.GetComponent<MetaScene>(), Is.Not.Null);
         }
 
         /// <summary>
@@ -78,16 +78,16 @@ namespace RelicRun.Tests.Editor
 
         /// <summary>Everything fillable is filled.</summary>
         [Test]
-        public void EveryReferenceOnTheViewIsWired()
+        public void EveryReferenceOnTheTitleIsWired()
         {
-            Filled(Find<TitleView>());
+            Filled(Find<TitlePanel>());
         }
 
         /// <summary>And the scene knows what it draws on.</summary>
         [Test]
-        public void TheSceneKnowsItsView()
+        public void TheSceneKnowsItsPanels()
         {
-            Filled(_scene.GetComponent<TitleScene>());
+            Filled(_scene.GetComponent<MetaScene>());
         }
 
         private static void Filled(Component component)
@@ -110,7 +110,7 @@ namespace RelicRun.Tests.Editor
 
             Assert.That(missing, Is.Empty,
                 component.GetType().Name + " has " + missing.Count + " empty references: " +
-                string.Join(", ", missing) + " — rebuild with Tools > Relic Run > Build Title Scene");
+                string.Join(", ", missing) + " — rebuild with Tools > Relic Run > Build Menu Scene");
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace RelicRun.Tests.Editor
         [Test]
         public void TheLevelBarCanActuallyShowAFraction()
         {
-            var view = new SerializedObject(Find<TitleView>());
+            var view = new SerializedObject(Find<TitlePanel>());
             var bar = view.FindProperty("_levelBar").objectReferenceValue as Image;
 
             Assert.That(bar, Is.Not.Null, "nothing shows how far through a level the delver is");
@@ -216,18 +216,85 @@ namespace RelicRun.Tests.Editor
                 string.Join(", ", fixedWidth));
         }
 
+        /// <summary>Every reference the dungeon list needs is wired too.</summary>
+        [Test]
+        public void EveryReferenceOnTheDungeonListIsWired()
+        {
+            Filled(Find<LevelsPanel>());
+        }
+
+        /// <summary>
+        /// Both panels are listed on the scene, and each is listed once.
+        /// </summary>
+        /// <remarks>
+        /// The scene finds panels from this array rather than by walking its children, because a
+        /// hidden panel is an INACTIVE object and the cheap search does not return those. A panel
+        /// missing from the list is a screen that cannot be navigated to; a panel listed twice is
+        /// one that gets hidden immediately after being shown.
+        /// </remarks>
+        [Test]
+        public void EveryPanelIsListedOnceOnTheScene()
+        {
+            var listed = new SerializedObject(_scene.GetComponent<MetaScene>())
+                .FindProperty("_panels");
+
+            var pages = new List<Page>();
+
+            for (var i = 0; i < listed.arraySize; i++)
+            {
+                var panel = listed.GetArrayElementAtIndex(i).objectReferenceValue as MetaPanel;
+
+                Assert.That(panel, Is.Not.Null, "panel " + i + " is empty");
+                Assert.That(pages.Contains(panel.Shows), Is.False,
+                    panel.Shows + " is listed twice");
+
+                pages.Add(panel.Shows);
+            }
+
+            foreach (MetaPanel built in _scene.GetComponentsInChildren<MetaPanel>(true))
+            {
+                Assert.That(pages.Contains(built.Shows), Is.True,
+                    built.Shows + " is in the scene but not listed, so nothing can reach it");
+            }
+
+            Assert.That(pages.Count, Is.GreaterThan(1), "only one panel was built");
+        }
+
+        /// <summary>
+        /// The hall tile is a prefab and is NOT sitting in the built grid.
+        /// </summary>
+        /// <remarks>
+        /// The panel spawns from it. A live copy left in the layout would be an eleventh hall
+        /// that never redresses — always showing whatever the builder last typed into it, in a
+        /// grid where every other square is real.
+        /// </remarks>
+        [Test]
+        public void TheHallTileIsATemplateRatherThanAHall()
+        {
+            var tile = AssetDatabase.LoadAssetAtPath<GameObject>(MetaSceneBuilder.TilePrefab);
+
+            Assert.That(tile, Is.Not.Null, MetaSceneBuilder.TilePrefab + " is missing");
+            Assert.That(tile.GetComponent<HallTileView>(), Is.Not.Null);
+
+            Filled(tile.GetComponent<HallTileView>());
+
+            Assert.That(_scene.GetComponentsInChildren<HallTileView>(true), Is.Empty,
+                "a tile was built into the scene, so the grid opens with a hall nobody made");
+        }
+
         /// <summary>The rows directly under the canvas, which are what the layout is made of.</summary>
         private IEnumerable<Transform> Rows()
         {
-            var canvas = Find<Canvas>();
-
-            Assert.That(canvas, Is.Not.Null, "no canvas at all");
-
             var rows = new List<Transform>();
 
-            foreach (Transform child in canvas.transform) rows.Add(child);
+            // Each panel fills the canvas; what has to take its width from the screen is what is
+            // inside them. So the question is asked one level down rather than at the top.
+            foreach (MetaPanel panel in _scene.GetComponentsInChildren<MetaPanel>(true))
+            {
+                foreach (Transform child in panel.transform) rows.Add(child);
+            }
 
-            Assert.That(rows, Is.Not.Empty, "the canvas is empty");
+            Assert.That(rows, Is.Not.Empty, "no panels, or every panel is empty");
 
             return rows;
         }
@@ -243,9 +310,9 @@ namespace RelicRun.Tests.Editor
         [Test]
         public void TheTitleIsWhatTheMenuKeyLoads()
         {
-            var config = AssetDatabase.LoadAssetAtPath<SceneConfig>(TitleSceneBuilder.ConfigPath);
+            var config = AssetDatabase.LoadAssetAtPath<SceneConfig>(MetaSceneBuilder.ConfigPath);
 
-            Assert.That(config, Is.Not.Null, "no scene config at " + TitleSceneBuilder.ConfigPath);
+            Assert.That(config, Is.Not.Null, "no scene config at " + MetaSceneBuilder.ConfigPath);
             Assert.That(config.SceneKey, Is.EqualTo(SceneKeys.MenuScene));
 
             Assert.That(config.SceneReference, Is.Not.Null);
@@ -254,7 +321,7 @@ namespace RelicRun.Tests.Editor
 
             string path = AssetDatabase.GUIDToAssetPath(config.SceneReference.AssetGUID);
 
-            Assert.That(path, Is.EqualTo(TitleSceneBuilder.ScenePath),
+            Assert.That(path, Is.EqualTo(MetaSceneBuilder.ScenePath),
                 SceneKeys.MenuScene + " loads " + path + " rather than the title");
         }
 

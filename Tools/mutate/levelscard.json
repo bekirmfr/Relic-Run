@@ -118,7 +118,7 @@
     {
       "name": "the score multiplier shows its hundredths like a rate",
       "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
-      "find": "            return two.ToString(\"0.##\", CultureInfo.InvariantCulture);",
+      "find": "            return two.ToString(CultureInfo.InvariantCulture);",
       "replace": "            return two.ToString(\"0.00\", CultureInfo.InvariantCulture);"
     },
     {
