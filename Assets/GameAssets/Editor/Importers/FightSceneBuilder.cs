@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using GameLift.Scene;
-using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using RelicRun.Game.Presentation;
 using TMPro;
@@ -8,6 +7,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
+using static RelicRun.Editor.Importers.Scenery;
 
 namespace RelicRun.Editor.Importers
 {
@@ -71,49 +71,6 @@ namespace RelicRun.Editor.Importers
         /// the screen to keep the source's proportions without a conversion nobody can check.
         /// </remarks>
         private const float SlotSide = 34f;
-
-        /// <summary>
-        /// One white pixel, which is what every bar on this screen is actually made of.
-        /// </summary>
-        /// <remarks>
-        /// Not decoration. An <c>Image</c> with NO sprite ignores its own type: Unity's
-        /// <c>OnPopulateMesh</c> checks for a sprite first and falls back to a plain quad, so a
-        /// Filled image with nothing in it draws a full rectangle and <c>fillAmount</c> does
-        /// nothing whatsoever.
-        ///
-        /// That was the state of every bar in this scene. Both healths, both attack gauges and
-        /// all three gauges on a relic slot were Filled, horizontal, correctly wired, and
-        /// permanently full — a foe at zero hit points still had a full red bar, and the attack
-        /// gauges never moved because nothing they were told could reach the screen.
-        ///
-        /// One pixel rather than Unity's built-in UISprite, which is rounded and nine-sliced. A
-        /// bar three units tall with rounded ends is a bar with no ends.
-        /// </remarks>
-        public const string WhitePath = "Assets/GameAssets/Art/Sheets/White.png";
-
-        /// <summary>
-        /// Every size below is in authored pixels, and every text size is a multiple of eight.
-        /// </summary>
-        /// <remarks>
-        /// The canvas is <c>ConstantPixelSize</c> at a whole factor, so one unit here is one, two
-        /// or three screen pixels and never one and a half. The layout was first written against
-        /// a 1080-wide reference and is halved.
-        ///
-        /// How many units wide that leaves is NOT fixed, and it is worth not forgetting: a
-        /// 1080x2400 phone gets 2x and 540 units, a 1440x3088 one gets 3x and 480 — the bigger
-        /// screen has the SMALLER canvas, because a whole factor that fits 390x844 three times
-        /// divides the screen more finely. Anything anchored or stretched handles that; anything
-        /// given a fixed width in units takes a different share of the screen on each device.
-        ///
-        /// Text sizes go through <see cref="PixelScale.Snap"/> rather than being typed, because
-        /// the ui face is a bitmap baked at eight pixels and a size of twenty draws it at two and
-        /// a half times. Twenty is the exact kind of number that looks reasonable in a source
-        /// file and puts the smear straight back, so it is not possible to write one here.
-        /// </remarks>
-        private static int Text(int size)
-        {
-            return PixelScale.Snap(size);
-        }
 
         /// <summary>Named, so the things that need it run first can say so.</summary>
         private const string BuildItem = "Tools/Relic Run/Build Fight Scene";
@@ -526,194 +483,7 @@ namespace RelicRun.Editor.Importers
 
         /* ---------- wiring ---------- */
 
-        private struct Wiring
-        {
-            public string Field;
-            public Object Value;
-        }
-
-        private static Wiring Pair(string field, Object value)
-        {
-            return new Wiring { Field = field, Value = value };
-        }
-
-        /// <summary>
-        /// Fills a component's serialized references, and complains about any it cannot find.
-        /// </summary>
-        /// <remarks>
-        /// By name, which is the only way in from outside — and the reason each miss is reported
-        /// rather than skipped. A renamed field would otherwise leave a reference quietly empty,
-        /// and an empty reference in a scene looks exactly like one nobody got round to.
-        /// </remarks>
-        private static void Wire(Component component, Wiring[] wiring)
-        {
-            var serialized = new SerializedObject(component);
-
-            foreach (Wiring one in wiring)
-            {
-                SerializedProperty property = serialized.FindProperty(one.Field);
-                if (property == null)
-                {
-                    Debug.LogError(component.GetType().Name + " has no field called " + one.Field +
-                                   " — the builder and the component have drifted apart");
-                    continue;
-                }
-
-                property.objectReferenceValue = one.Value;
-            }
-
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
         /* ---------- the pieces ---------- */
-
-        private static GameObject Canvas()
-        {
-            var canvas = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas),
-                typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(PixelCanvas));
-
-            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-
-            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
-
-            // Set here as well as at run time so the prefab is not misleading to open. What is
-            // authored is a starting point; PixelCanvas replaces the factor with the one the
-            // actual screen earns, every time the screen changes.
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            scaler.scaleFactor = 1f;
-
-            // One canvas unit to one authored pixel, which is what keeps a point-filtered sprite
-            // landing on whole pixels instead of between two of them.
-            scaler.referencePixelsPerUnit = 100f;
-
-            Wire(canvas.GetComponent<PixelCanvas>(), new[] { Pair("_scaler", scaler) });
-
-            return canvas;
-        }
-
-        private static GameObject Panel(GameObject parent, string name, Vector2 anchorMin,
-            Vector2 anchorMax, Vector2 at, Vector2 size)
-        {
-            var panel = new GameObject(name, typeof(RectTransform));
-            var rect = (RectTransform)panel.transform;
-
-            rect.SetParent(parent.transform, false);
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = at;
-            rect.sizeDelta = size;
-
-            return panel;
-        }
-
-        private static GameObject Box(GameObject parent, string name, Vector2 anchor,
-            Vector2 size, Vector2 at)
-        {
-            var box = new GameObject(name, typeof(RectTransform), typeof(Image));
-            var rect = (RectTransform)box.transform;
-
-            rect.SetParent(parent.transform, false);
-            rect.anchorMin = anchor;
-            rect.anchorMax = anchor;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = at;
-
-            Image image = box.GetComponent<Image>();
-            image.color = Color.white;
-            image.preserveAspect = true;
-            image.enabled = false;
-
-            return box;
-        }
-
-        /// <summary>
-        /// A bar that fills from the left, which is what both gauges and both healths are.
-        /// </summary>
-        /// <remarks>
-        /// Its WIDTH comes from its panel, not from a number here. It was 300 units, which took
-        /// 56% of the canvas on a 1080-wide phone and 62% on a 1440-wide one — the same bar
-        /// showing a different amount of screen, because a whole scale factor gives the bigger
-        /// screen the smaller canvas.
-        ///
-        /// A health bar is the one thing on this screen that has to be read as a PROPORTION. A
-        /// delver judges how much trouble they are in by how much of the bar is left, so a bar
-        /// whose full length is a different fraction of the screen on each device is quietly
-        /// telling each of them something different.
-        ///
-        /// Only the height stays authored, because that is thickness rather than measure.
-        /// </remarks>
-        private static GameObject Bar(GameObject parent, string name, Color colour, Vector2 at,
-            float height = 13f)
-        {
-            var bar = new GameObject(name, typeof(RectTransform), typeof(Image));
-            var rect = (RectTransform)bar.transform;
-
-            rect.SetParent(parent.transform, false);
-            rect.anchorMin = new Vector2(0f, 0.5f);
-            rect.anchorMax = new Vector2(1f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-
-            // Stretched, so x is an inset from the panel's width rather than a width. Zero means
-            // the panel's width exactly; the panel already holds the margin.
-            rect.sizeDelta = new Vector2(0f, height);
-            rect.anchoredPosition = new Vector2(0f, at.y);
-
-            Image image = bar.GetComponent<Image>();
-            image.sprite = White();
-            image.color = colour;
-            image.type = Image.Type.Filled;
-            image.fillMethod = Image.FillMethod.Horizontal;
-            image.fillOrigin = (int)Image.OriginHorizontal.Left;
-            image.fillAmount = 1f;
-
-            return bar;
-        }
-
-        /// <param name="stretch">
-        /// Whether the box takes its width from the panel rather than from <paramref name="box"/>.
-        /// Right-aligned text needs it: a fixed width right-aligns against an edge that is not
-        /// the panel's, so the text drifts as the canvas changes size — and the canvas changes
-        /// size on every device.
-        /// </param>
-        private static GameObject Say(GameObject parent, TMP_FontAsset face, string what,
-            int size, TextAlignmentOptions how, Vector2 at, Vector2 box, bool stretch = false)
-        {
-            var said = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-            var rect = (RectTransform)said.transform;
-
-            rect.SetParent(parent.transform, false);
-            rect.anchorMin = new Vector2(stretch ? 0f : 0f, 0.5f);
-            rect.anchorMax = new Vector2(stretch ? 1f : 0f, 0.5f);
-            rect.pivot = new Vector2(stretch ? 0.5f : 0f, 0.5f);
-            rect.sizeDelta = stretch ? new Vector2(0f, box.y) : box;
-            rect.anchoredPosition = stretch ? new Vector2(0f, at.y) : at;
-
-            var text = said.GetComponent<TextMeshProUGUI>();
-            text.text = what;
-            text.fontSize = size;
-            text.alignment = how;
-            text.color = new Color(0.90f, 0.87f, 0.80f);
-            if (face != null) text.font = face;
-
-            return said;
-        }
-
-        /// <summary>A point for numbers to fly from. It draws nothing itself.</summary>
-        private static GameObject Anchor(GameObject parent, string name, Vector2 at)
-        {
-            var anchor = new GameObject(name, typeof(RectTransform));
-            var rect = (RectTransform)anchor.transform;
-
-            rect.SetParent(parent.transform, false);
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = Vector2.zero;
-            rect.anchoredPosition = at;
-
-            return anchor;
-        }
 
         /// <summary>
         /// The log, newest at the bottom, laid out by Unity rather than by arithmetic.
@@ -936,50 +706,6 @@ namespace RelicRun.Editor.Importers
             return tray;
         }
 
-        /// <summary>
-        /// The white pixel, written once and loaded ever after.
-        /// </summary>
-        /// <remarks>
-        /// Generated rather than committed as art, because it is not art — it is a consequence of
-        /// how <c>Image</c> works, and a checked-in PNG of one white pixel is a thing nobody can
-        /// look at and understand.
-        ///
-        /// Point filtered and uncompressed, like everything else on this screen. A compressed
-        /// single pixel is not smaller and a filtered one is not white.
-        /// </remarks>
-        private static Sprite White()
-        {
-            var found = AssetDatabase.LoadAssetAtPath<Sprite>(WhitePath);
-            if (found != null) return found;
-
-            ContentPaths.EnsureFolder(ContentPaths.Sheets);
-
-            var pixel = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            pixel.SetPixel(0, 0, Color.white);
-            pixel.Apply();
-
-            System.IO.File.WriteAllBytes(
-                System.IO.Path.Combine(ContentPaths.ProjectRoot, WhitePath),
-                pixel.EncodeToPNG());
-
-            Object.DestroyImmediate(pixel);
-            AssetDatabase.ImportAsset(WhitePath, ImportAssetOptions.ForceSynchronousImport);
-
-            var importer = AssetImporter.GetAtPath(WhitePath) as TextureImporter;
-
-            if (importer != null)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.filterMode = FilterMode.Point;
-                importer.mipmapEnabled = false;
-                importer.textureCompression = TextureImporterCompression.Uncompressed;
-                importer.SaveAndReimport();
-            }
-
-            return AssetDatabase.LoadAssetAtPath<Sprite>(WhitePath);
-        }
-
         /* ---------- the prefabs ---------- */
 
         /// <summary>
@@ -1164,7 +890,6 @@ namespace RelicRun.Editor.Importers
             return bar;
         }
 
-
         private static FlyingNumber Flier(TMP_FontAsset face)
         {
             var made = new GameObject("FlyingNumber", typeof(RectTransform),
@@ -1197,14 +922,6 @@ namespace RelicRun.Editor.Importers
             Wire(made.GetComponent<LogLine>(), new[] { Pair("_text", text) });
 
             return Save(made, LinePrefab).GetComponent<LogLine>();
-        }
-
-        private static GameObject Save(GameObject made, string path)
-        {
-            GameObject saved = PrefabUtility.SaveAsPrefabAsset(made, path);
-            Object.DestroyImmediate(made);
-
-            return saved;
         }
     }
 }
