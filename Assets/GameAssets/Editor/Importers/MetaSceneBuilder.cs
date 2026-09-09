@@ -393,7 +393,7 @@ namespace RelicRun.Editor.Importers
 
             GameObject lore = Line(panel, face, "", 16, TextAlignmentOptions.TopLeft, 0f);
             Place(lore, 0.5f, -6f, 96f);
-            lore.GetComponent<TMP_Text>().enableWordWrapping = true;
+            lore.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
 
             GameObject stats = Strip(panel, "Stats", 0f, 190f, 128f);
             var rows = stats.AddComponent<VerticalLayoutGroup>();

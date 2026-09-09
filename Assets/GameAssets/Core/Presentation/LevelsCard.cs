@@ -119,13 +119,21 @@ namespace RelicRun.Core.Presentation
         public const string SealedLabel = "SEALED";
 
         /// <summary>
-        /// The seed the boss preview is built from.
+        /// The seed the boss preview is built from. The source's number.
         /// </summary>
         /// <remarks>
-        /// The source's, and fixed on purpose: this is a shop window rather than a fight. A
-        /// preview rolled fresh each time the screen opened would show a delver different numbers
-        /// for the same hall depending on when they looked, and the numbers are the whole reason
-        /// they are looking.
+        /// It changes nothing this screen shows, and that is worth writing down rather than
+        /// leaving for somebody to rediscover. The pack generator does not roll for the king: one
+        /// species owns each floor, and its hit points, attack, armour and speed all come out of
+        /// the floor's own formulas. Feeding it any seed at all produces species 9 with 126 hit
+        /// points. What the roll decides is which species fill the guard slots BEHIND him, and
+        /// this screen does not draw them.
+        ///
+        /// So the constant is the source's call preserved, not a contract — mutation testing
+        /// confirmed a mutant that seeds from the hall's own number cannot be told apart from
+        /// this, and there is no honest test that kills it. It stops being cosmetic the moment a
+        /// preview shows anything the roll actually decides, which is why it is named rather than
+        /// inlined.
         ///
         /// It is NOT the seed the delve runs on. That comes from the run, and the pack a delver
         /// actually meets is rolled then.
@@ -146,8 +154,12 @@ namespace RelicRun.Core.Presentation
             int frontier = Career.Frontier(save);
             int count = DungeonCatalog.All.Count;
 
+            // Career.Frontier already floors itself at one, so a delver who has unlocked nothing
+            // still lands on hall one here. There WAS a guard below this line for that; mutation
+            // testing showed it could not fire, because the only route to a value under one is
+            // `chosen <= 0`, and that route reads the frontier instead. Dead, and deleted — an
+            // unreachable guard is one somebody later trusts.
             int at = chosen <= 0 ? frontier : chosen;
-            if (at < 1) at = 1;
             if (at > count) at = count;
 
             var tiles = new List<HallTile>(count);

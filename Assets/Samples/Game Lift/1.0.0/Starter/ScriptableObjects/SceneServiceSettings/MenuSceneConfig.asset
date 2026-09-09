@@ -19,5 +19,5 @@ MonoBehaviour:
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
-  <RemoveAllOtherScenes>k__BackingField: 0
+  <RemoveAllOtherScenes>k__BackingField: 1
   <ShowSceneTransition>k__BackingField: 0

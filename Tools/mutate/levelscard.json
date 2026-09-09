@@ -38,12 +38,6 @@
       "replace": "            if (at > count + 100) at = count;"
     },
     {
-      "name": "a hall below the first is not clamped",
-      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
-      "find": "            if (at < 1) at = 1;",
-      "replace": "            if (at < -100) at = 1;"
-    },
-    {
       "name": "the hall at the frontier is described as sealed",
       "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
       "find": "            if (tier > frontier)",
@@ -102,12 +96,6 @@
       "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
       "find": "            return pack[pack.Count - 1];",
       "replace": "            return pack[0];"
-    },
-    {
-      "name": "the preview is rolled fresh from the hall rather than from one seed",
-      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
-      "find": "                EnemyPackGenerator.MaxFloor, new Mulberry32(PreviewSeed), preview);",
-      "replace": "                EnemyPackGenerator.MaxFloor, new Mulberry32((uint)hall.Tier), preview);"
     },
     {
       "name": "the preview is of the first floor rather than the deepest",

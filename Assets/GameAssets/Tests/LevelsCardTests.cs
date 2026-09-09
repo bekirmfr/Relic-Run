@@ -159,23 +159,28 @@ namespace RelicRun.Tests
         /// A delver with no halls at all is still shown one.
         /// </summary>
         /// <remarks>
-        /// The floor of the clamp, and the only way to reach it. Asking for hall zero routes to
-        /// the frontier instead, so the guard below it can only fire when the FRONTIER is zero —
-        /// which is a save whose unlocked count is zero, and that is a real state: the codec
-        /// repairs it on the way in, but nothing repairs a SaveState somebody built directly.
+        /// A save with no halls unlocked is a real state — the codec repairs it on the way in,
+        /// but nothing repairs a SaveState somebody built directly — and this screen has to open
+        /// on SOMETHING.
         ///
-        /// Without this the guard is unreachable, and an unreachable guard is one somebody
-        /// eventually deletes as dead — correctly, on the evidence they have.
+        /// What guarantees it is Career.Frontier, which floors itself at one. LevelsCards used to
+        /// carry a guard of its own below that, and mutation testing showed it could never fire:
+        /// the only route to a value under one reads the frontier, which is already at least one.
+        /// It is gone, and this is the test that says the guarantee still holds without it.
         /// </remarks>
         [Test]
         public void ADelverWithNoHallsIsStillShownTheFirst()
         {
             var locked = new SaveState { Unlocked = 0 };
 
+            Assert.That(Career.Frontier(locked), Is.EqualTo(1),
+                "the frontier is what floors this, so it is what has to hold");
+
             LevelsCard card = LevelsCards.Of(locked, 0);
 
             Assert.That(card.Chosen, Is.EqualTo(1));
             Assert.That(card.Detail.Tier, Is.EqualTo(1));
+            Assert.That(card.Detail.Sealed, Is.False, "and hall one is open to everybody");
         }
 
         /// <summary>
