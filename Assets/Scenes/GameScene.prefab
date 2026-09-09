@@ -1325,57 +1325,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _view: {fileID: 582380464794540207}
   _content: {fileID: 11400000, guid: f72c234a5aea2c84581ec4eae6aa823b, type: 2}
-  _seed: 98693133
-  _floor: 1
-  _delverSetup:
-    Level: 1
-    OverrideStats: 0
-    Hp: 100
-    Gold: 0
-    Atk: 5
-    Def: 0
-    Spd: 25
-    Lck: 10
-    Shelf:
-    - Relic: 4
-      Trigger: 0
-      Emitter: 0
-      Awakened: 0
-    - Relic: 5
-      Trigger: 0
-      Emitter: 0
-      Awakened: 0
-    - Relic: 6
-      Trigger: 1
-      Emitter: 0
-      Awakened: 0
-    - Relic: 32
-      Trigger: 0
-      Emitter: 0
-      Awakened: 0
-    - Relic: 7
-      Trigger: 0
-      Emitter: 0
-      Awakened: 0
-    - Relic: 12
-      Trigger: 0
-      Emitter: 0
-      Awakened: 0
-  _foeSetup:
-    Override: 0
-    Pack:
-    - Species: 0
-      Rank: 1
-      Hp: 20
-      Atk: 4
-      Armor: 0
-      Spd: 25
-      Lck: 10
-      Drop: 6
-      Relics: 040000000500000006000000070000000c000000
-  _skipIntro: 0
-  _speed: 1
-  _reducedMotion: 0
+  _fight: {fileID: 11400000, guid: 0c0f34ac3d1f4424bb3b7d56228be33f, type: 2}
 --- !u!1 &9133188880974798453
 GameObject:
   m_ObjectHideFlags: 0

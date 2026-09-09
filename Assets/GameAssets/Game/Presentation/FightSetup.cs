@@ -83,18 +83,24 @@ namespace RelicRun.Game.Presentation
             // never filled in, so they are corrected and said out loud.
             int hp = Hp;
             int spd = Spd;
+            EnemyRank rank = Rank;
 
-            if (hp < 1 || spd < 1)
+            if (hp < 1 || spd < 1 || rank == EnemyRank.None)
             {
-                Debug.LogWarning("a foe was authored with " + Hp + " hp and " + Spd +
-                                 " speed; using 1 for anything below it, since a foe that cannot " +
-                                 "act or cannot survive is not a fight");
+                Debug.LogWarning("a foe was authored as a " + Rank + " with " + Hp + " hp and " +
+                                 Spd + " speed, which is a row nobody finished filling in; " +
+                                 "treating it as a guard with at least one of each");
 
                 if (hp < 1) hp = 1;
                 if (spd < 1) spd = 1;
+
+                // None is what a rank field holds before anybody touches it, and it is not a
+                // rank the game has — it would pick the guard's art by falling off the end of
+                // the switch rather than by being one.
+                if (rank == EnemyRank.None) rank = EnemyRank.Guard;
             }
 
-            return EnemyPackGenerator.Authored(Species, Rank, hp, Atk, Armor, spd, Lck, Drop,
+            return EnemyPackGenerator.Authored(Species, rank, hp, Atk, Armor, spd, Lck, Drop,
                 Relics);
         }
 

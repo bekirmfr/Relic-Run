@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd028d19a115a92459d2ae700896ab9f, type: 3}
+  m_Name: Fight
+  m_EditorClassIdentifier: 
+  Seed: 98693133
+  Floor: 1
+  Delver:
+    Level: 1
+    OverrideStats: 0
+    Hp: 100
+    Gold: 0
+    Atk: 5
+    Def: 0
+    Spd: 25
+    Lck: 10
+    Shelf:
+    - Relic: 4
+      Trigger: 0
+      Emitter: 0
+      Awakened: 0
+    - Relic: 5
+      Trigger: 0
+      Emitter: 0
+      Awakened: 0
+    - Relic: 6
+      Trigger: 1
+      Emitter: 0
+      Awakened: 0
+    - Relic: 7
+      Trigger: 0
+      Emitter: 0
+      Awakened: 0
+    - Relic: 12
+      Trigger: 0
+      Emitter: 0
+      Awakened: 0
+    - Relic: 19
+      Trigger: 0
+      Emitter: 0
+      Awakened: 0
+  Foes:
+    Override: 0
+    Pack:
+    - Species: 1
+      Rank: 3
+      Hp: 50
+      Atk: 4
+      Armor: 2
+      Spd: 25
+      Lck: 10
+      Drop: 20
+      Relics: 1a00000007000000
+  SkipIntro: 0
+  Speed: 1
+  ReducedMotion: 0

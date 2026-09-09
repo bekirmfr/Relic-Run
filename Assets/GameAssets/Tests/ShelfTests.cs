@@ -520,6 +520,23 @@ namespace RelicRun.Tests
             Assert.That(boss.Relics, Is.Not.Null.And.Count.EqualTo(1));
         }
 
+        /// <summary>
+        /// None is not a rank, and nothing is drawn from its column.
+        /// </summary>
+        /// <remarks>
+        /// It is what an enum field holds before anybody touches it, so it is what a foe row
+        /// added in an inspector starts as. It falls off the end of the switch and gets the
+        /// guard's column — the right ANSWER for the wrong reason, which is worth pinning down
+        /// so that adding a rank later does not silently change what an unfilled row looks like.
+        /// </remarks>
+        [Test]
+        public void AnUnsetRankIsNotARank()
+        {
+            Assert.That((int)EnemyRank.None, Is.Zero, "an unset enum field holds this");
+            Assert.That(EnemyPackGenerator.VariantOf(EnemyRank.None),
+                Is.EqualTo(EnemyPackGenerator.VariantOf(EnemyRank.Guard)));
+        }
+
         /// <summary>Every rank knows which column of the sheet it is drawn from.</summary>
         /// <remarks>
         /// Guard bare, elite armed, boss and king armed and shielded — three columns for four
