@@ -102,23 +102,24 @@ namespace RelicRun.Tests.Editor
                 Assert.That(face.atlasTextures.Length, Is.EqualTo(1),
                     role + " spilled into a second atlas — raise the size rather than allowing it");
 
+                // Both, for different reasons. A bitmap atlas packed edge to edge lets a quad
+                // half a texel out sample the NEIGHBOURING glyph — point sampling picks exactly
+                // one texel, not necessarily the right one — and that arrives as a doubled
+                // stroke that reads as an entirely different typeface. A distance field with no
+                // padding has nowhere to keep the distance, and looks like a working font right
+                // up until somebody draws it at a size nobody tested.
+                Assert.That(face.atlasPadding, Is.GreaterThan(0),
+                    role + "'s glyphs are packed with nothing between them");
+
                 if (pixels)
                 {
                     Assert.That(face.atlasRenderMode, Is.EqualTo(GlyphRenderMode.RASTER),
                         role + " is not a bitmap face");
-                    Assert.That(face.atlasPadding, Is.Zero,
-                        role + " has padding between its glyphs, which a point-sampled atlas " +
-                        "cannot bleed across and does not need");
                 }
                 else
                 {
                     Assert.That(face.atlasRenderMode, Is.EqualTo(GlyphRenderMode.SDFAA),
                         role + " is a bitmap, so it is sharp at one size and wrong at the rest");
-
-                    // A distance field with no room to put the field is the failure that looks
-                    // like a working font until somebody draws it at a size nobody tested.
-                    Assert.That(face.atlasPadding, Is.GreaterThan(0),
-                        role + " is a distance field with nowhere to keep the distance");
                 }
 
                 foreach (Texture2D atlas in face.atlasTextures)

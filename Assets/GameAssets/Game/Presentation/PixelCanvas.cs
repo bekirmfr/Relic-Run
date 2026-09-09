@@ -62,8 +62,19 @@ namespace RelicRun.Game.Presentation
             _width = Screen.width;
             _height = Screen.height;
 
+            int scale = PixelScale.For(_width, _height);
+
             _scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            _scaler.scaleFactor = PixelScale.For(_width, _height);
+            _scaler.scaleFactor = scale;
+
+            // Said out loud, once per change. "The text looks wrong" cost three round trips to
+            // narrow down, and every one of them would have been shorter with these three
+            // numbers attached to the screenshot. A fractional-looking canvas and an honest
+            // whole one are indistinguishable by eye and trivial to tell apart by reading.
+            Debug.Log("canvas: " + _width + "x" + _height + " screen at " + scale + "x = " +
+                      PixelScale.Units(_width, scale) + "x" + PixelScale.Units(_height, scale) +
+                      " units (the design area is " + PixelScale.DesignWidth + "x" +
+                      PixelScale.DesignHeight + ")", this);
         }
     }
 }

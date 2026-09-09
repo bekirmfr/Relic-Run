@@ -14,17 +14,19 @@ namespace RelicRun.Editor.Importers
     /// Builds the TextMeshPro font assets, with exactly the characters the game says.
     /// </summary>
     /// <remarks>
-    /// Two pixel faces, baked as static atlases at the size they were drawn for. Press Start 2P
-    /// is an eight-pixel face and Jacquard 12 a twelve-pixel one; sampled at anything else they
-    /// are a blurry approximation of themselves, and sampled at those sizes they are exact at
-    /// every integer multiple. That is the whole reason for RASTER over SDF: a signed distance
-    /// field exists to make type scale smoothly to arbitrary sizes, which is the one thing pixel
-    /// art must never do.
+    /// Two faces wanting opposite things, baked as static atlases. Silkscreen is drawn on an
+    /// eight-pixel grid and is baked as a bitmap at exactly eight: sampled at anything else it is
+    /// a blurry approximation of itself, and at every whole multiple it is exact. That is the
+    /// reason for RASTER over SDF here — a distance field exists to make type scale smoothly to
+    /// arbitrary sizes, which is the one thing pixel art must never do. Space Grotesk is the
+    /// opposite: an outline face for prose, baked as a distance field, because a bitmap of it
+    /// would be sharp at one size and wrong at every other.
     ///
     /// The character set is not "Latin" or "ASCII" but the union of what the eight shipped
     /// languages actually need once <see cref="Locale.Clean"/> has taken the icons off. Anything
     /// a face cannot draw is reported rather than silently skipped — and it reports a great deal,
-    /// because neither face has a single Japanese or Chinese glyph in it.
+    /// because neither face has a single Japanese or Chinese glyph in it, and Silkscreen has no
+    /// Cyrillic either.
     /// </remarks>
     public static class FontImporter
     {
@@ -71,14 +73,28 @@ namespace RelicRun.Editor.Importers
         };
 
         /// <summary>
-        /// No padding between glyphs, for a face baked as pixels.
+        /// One texel of nothing around each glyph in a bitmap atlas.
         /// </summary>
         /// <remarks>
-        /// Padding exists so a filtered atlas cannot bleed one glyph's edge into its neighbour.
-        /// A pixel atlas is point sampled, so nothing bleeds and padding would only make the
-        /// texture larger and the glyphs further apart than they were drawn.
+        /// This was zero, and the reasoning was wrong in a way worth keeping: "a pixel atlas is
+        /// point sampled, so nothing bleeds". Point sampling does not mean no bleed — it means
+        /// each sample takes exactly one texel, and WHICH texel depends on where the quad lands.
+        /// The glyphs are packed edge to edge, so a quad half a texel out samples the neighbouring
+        /// glyph rather than empty space, and at four screen pixels per texel that neighbour
+        /// arrives two pixels wide.
+        ///
+        /// Whole quads were the assumption underneath, and layout does not honour it: a
+        /// <c>VerticalLayoutGroup</c> distributing 310 units across a variable number of lines
+        /// puts children on half units without asking. So the atlas stops relying on alignment it
+        /// cannot enforce, at a cost of one texel per glyph in a texture that is 226 glyphs in a
+        /// 512-square.
+        ///
+        /// The symptom was a doubled, blobby letterform that read as a different typeface
+        /// entirely — it survived swapping the face, fixing a double playback and moving to a
+        /// whole-number canvas scale, which in hindsight was the clue: the only thing that had
+        /// not changed was the packing.
         /// </remarks>
-        private const int NoPadding = 0;
+        private const int PixelPadding = 1;
 
         /// <summary>
         /// Room around each glyph in a distance field, which is where the field lives.
@@ -345,7 +361,7 @@ namespace RelicRun.Editor.Importers
 
             TMP_FontAsset face = TMP_FontAsset.CreateFontAsset(
                 font, cut.SamplingSize,
-                cut.Pixels ? NoPadding : FieldPadding,
+                cut.Pixels ? PixelPadding : FieldPadding,
                 cut.Pixels ? GlyphRenderMode.RASTER : GlyphRenderMode.SDFAA,
                 cut.Atlas, cut.Atlas, AtlasPopulationMode.Dynamic, false);
 
