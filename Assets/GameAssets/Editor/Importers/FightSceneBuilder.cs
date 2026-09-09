@@ -238,6 +238,24 @@ namespace RelicRun.Editor.Importers
                 && settings.DefaultSceneConfig.SceneKey == SceneKeys.GameScene;
         }
 
+        /// <summary>Whether pressing Play lands in the fight rather than in the menu.</summary>
+        /// <remarks>Public so a tool can ask before offering to press Play for somebody.</remarks>
+        public static bool OpensOnTheFight()
+        {
+            SceneServiceSettings settings = Settings(false);
+
+            return settings != null && Starting(settings);
+        }
+
+        /// <summary>Points startup at the fight, if it is not pointed there already.</summary>
+        public static void OpenOnTheFight()
+        {
+            SceneServiceSettings settings = Settings();
+            if (settings == null || Starting(settings)) return;
+
+            StartInTheFight();
+        }
+
         /// <summary>The listed config claiming a key, or null if none does.</summary>
         private static SceneConfig Claiming(SceneServiceSettings settings, string key)
         {
