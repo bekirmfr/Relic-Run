@@ -61,6 +61,9 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private FlyingNumber _flier;
         [SerializeField] private LogLine _line;
 
+        [Tooltip("One speck of grit or blood. Spawned by the handful, never pooled.")]
+        [SerializeField] private Mote _mote;
+
         [Tooltip("The source keeps sixty. Older lines are gone rather than merely clipped.")]
         [SerializeField] private int _logLength = 60;
 
@@ -158,6 +161,8 @@ namespace RelicRun.Game.Presentation
             if (frame.Line.Shown) Say(frame.Line);
 
             if (_tray != null) _tray.Show(shown);
+
+            Throw(Sprays.Of(shown));
         }
 
         /// <summary>How many foes turn up on this floor, which is how many arrivals it has.</summary>
@@ -339,6 +344,29 @@ namespace RelicRun.Game.Presentation
 
             if (fill.Ms == Gauge.KeepTheCadence) winding.Again();
             else winding.Over(fill.Ms);
+        }
+
+        /// <summary>
+        /// Throws whatever this event knocked off somebody.
+        /// </summary>
+        /// <remarks>
+        /// Into the same anchor the flying numbers use, because it is the same place: the middle
+        /// of the body something just happened to. A second anchor would be a second thing to
+        /// keep level with the first.
+        /// </remarks>
+        private void Throw(Spray spray)
+        {
+            if (!spray.Any || _mote == null) return;
+
+            RectTransform at = spray.OnDelver ? _heroFliers : _enemyFliers;
+            if (at == null) return;
+
+            for (var i = 0; i < spray.Count; i++)
+            {
+                Mote made = Instantiate(_mote, at);
+                made.gameObject.SetActive(true);
+                made.Throw(spray.Kind, spray.Shatters);
+            }
         }
 
         private void Throw(Flier flier)

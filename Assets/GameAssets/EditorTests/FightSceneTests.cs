@@ -626,6 +626,21 @@ namespace RelicRun.Tests.Editor
 
             Assert.That(chip, Is.Not.Null, "no stat chip to spawn");
 
+            var mote = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.MotePrefab);
+
+            Assert.That(mote, Is.Not.Null, "no mote to throw");
+            Filled(mote.GetComponent<Mote>());
+
+            var speck = mote.GetComponent<UnityEngine.UI.Image>();
+
+            Assert.That(speck.sprite, Is.Not.Null,
+                "a mote with no sprite is a full quad, and a fight would vanish behind eight of " +
+                "them every time something died");
+
+            Assert.That(speck.raycastTarget, Is.False,
+                "eight of these land over the fight several times a second; any one of them " +
+                "swallowing a press is a button that fails for no reproducible reason");
+
             // The icon is deliberately unbound — nothing has drawn one — so this walks the chip's
             // references by hand rather than through Filled, which would call the empty slot a
             // mistake when it is a decision.

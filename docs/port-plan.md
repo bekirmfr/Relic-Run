@@ -360,7 +360,20 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
 - **`RelicMeter` (Core, done)** — what one COPY of a relic has to show: a socketed trigger's
   progress, its own rhythm, and what is left of its budget. Two clocks can run at once
 - **`FightFrame.SoundOf` (Core, done)** — six of the twenty event kinds make a noise
-- Death shatter / blood / dust via UI-Particle (replaces `pileFrom`/`shatterOf` pixel reads)
+- **Death shatter / blood / dust (done)** — `Sprays.Of` (Core) decides which events throw
+  something and how much: eight drops and a shattering off a body that falls, four motes of grit
+  off one that is merely struck. One asymmetry is the source's and is ported rather than tidied —
+  dust comes off a struck FOE only at depth 0, while a struck DELVER dusts however deep the chain.
+  The depth filter is load-bearing: relic damage arrives in chains of six, and without it a foe
+  would be buried in grit for a blow nobody threw.
+  Drawn as spawned `Mote` Images, NOT UI-Particle as this plan first said. The arithmetic decides
+  it: a blow throws four and a death throws eight. A particle system earns its keep in the
+  hundreds; at eight it is a material, a renderer and a simulation to configure for less work than
+  the damage numbers beside it already do as spawned Images. The package stays installed for
+  whatever wants hundreds later.
+  `shatterOf`/`pileFrom` are not ported. The source reads a dying sprite's pixels and lets them
+  fall as a pile — a lovely trick and a texture read per death for a fifth of a second. What
+  survives is the fact of it: a killed body comes apart rather than simply stopping.
 - 8 SFX clips through `IAudioService`
 
 - **`FightSceneBuilder` + `FightScene` + `FightHarness` (done)** —

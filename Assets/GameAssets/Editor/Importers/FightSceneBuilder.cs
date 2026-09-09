@@ -46,6 +46,7 @@ namespace RelicRun.Editor.Importers
         public const string LinePrefab = "Assets/GameAssets/Game/Presentation/LogLine.prefab";
         public const string SlotPrefab = "Assets/GameAssets/Game/Presentation/RelicSlot.prefab";
         public const string ChipPrefab = "Assets/GameAssets/Game/Presentation/StatChip.prefab";
+        public const string MotePrefab = "Assets/GameAssets/Game/Presentation/Mote.prefab";
 
         /// <summary>
         /// The fight the harness shows, which is AUTHORED and therefore never regenerated.
@@ -146,9 +147,10 @@ namespace RelicRun.Editor.Importers
                 LogLine line = Line(face);
                 RelicSlot slot = Slot(face);
                 StatChip chip = Chip(face);
+                Mote mote = Speck();
 
                 Replace(scene);
-                Fit(scene, content, face, flier, line, slot, chip);
+                Fit(scene, content, face, flier, line, slot, chip, mote);
 
                 PrefabUtility.SaveAsPrefabAsset(scene, ScenePath);
             }
@@ -427,7 +429,7 @@ namespace RelicRun.Editor.Importers
 
         /// <summary>Builds the fight's whole hierarchy under one child of the scene.</summary>
         private static void Fit(GameObject scene, GameContent content, TMP_FontAsset face,
-            FlyingNumber flier, LogLine line, RelicSlot slot, StatChip chip)
+            FlyingNumber flier, LogLine line, RelicSlot slot, StatChip chip, Mote mote)
         {
             var root = new GameObject(RootName);
             root.transform.SetParent(scene.transform, false);
@@ -499,6 +501,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_log", (RectTransform)log.transform),
                 Pair("_flier", flier),
                 Pair("_line", line),
+                Pair("_mote", mote),
                 Pair("_hall", hall),
                 Pair("_tray", tray),
                 Pair("_content", content),
@@ -978,6 +981,41 @@ namespace RelicRun.Editor.Importers
         }
 
         /* ---------- the prefabs ---------- */
+
+        /// <summary>
+        /// One speck of grit or blood: a coloured square, three units across.
+        /// </summary>
+        /// <remarks>
+        /// Square, and drawn from the same white pixel every bar is made of. A round speck would
+        /// need a sprite somebody has to draw, and a body made of eight-pixel glyphs does not
+        /// come apart into circles.
+        ///
+        /// It does not raycast. Eight of these land on top of a fight several times a second,
+        /// and any one of them swallowing a press would be a button that failed for no reason
+        /// anybody could reproduce.
+        /// </remarks>
+        private static Mote Speck()
+        {
+            var made = new GameObject("Mote", typeof(RectTransform), typeof(Image), typeof(Mote));
+
+            var rect = (RectTransform)made.transform;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(MoteSide, MoteSide);
+
+            Image speck = made.GetComponent<Image>();
+            speck.sprite = White();
+            speck.color = Color.white;
+            speck.raycastTarget = false;
+
+            Wire(made.GetComponent<Mote>(), new[] { Pair("_speck", speck) });
+
+            return Save(made, MotePrefab).GetComponent<Mote>();
+        }
+
+        /// <summary>Three units, which is one pixel of the ui face at its usual size.</summary>
+        private const float MoteSide = 3f;
 
         /// <summary>
         /// One stat: a slot for an icon, a dim label, and the number itself.
