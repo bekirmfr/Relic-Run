@@ -1452,7 +1452,11 @@ namespace RelicRun.Core.Combat
                 heroMods: DynamicMods(),
                 counters: counters,
                 anvilSpent: _hero.AnvilBonus,
-                soilUsed: _hero.SoilUsed);
+                soilUsed: _hero.SoilUsed,
+                heroAtk: HeroStat(Stat.Atk),
+                heroDef: HeroStat(Stat.Def),
+                heroSpd: HeroStat(Stat.Spd),
+                heroLck: HeroStat(Stat.Lck));
 
             // Events carry the exact copy that fired, when one did.
             if (!relicSlot.HasValue && _fireSlot >= 0)

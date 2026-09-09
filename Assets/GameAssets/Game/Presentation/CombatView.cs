@@ -29,6 +29,9 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Image _heroHealth;
         [SerializeField] private Image _heroGauge;
         [SerializeField] private TMP_Text _heroHealthText;
+
+        [Tooltip("The delver's four, drawn with the same chip the foe's are.")]
+        [SerializeField] private StatRow _heroStats;
         [SerializeField] private RectTransform _heroFliers;
 
         [Header("The foe")]
@@ -36,8 +39,8 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Image _enemyGauge;
         [SerializeField] private TMP_Text _enemyName;
 
-        [Tooltip("HP, ATK, DEF, SPD, LCK. The delver's are on their own panel; these were nowhere.")]
-        [SerializeField] private TMP_Text _enemyStats;
+        [Tooltip("ATK, DEF, SPD and LCK as chips. The pool is the bar's job, not a chip's.")]
+        [SerializeField] private StatRow _enemyStats;
 
         [Tooltip("What the foe is carrying. Icons only — the gauges would be the delver's.")]
         [SerializeField] private RelicTray _enemyRelics;
@@ -205,32 +208,20 @@ namespace RelicRun.Game.Presentation
         /// What the foe is, in numbers.
         /// </summary>
         /// <remarks>
-        /// The delver's stats are on their own panel and the foe's were nowhere at all, so the
-        /// only thing on screen about the thing hitting you was a red bar and a name. Armour is
-        /// labelled DEF because that is what the source calls it where a delver reads it, and a
-        /// screen that used the engine's word for it would be the only place in the game that
-        /// did.
+        /// Both sides, from one description. This was a single string of rich text with the
+        /// colours spliced into it, which was quick to write and could not be laid out, aligned
+        /// or reused — and it existed only for the foe, so the screen said what it was fighting
+        /// and not what it was fighting with.
         ///
-        /// One text rather than ten, coloured with rich text. The colours are the source's and
-        /// they live here, like every other colour in this layer — a view-model handing out hex
-        /// values would be choosing the palette from inside Core.
+        /// The pool is deliberately absent from both. It is read as a proportion and answered by
+        /// a bar; these are read as figures and want a label beside them. Armour is labelled DEF
+        /// because that is the source's word wherever a delver sees it — the engine's own name
+        /// for it would make this the only place in the game that used it.
         /// </remarks>
         private void Stats(CombatSnapshot state)
         {
-            if (_enemyStats == null) return;
-
-            _enemyStats.text =
-                Stat("HP", state.EnemyHp + "/" + state.EnemyMaxHp, "C4593C") +
-                Stat("ATK", state.EnemyAtk.ToString(), "E7E0D2") +
-                Stat("DEF", state.EnemyArmor.ToString(), "AEB6C0") +
-                Stat("SPD", state.EnemySpd.ToString(), "7C9A6A") +
-                Stat("LCK", state.EnemyLck.ToString(), "E3B341");
-        }
-
-        private static string Stat(string name, string value, string colour)
-        {
-            return "<color=#8B8172>" + name + "</color> <color=#" + colour + ">" + value +
-                   "</color>  ";
+            if (_enemyStats != null) _enemyStats.Show(StatLines.Foe(state));
+            if (_heroStats != null) _heroStats.Show(StatLines.Delver(state));
         }
 
         /// <summary>

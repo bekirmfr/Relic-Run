@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd028d19a115a92459d2ae700896ab9f, type: 3}
   m_Name: Fight
   m_EditorClassIdentifier: 
-  Seed: 98693133
+  Seed: 5
   Floor: 1
+  Hall: 4
   Delver:
     Level: 1
     OverrideStats: 0

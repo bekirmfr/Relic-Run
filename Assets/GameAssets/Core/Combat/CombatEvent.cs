@@ -165,14 +165,39 @@ namespace RelicRun.Core.Combat
 
         public readonly bool SoilUsed;
 
+        /// <summary>
+        /// The delver's stats as they stood, already folded from their rows.
+        /// </summary>
+        /// <remarks>
+        /// The foe's four have always been here and the delver's were not, which meant a screen
+        /// could say what it was fighting and not what it was fighting WITH. Folded rather than
+        /// listed: <see cref="HeroMods"/> carries the in-fight rows for anything that wants to
+        /// explain a number, and these are the totals for anything that only wants to show it.
+        ///
+        /// Read at the moment the event happened, like everything else here, so a stat that
+        /// climbed mid-fight climbs on screen instead of arriving finished.
+        /// </remarks>
+        public readonly int HeroAtk;
+
+        public readonly int HeroDef;
+
+        public readonly int HeroSpd;
+
+        public readonly int HeroLck;
+
         public CombatSnapshot(int tick, int heroHp, int enemyHp, int gold, int enemyMaxHp,
             int enemyAtk, EnemyRank enemyRank, int enemyArmor, int enemySpd, int enemyLck,
             int enemyVariant, int enemyIndex, int heroAdrenaline,
             IReadOnlyList<RelicId> enemyRelics, IReadOnlyList<StatModifier> heroMods,
-            CombatCounters counters, int heroFury = 0, int anvilSpent = 0, bool soilUsed = false)
+            CombatCounters counters, int heroFury = 0, int anvilSpent = 0, bool soilUsed = false,
+            int heroAtk = 0, int heroDef = 0, int heroSpd = 0, int heroLck = 0)
         {
             AnvilSpent = anvilSpent;
             SoilUsed = soilUsed;
+            HeroAtk = heroAtk;
+            HeroDef = heroDef;
+            HeroSpd = heroSpd;
+            HeroLck = heroLck;
             HeroFury = heroFury;
             Tick = tick;
             HeroHp = heroHp;

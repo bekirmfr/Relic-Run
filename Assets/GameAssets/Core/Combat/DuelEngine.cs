@@ -314,7 +314,11 @@ namespace RelicRun.Core.Combat
                 counters: counters,
                 heroFury: _a.Fury,
                 anvilSpent: _a.AnvilBonus,
-                soilUsed: _a.SoilUsed);
+                soilUsed: _a.SoilUsed,
+                heroAtk: _a.StatOf(Stat.Atk),
+                heroDef: _a.StatOf(Stat.Def),
+                heroSpd: _a.StatOf(Stat.Spd),
+                heroLck: _a.StatOf(Stat.Lck));
 
             _events.Add(new CombatEvent(type, depth, state, amount, source,
                 relic, null, enemyCrit, another, foe));

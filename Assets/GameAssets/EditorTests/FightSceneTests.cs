@@ -318,6 +318,8 @@ namespace RelicRun.Tests.Editor
 
             Assert.That(found.FindProperty("_enemyStats").objectReferenceValue, Is.Not.Null,
                 "nothing shows the foe's stats");
+            Assert.That(found.FindProperty("_heroStats").objectReferenceValue, Is.Not.Null,
+                "nothing shows the delver's stats");
             Assert.That(found.FindProperty("_enemyRelics").objectReferenceValue, Is.Not.Null,
                 "nothing shows what the foe is carrying");
 
@@ -619,6 +621,20 @@ namespace RelicRun.Tests.Editor
             Assert.That(slot, Is.Not.Null, "no relic slot to spawn");
 
             Filled(slot.GetComponent<RelicSlot>());
+
+            var chip = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.ChipPrefab);
+
+            Assert.That(chip, Is.Not.Null, "no stat chip to spawn");
+
+            // The icon is deliberately unbound — nothing has drawn one — so this walks the chip's
+            // references by hand rather than through Filled, which would call the empty slot a
+            // mistake when it is a decision.
+            var read = new SerializedObject(chip.GetComponent<StatChip>());
+
+            Assert.That(read.FindProperty("_label").objectReferenceValue, Is.Not.Null);
+            Assert.That(read.FindProperty("_value").objectReferenceValue, Is.Not.Null);
+            Assert.That(read.FindProperty("_icon").objectReferenceValue, Is.Not.Null,
+                "the icon IMAGE should exist even while no sprite is bound to it");
 
             // These live outside the scene and are spawned into it, so the walk above never sees
             // them — and between them they are most of the text a delver actually reads.

@@ -45,6 +45,7 @@ namespace RelicRun.Editor.Importers
         public const string FlierPrefab = "Assets/GameAssets/Game/Presentation/FlyingNumber.prefab";
         public const string LinePrefab = "Assets/GameAssets/Game/Presentation/LogLine.prefab";
         public const string SlotPrefab = "Assets/GameAssets/Game/Presentation/RelicSlot.prefab";
+        public const string ChipPrefab = "Assets/GameAssets/Game/Presentation/StatChip.prefab";
 
         /// <summary>
         /// The fight the harness shows, which is AUTHORED and therefore never regenerated.
@@ -144,9 +145,10 @@ namespace RelicRun.Editor.Importers
                 FlyingNumber flier = Flier(face);
                 LogLine line = Line(face);
                 RelicSlot slot = Slot(face);
+                StatChip chip = Chip(face);
 
                 Replace(scene);
-                Fit(scene, content, face, flier, line, slot);
+                Fit(scene, content, face, flier, line, slot, chip);
 
                 PrefabUtility.SaveAsPrefabAsset(scene, ScenePath);
             }
@@ -425,7 +427,7 @@ namespace RelicRun.Editor.Importers
 
         /// <summary>Builds the fight's whole hierarchy under one child of the scene.</summary>
         private static void Fit(GameObject scene, GameContent content, TMP_FontAsset face,
-            FlyingNumber flier, LogLine line, RelicSlot slot)
+            FlyingNumber flier, LogLine line, RelicSlot slot, StatChip chip)
         {
             var root = new GameObject(RootName);
             root.transform.SetParent(scene.transform, false);
@@ -452,8 +454,8 @@ namespace RelicRun.Editor.Importers
                 new Vector2(0f, 42f), 8f);
             // Right of the art and under the bars it describes. The sprite sits on the left of
             // this panel, so a left-aligned stat line would be printed straight through it.
-            GameObject foeStats = Say(foe, face, "", Text(8), TextAlignmentOptions.Right,
-                new Vector2(0f, 22f), new Vector2(0f, 16f), true);
+            StatRow foeStats = Stats(foe, "Stats", chip, TextAnchor.MiddleRight,
+                new Vector2(0f, 22f));
             RelicTray foeRelics = Carried(foe, content, slot);
             GameObject foeFliers = Anchor(foe, "Fliers", new Vector2(70f, 70f));
 
@@ -465,6 +467,8 @@ namespace RelicRun.Editor.Importers
                 new Vector2(0f, 12f), 8f);
             GameObject heroText = Say(delver, face, "100", Text(20), TextAlignmentOptions.Left,
                 new Vector2(0f, 60f), new Vector2(200f, 32f));
+            StatRow heroStats = Stats(delver, "Stats", chip, TextAnchor.MiddleLeft,
+                new Vector2(0f, -44f));
             GameObject heroFliers = Anchor(delver, "Fliers", new Vector2(-130f, 60f));
 
             GameObject purse = Panel(canvas, "Purse", new Vector2(1f, 1f), new Vector2(1f, 1f),
@@ -485,7 +489,8 @@ namespace RelicRun.Editor.Importers
                 Pair("_enemyHealth", foeHealth.GetComponent<Image>()),
                 Pair("_enemyGauge", foeGauge.GetComponent<Image>()),
                 Pair("_enemyName", foeName.GetComponent<TMP_Text>()),
-                Pair("_enemyStats", foeStats.GetComponent<TMP_Text>()),
+                Pair("_enemyStats", foeStats),
+                Pair("_heroStats", heroStats),
                 Pair("_enemyRelics", foeRelics),
                 Pair("_enemyArt", art.GetComponent<Image>()),
                 Pair("_enemyFliers", (RectTransform)foeFliers.transform),
@@ -803,6 +808,42 @@ namespace RelicRun.Editor.Importers
         }
 
         /// <summary>
+        /// A fighter's stats, as a row of chips.
+        /// </summary>
+        /// <remarks>
+        /// The foe's align right and the delver's left, which is the source's arrangement: the
+        /// two panels read outward from the middle of the screen, so each side's numbers sit
+        /// nearest its own body rather than both crowding the same edge.
+        /// </remarks>
+        private static StatRow Stats(GameObject parent, string name, StatChip chip,
+            TextAnchor align, Vector2 at)
+        {
+            GameObject panel = Panel(parent, name, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                at, new Vector2(0f, ChipTall));
+
+            var row = panel.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = align;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childControlWidth = false;
+            row.childControlHeight = false;
+            row.spacing = 8f;
+
+            var made = panel.AddComponent<StatRow>();
+
+            Wire(made, new[]
+            {
+                Pair("_row", (RectTransform)panel.transform),
+                Pair("_chip", chip),
+            });
+
+            return made;
+        }
+
+        /// <summary>How tall one stat chip is, and therefore how tall a row of them is.</summary>
+        private const float ChipTall = 16f;
+
+        /// <summary>
         /// The hall behind the fight: a window, and a wider picture sliding inside it.
         /// </summary>
         /// <remarks>
@@ -937,6 +978,64 @@ namespace RelicRun.Editor.Importers
         }
 
         /* ---------- the prefabs ---------- */
+
+        /// <summary>
+        /// One stat: a slot for an icon, a dim label, and the number itself.
+        /// </summary>
+        /// <remarks>
+        /// The icon slot is built and left empty, because the source labels its stats with words
+        /// and draws no glyph for any of them. It is here so that the day somebody draws five
+        /// little icons, the row takes them without being rebuilt — and a chip with no sprite
+        /// hides its image rather than reserving a blank square.
+        /// </remarks>
+        private static StatChip Chip(TMP_FontAsset face)
+        {
+            var made = new GameObject("StatChip", typeof(RectTransform),
+                typeof(HorizontalLayoutGroup), typeof(StatChip));
+
+            var rect = (RectTransform)made.transform;
+            rect.sizeDelta = new Vector2(0f, ChipTall);
+
+            var row = made.GetComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childControlWidth = true;
+            row.childControlHeight = false;
+            row.spacing = 2f;
+
+            var fitter = made.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+            GameObject icon = Box(made, "Icon", new Vector2(0.5f, 0.5f),
+                new Vector2(ChipTall, ChipTall), Vector2.zero);
+
+            // A layout group with childControlWidth sizes children from their PREFERRED width,
+            // and a bare Image has none — so without this the icon would be square in the
+            // inspector and nothing at all in the row, the day a sprite is finally bound to it.
+            var space = icon.AddComponent<LayoutElement>();
+            space.preferredWidth = ChipTall;
+            space.preferredHeight = ChipTall;
+
+            GameObject label = Say(made, face, "ATK", Text(8), TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(24f, ChipTall));
+
+            GameObject value = Say(made, face, "0", Text(8), TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(24f, ChipTall));
+
+            label.name = "Label";
+            value.name = "Value";
+
+            Wire(made.GetComponent<StatChip>(), new[]
+            {
+                Pair("_icon", icon.GetComponent<Image>()),
+                Pair("_label", label.GetComponent<TMP_Text>()),
+                Pair("_value", value.GetComponent<TMP_Text>()),
+            });
+
+            return Save(made, ChipPrefab).GetComponent<StatChip>();
+        }
 
         /// <summary>
         /// One relic slot: an icon in the middle and three gauges on the edges.
