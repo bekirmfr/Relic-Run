@@ -84,6 +84,25 @@ namespace RelicRun.Game.Presentation
             }
 
             name = copy.Relic.ToString();
+
+            // Blank, until something says otherwise. The bars are authored full — a Filled image
+            // has to be, or there is nothing to see while building the prefab — so a slot that
+            // was laid out and not yet drawn showed a complete gold charge and a full budget on
+            // every relic, including the ones that have neither. It lasted only until the first
+            // event, which is precisely the kind of wrong that survives review: too brief to
+            // notice and perfectly wrong while it lasts.
+            Blank();
+        }
+
+        /// <summary>Every gauge off, which is what a copy with nothing to say looks like.</summary>
+        private void Blank()
+        {
+            if (_charge != null) _charge.enabled = false;
+            if (_hairline != null) _hairline.enabled = false;
+            if (_uses != null) _uses.enabled = false;
+            if (_badge != null) _badge.text = "";
+            if (_frame != null) _frame.color = Plate;
+            if (_icon != null) _icon.color = Lit;
         }
 
         /// <summary>Draws this copy as it stood at one moment of the fight.</summary>
