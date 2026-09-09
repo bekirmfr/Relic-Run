@@ -105,15 +105,61 @@ namespace RelicRun.Core.Presentation
         /// <summary>What is left of its budget, if it has one.</summary>
         public readonly Budget Uses;
 
-        public RelicMeter(Cadence attached, Cadence native, Budget uses)
+        /// <summary>
+        /// The set bonus this copy is counting toward, when it counts nothing of its own.
+        /// </summary>
+        /// <remarks>
+        /// The one part of a copy's gauge that depends on its NEIGHBOURS: a fifth Edge relic
+        /// gives the other four a cadence they did not have. Filled only when both the other two
+        /// are empty, because the source draws one charge bar and a relic with a rhythm of its
+        /// own has something better to put in it.
+        /// </remarks>
+        public readonly Cadence Set;
+
+        public RelicMeter(Cadence attached, Cadence native, Budget uses,
+            Cadence set = default(Cadence))
         {
             Attached = attached;
             Native = native;
             Uses = uses;
+            Set = set;
         }
 
         /// <summary>Whether this copy has anything to show at all. Most do not.</summary>
-        public bool Any { get { return Attached.Any || Native.Any || Uses.Any; } }
+        public bool Any { get { return Attached.Any || Native.Any || Uses.Any || Set.Any; } }
+
+        /// <summary>
+        /// What fills the charge bar: its own rhythm, else its socket, else its set.
+        /// </summary>
+        /// <remarks>
+        /// One bar and three candidates, in the source's order. Kept here rather than in the
+        /// widget so the tray and the relic card cannot pick differently — which is the whole
+        /// reason the source routes both through one meter, and it says so in a comment.
+        /// </remarks>
+        public Cadence Charge
+        {
+            get
+            {
+                if (Native.Any) return Native;
+                if (Attached.Any) return Attached;
+
+                return Set;
+            }
+        }
+
+        /// <summary>
+        /// The second cadence, shown as a hairline, only when a copy really has two.
+        /// </summary>
+        /// <remarks>
+        /// A socket counts something different from the relic it is bolted to, so a copy with
+        /// both is counting two clocks and a delver watching one would be surprised by the other.
+        /// Never the set: a copy only has a set cadence when it has nothing else, so it can never
+        /// be the second of two.
+        /// </remarks>
+        public Cadence Hairline
+        {
+            get { return Native.Any && Attached.Any ? Attached : default(Cadence); }
+        }
 
         /// <summary>How often a socketed trigger fires.</summary>
         public const int SocketEvery = 3;
@@ -142,6 +188,76 @@ namespace RelicRun.Core.Presentation
             return new RelicMeter(Socketed(socket, emitter, counters),
                 Rhythm(relic, counters, hero, awakened, versus),
                 Spending(relic, hero, counters, awakened));
+        }
+
+        /// <summary>
+        /// One slot's meter, from the shelf and the event's own snapshot and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// This is the entry point a screen uses, and the shape of it is the point. Everything
+        /// that changes during a fight comes from <paramref name="state"/> — Invariant 5, the
+        /// event carries what it happened in — and everything that does not comes from the shelf,
+        /// which is settled before the first tick. There is no third argument because there is
+        /// nothing else to know, and a view that had to reach for a live hero would show the same
+        /// number for every step of a fight that was over before it was drawn.
+        ///
+        /// The set cadence is worked out here rather than in the widget because it is a rule
+        /// about the shelf, not a decoration: which relic gets one depends on how many of its
+        /// kind are beside it.
+        /// </remarks>
+        public static RelicMeter For(Shelf shelf, int index, CombatSnapshot state, bool versus)
+        {
+            RelicCopy copy = shelf[index];
+            CombatCounters counters = state.Counters;
+
+            Cadence attached = Socketed(copy.Trigger, copy.Emitter, counters);
+            Cadence native = Rhythm(copy.Relic, counters, state.AnvilSpent, copy.Awakened, versus);
+            Budget uses = Spending(copy.Relic, state.AnvilSpent, state.SoilUsed, counters,
+                copy.Awakened);
+
+            Cadence set = attached.Any || native.Any
+                ? default(Cadence)
+                : SetBonus(copy.Kind, shelf, counters);
+
+            return new RelicMeter(attached, native, uses, set);
+        }
+
+        /// <summary>How many of a kind a set needs, and what it then counts to.</summary>
+        public const int EdgeSetNeeds = 5;
+
+        public const int EdgeSetEvery = 4;
+
+        public const int PaceSetNeeds = 7;
+
+        public const int PaceSetEvery = 5;
+
+        /// <summary>
+        /// The cadence a relic gets from the company it keeps.
+        /// </summary>
+        /// <remarks>
+        /// Two sets out of eight kinds have one, which looks arbitrary and is the source's. The
+        /// counted thing is strikes THIS FIGHT rather than the run's total, so the bar starts
+        /// empty on every floor — a set bonus is a rhythm within a fight, not a career.
+        ///
+        /// The wording is the source's too, from the relic card where these get a label: an Edge
+        /// set multiplies, a Pace set adds a strike. Invented wording here would be a fourth
+        /// place for the game to describe its own rules slightly differently.
+        /// </remarks>
+        private static Cadence SetBonus(RelicKind kind, Shelf shelf, CombatCounters counters)
+        {
+            if (kind == RelicKind.Edge && shelf.OfKind(kind) >= EdgeSetNeeds)
+            {
+                return new Cadence(counters.FightStrikes % EdgeSetEvery, EdgeSetEvery,
+                    "strikes → ×1.5");
+            }
+
+            if (kind == RelicKind.Pace && shelf.OfKind(kind) >= PaceSetNeeds)
+            {
+                return new Cadence(counters.FightStrikes % PaceSetEvery, PaceSetEvery,
+                    "strikes → extra strike");
+            }
+
+            return default(Cadence);
         }
 
         /// <summary>
@@ -185,12 +301,25 @@ namespace RelicRun.Core.Presentation
         private static Cadence Rhythm(RelicId relic, CombatCounters counters, HeroState hero,
             bool awakened, bool versus)
         {
+            return Rhythm(relic, counters, hero == null ? 0 : hero.AnvilBonus, awakened, versus);
+        }
+
+        /// <summary>
+        /// The same rhythm, from the two numbers rather than from the hero carrying them.
+        /// </summary>
+        /// <remarks>
+        /// Both entry points land here, so a fight watched through the event stream and a relic
+        /// card read off a live hero cannot disagree about what a gauge says.
+        /// </remarks>
+        private static Cadence Rhythm(RelicId relic, CombatCounters counters, int anvilSpent,
+            bool awakened, bool versus)
+        {
             switch (relic)
             {
                 case RelicId.AnvilHeart:
                     // Only while it still has sharpenings left. A gauge filling toward something
                     // that cannot happen is a promise the relic will not keep.
-                    return Sharpenings(hero, awakened) > 0
+                    return Sharpenings(anvilSpent, awakened) > 0
                         ? new Cadence(counters.StrikeTotal % AnvilEvery, AnvilEvery, "strikes")
                         : default(Cadence);
 
@@ -228,17 +357,25 @@ namespace RelicRun.Core.Presentation
         private static Budget Spending(RelicId relic, HeroState hero, CombatCounters counters,
             bool awakened)
         {
+            return Spending(relic, hero == null ? 0 : hero.AnvilBonus,
+                hero != null && hero.SoilUsed, counters, awakened);
+        }
+
+        /// <summary>The same budget, from the two numbers rather than from the hero.</summary>
+        private static Budget Spending(RelicId relic, int anvilSpent, bool soilUsed,
+            CombatCounters counters, bool awakened)
+        {
             switch (relic)
             {
                 case RelicId.AnvilHeart:
-                    return new Budget(Sharpenings(hero, awakened),
+                    return new Budget(Sharpenings(anvilSpent, awakened),
                         awakened ? AwokenAnvilCap : AnvilCap);
 
                 case RelicId.SentinelBell:
                     return new Budget(Max(SentinelCap - counters.SentinelBonus), SentinelCap);
 
                 case RelicId.GravekeepersSoil:
-                    return new Budget(hero.SoilUsed ? 0 : 1, 1);
+                    return new Budget(soilUsed ? 0 : 1, 1);
 
                 default:
                     return default(Budget);
@@ -252,9 +389,9 @@ namespace RelicRun.Core.Presentation
         /// The cap moves when the relic is woken and the count does not, so the same eight
         /// sharpenings leave two left or four depending on whether somebody paid at the bazaar.
         /// </remarks>
-        private static int Sharpenings(HeroState hero, bool awakened)
+        private static int Sharpenings(int anvilSpent, bool awakened)
         {
-            return Max((awakened ? AwokenAnvilCap : AnvilCap) - hero.AnvilBonus);
+            return Max((awakened ? AwokenAnvilCap : AnvilCap) - anvilSpent);
         }
 
         private static int Max(int value) { return value < 0 ? 0 : value; }

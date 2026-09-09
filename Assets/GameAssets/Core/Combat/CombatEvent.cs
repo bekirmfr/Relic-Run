@@ -147,12 +147,32 @@ namespace RelicRun.Core.Combat
 
         public readonly CombatCounters Counters;
 
+        /// <summary>
+        /// How many sharpenings the Sundering Anvil has spent, and whether the Soil has been dug.
+        /// </summary>
+        /// <remarks>
+        /// Neither is a counter and both are budgets, which is why they live on the hero rather
+        /// than in <see cref="CombatCounters"/> — and why they were not here. They are here now
+        /// because the relic tray has to draw them, and Invariant 5 says an event carries the
+        /// state it happened in: a view reaching for the live hero would show the same number
+        /// for every step of a fight that was resolved before the first frame was drawn.
+        ///
+        /// Additive, and the corpus is unbothered: the differ walks the fields the RECORDING
+        /// has and asks the replay for each by name, so a field the source never wrote is a
+        /// field it never looks for.
+        /// </remarks>
+        public readonly int AnvilSpent;
+
+        public readonly bool SoilUsed;
+
         public CombatSnapshot(int tick, int heroHp, int enemyHp, int gold, int enemyMaxHp,
             int enemyAtk, EnemyRank enemyRank, int enemyArmor, int enemySpd, int enemyLck,
             int enemyVariant, int enemyIndex, int heroAdrenaline,
             IReadOnlyList<RelicId> enemyRelics, IReadOnlyList<StatModifier> heroMods,
-            CombatCounters counters, int heroFury = 0)
+            CombatCounters counters, int heroFury = 0, int anvilSpent = 0, bool soilUsed = false)
         {
+            AnvilSpent = anvilSpent;
+            SoilUsed = soilUsed;
             HeroFury = heroFury;
             Tick = tick;
             HeroHp = heroHp;

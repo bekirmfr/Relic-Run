@@ -1,0 +1,143 @@
+{
+  "name": "the shelf and its set bonuses",
+  "mutants": [
+    {
+      "name": "sockets key by relic rather than by slot",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "                if (hero.SocketTriggers == null ||\n                    !hero.SocketTriggers.TryGetValue(index, out trigger))",
+      "replace": "                if (hero.SocketTriggers == null ||\n                    !hero.SocketTriggers.TryGetValue(0, out trigger))"
+    },
+    {
+      "name": "an emitter is dropped on the way to the shelf",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "                if (hero.SocketEmitters == null ||\n                    !hero.SocketEmitters.TryGetValue(index, out emitter))\n                {\n                    emitter = SocketEmitter.None;\n                }",
+      "replace": "                emitter = SocketEmitter.None;"
+    },
+    {
+      "name": "nothing is ever awake",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "                bool awake = hero.Awakened != null && Contains(hero.Awakened, relic);",
+      "replace": "                bool awake = false;"
+    },
+    {
+      "name": "waking one copy wakes only that copy",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "                bool awake = hero.Awakened != null && Contains(hero.Awakened, relic);",
+      "replace": "                bool awake = hero.Awakened != null && Contains(hero.Awakened, relic) && index == 0;"
+    },
+    {
+      "name": "duplicates count once toward a set",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "                _kinds[copy.Kind] = already + 1;",
+      "replace": "                _kinds[copy.Kind] = 1;"
+    },
+    {
+      "name": "a hero carrying nothing has no shelf at all",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "            _copies = copies ?? new List<RelicCopy>();",
+      "replace": "            _copies = copies;"
+    },
+    {
+      "name": "an unknown kind counts as one rather than none",
+      "file": "Assets/GameAssets/Core/Presentation/Shelf.cs",
+      "find": "            return _kinds.TryGetValue(kind, out many) ? many : 0;",
+      "replace": "            return _kinds.TryGetValue(kind, out many) ? many : 1;"
+    },
+    {
+      "name": "an Edge set needs a Pace set's seven",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public const int EdgeSetNeeds = 5;",
+      "replace": "        public const int EdgeSetNeeds = 7;"
+    },
+    {
+      "name": "a Pace set needs an Edge set's five",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public const int PaceSetNeeds = 7;",
+      "replace": "        public const int PaceSetNeeds = 5;"
+    },
+    {
+      "name": "the Edge set counts to the Pace set's five",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public const int EdgeSetEvery = 4;",
+      "replace": "        public const int EdgeSetEvery = 5;"
+    },
+    {
+      "name": "the Pace set counts to the Edge set's four",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "        public const int PaceSetEvery = 5;",
+      "replace": "        public const int PaceSetEvery = 4;"
+    },
+    {
+      "name": "a set needs more than its threshold rather than at least it",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            if (kind == RelicKind.Edge && shelf.OfKind(kind) >= EdgeSetNeeds)",
+      "replace": "            if (kind == RelicKind.Edge && shelf.OfKind(kind) > EdgeSetNeeds)"
+    },
+    {
+      "name": "a set counts the run's strikes rather than this fight's",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                return new Cadence(counters.FightStrikes % EdgeSetEvery, EdgeSetEvery,",
+      "replace": "                return new Cadence(counters.StrikeTotal % EdgeSetEvery, EdgeSetEvery,"
+    },
+    {
+      "name": "every kind gets a set bonus",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            if (kind == RelicKind.Edge && shelf.OfKind(kind) >= EdgeSetNeeds)",
+      "replace": "            if (shelf.OfKind(kind) >= EdgeSetNeeds)"
+    },
+    {
+      "name": "a set cadence overrides the relic's own rhythm",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            Cadence set = attached.Any || native.Any\n                ? default(Cadence)\n                : SetBonus(copy.Kind, shelf, counters);",
+      "replace": "            Cadence set = SetBonus(copy.Kind, shelf, counters);"
+    },
+    {
+      "name": "a socketed copy still counts for its set",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            Cadence set = attached.Any || native.Any",
+      "replace": "            Cadence set = native.Any"
+    },
+    {
+      "name": "the charge bar prefers the socket to the relic's own rhythm",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                if (Native.Any) return Native;\n                if (Attached.Any) return Attached;",
+      "replace": "                if (Attached.Any) return Attached;\n                if (Native.Any) return Native;"
+    },
+    {
+      "name": "the charge bar forgets the set",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                if (Attached.Any) return Attached;\n\n                return Set;",
+      "replace": "                if (Attached.Any) return Attached;\n\n                return default(Cadence);"
+    },
+    {
+      "name": "the hairline shows a socket even when it is the only clock",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            get { return Native.Any && Attached.Any ? Attached : default(Cadence); }",
+      "replace": "            get { return Attached; }"
+    },
+    {
+      "name": "the hairline shows the rhythm rather than the socket",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            get { return Native.Any && Attached.Any ? Attached : default(Cadence); }",
+      "replace": "            get { return Native.Any && Attached.Any ? Native : default(Cadence); }"
+    },
+    {
+      "name": "the snapshot's Anvil count is ignored",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            Budget uses = Spending(copy.Relic, state.AnvilSpent, state.SoilUsed, counters,",
+      "replace": "            Budget uses = Spending(copy.Relic, 0, state.SoilUsed, counters,"
+    },
+    {
+      "name": "the snapshot's Soil flag is ignored",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            Budget uses = Spending(copy.Relic, state.AnvilSpent, state.SoilUsed, counters,",
+      "replace": "            Budget uses = Spending(copy.Relic, state.AnvilSpent, false, counters,"
+    },
+    {
+      "name": "the engine stops recording what the Anvil has spent",
+      "file": "Assets/GameAssets/Core/Combat/CombatEngine.cs",
+      "find": "                anvilSpent: _hero.AnvilBonus,",
+      "replace": "                anvilSpent: 0,"
+    }
+  ]
+}

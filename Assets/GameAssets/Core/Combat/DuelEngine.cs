@@ -312,7 +312,9 @@ namespace RelicRun.Core.Combat
                 enemyRelics: null,
                 heroMods: _a.DynamicMods(),
                 counters: counters,
-                heroFury: _a.Fury);
+                heroFury: _a.Fury,
+                anvilSpent: _a.AnvilBonus,
+                soilUsed: _a.SoilUsed);
 
             _events.Add(new CombatEvent(type, depth, state, amount, source,
                 relic, null, enemyCrit, another, foe));

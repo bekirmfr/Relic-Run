@@ -1255,7 +1255,9 @@ namespace RelicRun.Core.Combat
                 heroAdrenaline: _hero.Adrenaline,
                 enemyRelics: _cur != null ? _cur.Relics : null,
                 heroMods: DynamicMods(),
-                counters: counters);
+                counters: counters,
+                anvilSpent: _hero.AnvilBonus,
+                soilUsed: _hero.SoilUsed);
 
             // Events carry the exact copy that fired, when one did.
             if (!relicSlot.HasValue && _fireSlot >= 0)
