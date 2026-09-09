@@ -1,0 +1,155 @@
+{
+  "name": "the dungeon list",
+  "mutants": [
+    {
+      "name": "the hall at the frontier reads as already cleared",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                bool cleared = tier < frontier;",
+      "replace": "                bool cleared = tier <= frontier;"
+    },
+    {
+      "name": "the hall at the frontier is not open",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                bool unlocked = tier <= frontier;",
+      "replace": "                bool unlocked = tier < frontier;"
+    },
+    {
+      "name": "the tags for cleared and open are swapped",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Tag = cleared ? ClearedTag : unlocked ? OpenTag : string.Empty,",
+      "replace": "                    Tag = cleared ? OpenTag : unlocked ? ClearedTag : string.Empty,"
+    },
+    {
+      "name": "a sealed hall is tagged like an open one",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Tag = cleared ? ClearedTag : unlocked ? OpenTag : string.Empty,",
+      "replace": "                    Tag = cleared ? ClearedTag : OpenTag,"
+    },
+    {
+      "name": "the cursor starts on the first hall rather than the deepest open one",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            int at = chosen <= 0 ? frontier : chosen;",
+      "replace": "            int at = chosen <= 0 ? 1 : chosen;"
+    },
+    {
+      "name": "a hall past the end of the catalog is not clamped",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            if (at > count) at = count;",
+      "replace": "            if (at > count + 100) at = count;"
+    },
+    {
+      "name": "a hall below the first is not clamped",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            if (at < 1) at = 1;",
+      "replace": "            if (at < -100) at = 1;"
+    },
+    {
+      "name": "the hall at the frontier is described as sealed",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            if (tier > frontier)",
+      "replace": "            if (tier >= frontier)"
+    },
+    {
+      "name": "a sealed hall is described in full anyway",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            if (tier > frontier)",
+      "replace": "            if (tier > frontier + 100)"
+    },
+    {
+      "name": "a sealed hall names the hall before it as the one to clear",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Lore = \"Sealed. Clear Dungeon \" + Number(tier - 1) +",
+      "replace": "                    Lore = \"Sealed. Clear Dungeon \" + Number(tier) +"
+    },
+    {
+      "name": "a sealed hall may still be delved",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    BossRelics = new RelicId[0],\n                    CanDelve = false,",
+      "replace": "                    BossRelics = new RelicId[0],\n                    CanDelve = true,"
+    },
+    {
+      "name": "the hall's multiplier is left off its king's hit points",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Stat(\"HP\", Scaled(king.MaxHp, multiplier)),",
+      "replace": "                    Stat(\"HP\", Number(king.MaxHp)),"
+    },
+    {
+      "name": "the hall's multiplier is left off its king's attack",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Stat(\"ATK\", Scaled(king.Atk, multiplier)),",
+      "replace": "                    Stat(\"ATK\", Number(king.Atk)),"
+    },
+    {
+      "name": "the hall's multiplier is applied to armour as well",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Stat(\"DEF\", Number(king.Armor)),",
+      "replace": "                    Stat(\"DEF\", Scaled(king.Armor, multiplier)),"
+    },
+    {
+      "name": "the hall's multiplier is applied to speed as well",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Stat(\"SPD\", Number(king.Spd)),",
+      "replace": "                    Stat(\"SPD\", Scaled(king.Spd, multiplier)),"
+    },
+    {
+      "name": "the preview is built with the hall's multiplier, scaling it twice",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                Multiplier = 1.0,\n                BossRelics = hall.BossRelics,",
+      "replace": "                Multiplier = hall.Multiplier,\n                BossRelics = hall.BossRelics,"
+    },
+    {
+      "name": "the preview shows the first foe of the pack rather than the king",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            return pack[pack.Count - 1];",
+      "replace": "            return pack[0];"
+    },
+    {
+      "name": "the preview is rolled fresh from the hall rather than from one seed",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                EnemyPackGenerator.MaxFloor, new Mulberry32(PreviewSeed), preview);",
+      "replace": "                EnemyPackGenerator.MaxFloor, new Mulberry32((uint)hall.Tier), preview);"
+    },
+    {
+      "name": "the preview is of the first floor rather than the deepest",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                EnemyPackGenerator.MaxFloor, new Mulberry32(PreviewSeed), preview);",
+      "replace": "                1, new Mulberry32(PreviewSeed), preview);"
+    },
+    {
+      "name": "the score multiplier shows its hundredths like a rate",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            return two.ToString(\"0.##\", CultureInfo.InvariantCulture);",
+      "replace": "            return two.ToString(\"0.00\", CultureInfo.InvariantCulture);"
+    },
+    {
+      "name": "the score multiplier is not rounded to two places",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            double two = JsMath.Round(value * 100d) / 100d;",
+      "replace": "            double two = value;"
+    },
+    {
+      "name": "the experience rate drops its trailing zeros",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "            return value.ToString(\"0.00\", CultureInfo.InvariantCulture);",
+      "replace": "            return value.ToString(\"0.##\", CultureInfo.InvariantCulture);"
+    },
+    {
+      "name": "the experience rate is measured from the hall rather than the frontier",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                    Stat(\"XP RATE\", Times(Rate(Progression.RewardMultiplier(tier, frontier)))),",
+      "replace": "                    Stat(\"XP RATE\", Times(Rate(Progression.RewardMultiplier(frontier, tier)))),"
+    },
+    {
+      "name": "the hall's title is not raised to capitals",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                Title = hall.Name.ToUpperInvariant(),",
+      "replace": "                Title = hall.Name,"
+    },
+    {
+      "name": "the hall shows the arrival blurb where its lore belongs",
+      "file": "Assets/GameAssets/Core/Presentation/LevelsCard.cs",
+      "find": "                Lore = hall.Lore,",
+      "replace": "                Lore = hall.Blurb,"
+    }
+  ]
+}

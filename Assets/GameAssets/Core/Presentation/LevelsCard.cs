@@ -1,0 +1,288 @@
+using System.Collections.Generic;
+using System.Globalization;
+using RelicRun.Core.Combat;
+using RelicRun.Core.Content;
+using RelicRun.Core.Determinism;
+using RelicRun.Core.Meta;
+using RelicRun.Core.Run;
+
+namespace RelicRun.Core.Presentation
+{
+    /// <summary>One hall's tile in the grid.</summary>
+    public struct HallTile
+    {
+        public int Tier;
+
+        /// <summary>Whether this hall can be delved at all.</summary>
+        public bool Unlocked;
+
+        /// <summary>Whether the delver has been past it. Cleared implies unlocked.</summary>
+        public bool Cleared;
+
+        /// <summary>Whether this is the one the detail panel is describing.</summary>
+        public bool Chosen;
+
+        /// <summary>The word under the number, or empty for a hall still sealed.</summary>
+        public string Tag;
+    }
+
+    /// <summary>One line of the selected hall's numbers.</summary>
+    public struct HallStat
+    {
+        public string Label;
+        public string Value;
+    }
+
+    /// <summary>
+    /// What the panel says about the hall the delver is looking at.
+    /// </summary>
+    /// <remarks>
+    /// A sealed hall gets a different shape rather than a greyed-out version of the same one: no
+    /// numbers, no relics, no name — the point of sealing it is that the delver does not know
+    /// what is down there, and a panel that showed the boss's hit points and called it a mystery
+    /// would be telling them anyway.
+    /// </remarks>
+    public struct HallDetail
+    {
+        public int Tier;
+
+        /// <summary>Whether this hall is still shut. Everything below reads differently if so.</summary>
+        public bool Sealed;
+
+        public string Title;
+
+        public string Lore;
+
+        public IReadOnlyList<HallStat> Stats;
+
+        /// <summary>
+        /// What the hall's king carries, by id.
+        /// </summary>
+        /// <remarks>
+        /// Ids rather than names, because a name has a language and Core does not get to pick
+        /// one. The screen looks each up in the delver's own locale.
+        /// </remarks>
+        public IReadOnlyList<RelicId> BossRelics;
+
+        /// <summary>Whether pressing the button starts a delve.</summary>
+        public bool CanDelve;
+    }
+
+    /// <summary>Everything the dungeon list shows.</summary>
+    public struct LevelsCard
+    {
+        public IReadOnlyList<HallTile> Halls;
+
+        /// <summary>Which hall the panel is describing.</summary>
+        public int Chosen;
+
+        public HallDetail Detail;
+    }
+
+    /// <summary>
+    /// The dungeon list, worked out.
+    /// </summary>
+    /// <remarks>
+    /// Two questions, and they are not the same one. Which halls exist and what state each is in
+    /// is cheap and is asked of every hall. What is actually DOWN one of them is expensive — it
+    /// builds a pack of foes — and is asked only of the hall being looked at.
+    ///
+    /// The captions are English, for the reason <see cref="TitleCard"/>'s are: the source writes
+    /// them as literals in its markup and they never pass through its translation function. The
+    /// relic names are the exception and are deliberately not here — those DO come from the
+    /// translator, so the screen looks them up and Core hands over ids.
+    /// </remarks>
+    public static class LevelsCards
+    {
+        /// <summary>What a hall the delver has been past says under its number.</summary>
+        public const string ClearedTag = "CLEARED";
+
+        /// <summary>And one they may enter but have not finished.</summary>
+        public const string OpenTag = "OPEN";
+
+        /// <summary>The king every hall's deepest floor belongs to.</summary>
+        public const string KingName = "The Hoard-King";
+
+        /// <summary>What is said where a relic list would be, when the king carries none.</summary>
+        public const string NoRelics = "none — raw strength only";
+
+        /// <summary>
+        /// The seed the boss preview is built from.
+        /// </summary>
+        /// <remarks>
+        /// The source's, and fixed on purpose: this is a shop window rather than a fight. A
+        /// preview rolled fresh each time the screen opened would show a delver different numbers
+        /// for the same hall depending on when they looked, and the numbers are the whole reason
+        /// they are looking.
+        ///
+        /// It is NOT the seed the delve runs on. That comes from the run, and the pack a delver
+        /// actually meets is rolled then.
+        /// </remarks>
+        public const uint PreviewSeed = 7;
+
+        /// <summary>
+        /// The dungeon list, for this delver, looking at this hall.
+        /// </summary>
+        /// <param name="chosen">
+        /// Which hall to describe. Clamped into the catalog, and zero means "the deepest one they
+        /// have opened" — which is where the source puts the cursor when the screen opens.
+        /// </param>
+        public static LevelsCard Of(SaveState save, int chosen)
+        {
+            if (save == null) save = new SaveState();
+
+            int frontier = Career.Frontier(save);
+            int count = DungeonCatalog.All.Count;
+
+            int at = chosen <= 0 ? frontier : chosen;
+            if (at < 1) at = 1;
+            if (at > count) at = count;
+
+            var tiles = new List<HallTile>(count);
+
+            for (var tier = 1; tier <= count; tier++)
+            {
+                bool unlocked = tier <= frontier;
+                bool cleared = tier < frontier;
+
+                tiles.Add(new HallTile
+                {
+                    Tier = tier,
+                    Unlocked = unlocked,
+                    Cleared = cleared,
+                    Chosen = tier == at,
+                    Tag = cleared ? ClearedTag : unlocked ? OpenTag : string.Empty,
+                });
+            }
+
+            return new LevelsCard
+            {
+                Halls = tiles,
+                Chosen = at,
+                Detail = Describe(save, at, frontier),
+            };
+        }
+
+        /// <summary>What one hall is, or what little is known about it.</summary>
+        private static HallDetail Describe(SaveState save, int tier, int frontier)
+        {
+            if (tier > frontier)
+            {
+                return new HallDetail
+                {
+                    Tier = tier,
+                    Sealed = true,
+                    Title = "DUNGEON " + Number(tier),
+                    Lore = "Sealed. Clear Dungeon " + Number(tier - 1) +
+                           " to learn what waits here.",
+                    Stats = new HallStat[0],
+                    BossRelics = new RelicId[0],
+                    CanDelve = false,
+                };
+            }
+
+            DungeonDef hall = DungeonCatalog.Get(tier);
+            EnemyState king = King(hall);
+
+            double multiplier = hall.Multiplier;
+
+            return new HallDetail
+            {
+                Tier = tier,
+                Sealed = false,
+                Title = hall.Name.ToUpperInvariant(),
+                Lore = hall.Lore,
+                BossRelics = hall.BossRelics,
+                CanDelve = true,
+
+                Stats = new[]
+                {
+                    // Hit points and attack carry the hall's multiplier; armour and speed do not,
+                    // which is the source's arrangement and not a rounding of it. A deeper hall
+                    // makes its king hit harder and last longer without making it nimbler.
+                    Stat("HP", Scaled(king.MaxHp, multiplier)),
+                    Stat("ATK", Scaled(king.Atk, multiplier)),
+                    Stat("DEF", Number(king.Armor)),
+                    Stat("SPD", Number(king.Spd)),
+
+                    // Two multipliers, spelled two different ways, and both spellings are the
+                    // source's. The score multiplier is a property of the hall and reads as one:
+                    // 1.1, not 1.10. The experience rate is a rate and always shows its
+                    // hundredths, because the difference between 0.80 and 0.8 on a screen full
+                    // of rates is a delver wondering which one they misread.
+                    Stat("SCORE", Times(Rounded(multiplier))),
+                    Stat("FOR LV", Number(hall.Level)),
+                    Stat("XP RATE", Times(Rate(Progression.RewardMultiplier(tier, frontier)))),
+                },
+            };
+        }
+
+        /// <summary>
+        /// The king waiting on the deepest floor, as a preview.
+        /// </summary>
+        /// <remarks>
+        /// Built from the fixed seed and WITHOUT the hall's multiplier, because the multiplier is
+        /// applied to the two numbers that carry it rather than to the whole pack. Handing the
+        /// generator a multiplied config would scale the king's gold as well, which nothing on
+        /// this screen shows and which would then disagree with the delve itself.
+        /// </remarks>
+        private static EnemyState King(DungeonDef hall)
+        {
+            var preview = new DungeonConfig
+            {
+                Multiplier = 1.0,
+                BossRelics = hall.BossRelics,
+                GhoolemBoss = hall.GhoolemBoss,
+            };
+
+            List<EnemyState> pack = EnemyPackGenerator.Build(
+                EnemyPackGenerator.MaxFloor, new Mulberry32(PreviewSeed), preview);
+
+            return pack[pack.Count - 1];
+        }
+
+        private static HallStat Stat(string label, string value)
+        {
+            return new HallStat { Label = label, Value = value };
+        }
+
+        /// <summary>A number the hall's multiplier applies to, rounded the way the game rounds.</summary>
+        private static string Scaled(int value, double multiplier)
+        {
+            return Number(JsMath.RoundToInt(value * multiplier));
+        }
+
+        private static string Number(int value)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>A multiplier as the source prints it: two decimals at most, trailing zeros dropped.</summary>
+        private static string Rounded(double value)
+        {
+            double two = JsMath.Round(value * 100d) / 100d;
+
+            return two.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>A rate as the source prints it: always two decimals.</summary>
+        private static string Rate(double value)
+        {
+            return value.ToString("0.00", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// A multiplier with its sign in front.
+        /// </summary>
+        /// <remarks>
+        /// A real multiplication sign rather than a lowercase x. It is what the source uses, it
+        /// is inside the range the pixel face covers, and the tests hold every line on this screen
+        /// against that face — raw, since none of these go through the translator that would
+        /// otherwise strip anything it could not draw.
+        /// </remarks>
+        private static string Times(string value)
+        {
+            return "×" + value;
+        }
+    }
+}

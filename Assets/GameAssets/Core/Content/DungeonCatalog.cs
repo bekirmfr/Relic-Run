@@ -37,8 +37,23 @@ namespace RelicRun.Core.Content
         /// <summary>When set, the Ghoolem replaces this hall's bosses below the first floor.</summary>
         public readonly bool GhoolemBoss;
 
+        /// <summary>The line shown on arriving: one sentence about what the hall feels like.</summary>
+        /// <remarks>
+        /// English, and that is the source's doing rather than an omission. The halls' prose is
+        /// written as literals in its markup and never passes through its translation function,
+        /// so it reads the same in every locale the game ships.
+        ///
+        /// Read from the source by <c>Tools/capture/halls.mjs</c> rather than typed. Ten
+        /// paragraphs transcribed by hand is ten chances to drop a word nobody will ever notice
+        /// is missing — prose is the one kind of content where a mistake reads as intentional.
+        /// </remarks>
+        public readonly string Blurb;
+
+        /// <summary>The paragraph the dungeon list shows beside the hall's numbers.</summary>
+        public readonly string Lore;
+
         public DungeonDef(int tier, int level, string name, string art, double multiplier,
-            IReadOnlyList<RelicId> bossRelics, bool ghoolemBoss)
+            IReadOnlyList<RelicId> bossRelics, bool ghoolemBoss, string blurb, string lore)
         {
             Tier = tier;
             Level = level;
@@ -47,6 +62,8 @@ namespace RelicRun.Core.Content
             Multiplier = multiplier;
             BossRelics = bossRelics;
             GhoolemBoss = ghoolemBoss;
+            Blurb = blurb;
+            Lore = lore;
         }
     }
 
@@ -57,16 +74,36 @@ namespace RelicRun.Core.Content
 
         public static readonly IReadOnlyList<DungeonDef> All = new List<DungeonDef>
         {
-            new DungeonDef(1, 1, "The Hoard", "assets/hall-hoard.png", 1, NoRelics, false),
-            new DungeonDef(2, 4, "The Verdant Rot", "assets/hall-moss.png", 1.1, new[] { RelicId.BerserkerCharm }, false),
-            new DungeonDef(3, 7, "The Gilded Tomb", "assets/hall-tomb.png", 1.21, new[] { RelicId.WeightedDice }, false),
-            new DungeonDef(4, 10, "The Cracked Seam", "assets/hall-mine.png", 1.331, new[] { RelicId.IronSkin, RelicId.BerserkerCharm }, false),
-            new DungeonDef(5, 13, "The Jaguar Steps", "assets/hall-jungle.png", 1.4641, new[] { RelicId.SwiftBoots, RelicId.DuelistsOath }, false),
-            new DungeonDef(6, 16, "The Sunken Watch", "assets/hall-sunken.png", 1.6105, new[] { RelicId.TrollMarrow, RelicId.LuckyClover }, false),
-            new DungeonDef(7, 19, "The Ember Forge", "assets/hall-forge.png", 1.7716, new[] { RelicId.Whetstone, RelicId.BerserkerCharm }, true),
-            new DungeonDef(8, 22, "The Frostbound Cells", "assets/hall-frost.png", 1.9487, new[] { RelicId.IronSkin, RelicId.TrollMarrow }, true),
-            new DungeonDef(9, 25, "The Orrery", "assets/hall-orrery.png", 2.1436, new[] { RelicId.WeightedDice, RelicId.LuckyClover, RelicId.SwiftBoots }, false),
-            new DungeonDef(10, 28, "The Hoard-King's Court", "assets/hall-throne.png", 2.3579, new[] { RelicId.BerserkerCharm, RelicId.WeightedDice, RelicId.Whetstone, RelicId.IronSkin }, false),
+            new DungeonDef(1, 1, "The Hoard", "assets/hall-hoard.png", 1, NoRelics, false,
+                "A torchlit service corridor. Every delver's first mistake happens here.",
+                "Thirteen floors of plundered cellar, still warm from the last delver who tried. The Hoard keeps what it kills — and it isn't picky."),
+            new DungeonDef(2, 4, "The Verdant Rot", "assets/hall-moss.png", 1.1, new[] { RelicId.BerserkerCharm }, false,
+                "Something down here is still growing, and it resents the interruption.",
+                "The lower cisterns drowned in moss a century ago. Spores map the walls in glowing veins; the guards breathe them, and what breathes them fights harder as it dies."),
+            new DungeonDef(3, 7, "The Gilded Tomb", "assets/hall-tomb.png", 1.21, new[] { RelicId.WeightedDice }, false,
+                "Sealed doors, honest gold, dishonest odds.",
+                "A burial vault built by people who took luck seriously: every urn is a wager, every step a coin toss the tomb has already won. Its keeper gambles with your life and rarely loses."),
+            new DungeonDef(4, 10, "The Cracked Seam", "assets/hall-mine.png", 1.331, new[] { RelicId.IronSkin, RelicId.BerserkerCharm }, false,
+                "The picks are still here. The miners are not.",
+                "A dwarven crystal seam abandoned mid-shift, ore carts loaded and rails humming. Whatever they dug into came out armoured, and it kept the tools."),
+            new DungeonDef(5, 13, "The Jaguar Steps", "assets/hall-jungle.png", 1.4641, new[] { RelicId.SwiftBoots, RelicId.DuelistsOath }, false,
+                "Old jade, older appetite — and it moves fast.",
+                "Vines have taken the sun-shrine back, but the offerings are untouched: nobody who stoops to lift the jade stands up again. Its guardians hunt at a sprinter's pace."),
+            new DungeonDef(6, 16, "The Sunken Watch", "assets/hall-sunken.png", 1.6105, new[] { RelicId.TrollMarrow, RelicId.LuckyClover }, false,
+                "Flooded to the ribs. Everything here has learned to wait.",
+                "The cistern gates failed and never reopened; the garrison drowned standing at their posts and simply carried on. Cold water knits their wounds faster than you can open them."),
+            new DungeonDef(7, 19, "The Ember Forge", "assets/hall-forge.png", 1.7716, new[] { RelicId.Whetstone, RelicId.BerserkerCharm }, true,
+                "The fires never went out. Neither did the smith.",
+                "A war-forge that outlived its war, hammering out blades for an army of ash. Everything drawn from that channel comes out sharper than it went in — including its keeper."),
+            new DungeonDef(8, 22, "The Frostbound Cells", "assets/hall-frost.png", 1.9487, new[] { RelicId.IronSkin, RelicId.TrollMarrow }, true,
+                "Cold enough that dying takes its time.",
+                "A prison level that froze with its inmates inside, mid-sentence. Ice is the only warden left — it armours what it holds and grudgingly gives it back."),
+            new DungeonDef(9, 25, "The Orrery", "assets/hall-orrery.png", 2.1436, new[] { RelicId.WeightedDice, RelicId.LuckyClover, RelicId.SwiftBoots }, false,
+                "Brass, glass, and a very well-informed opponent.",
+                "Someone built a machine to watch the sky from underground, then taught it to watch the doorway instead. It has run every version of this fight already and has opinions about your odds."),
+            new DungeonDef(10, 28, "The Hoard-King's Court", "assets/hall-throne.png", 2.3579, new[] { RelicId.BerserkerCharm, RelicId.WeightedDice, RelicId.Whetstone, RelicId.IronSkin }, false,
+                "The portrait has been expecting you for some time.",
+                "Green candles, a crowned corpse in gilt, and one chest with your name already inked on the manifest. The Hoard-King does not guard the treasure — he is the ledger it is written in."),
         };
 
         /// <summary>
