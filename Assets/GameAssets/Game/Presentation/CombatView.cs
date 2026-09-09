@@ -43,6 +43,8 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private RectTransform _goldFliers;
 
         [Header("The log")]
+        [SerializeField] private RelicTray _tray;
+
         [SerializeField] private RectTransform _log;
         [SerializeField] private FlyingNumber _flier;
         [SerializeField] private LogLine _line;
@@ -70,11 +72,16 @@ namespace RelicRun.Game.Presentation
         /// NEXT — which is a fact about events that have not been drawn yet. Handing over one
         /// event at a time would make the bars guess.
         /// </remarks>
-        public void Begin(IReadOnlyList<CombatEvent> events, Pacing pacing, CombatLog reading)
+        public void Begin(IReadOnlyList<CombatEvent> events, Pacing pacing, CombatLog reading,
+            Shelf shelf = null, bool versus = false)
         {
             _events = events;
             _pacing = pacing;
             _reading = reading;
+
+            // Once, because the shelf does not change during a floor. Everything that DOES change
+            // reaches the tray through the snapshot on each event.
+            if (_tray != null) _tray.Begin(shelf, versus);
 
             _heroMax = 0;
             if (events != null)
@@ -104,6 +111,8 @@ namespace RelicRun.Game.Presentation
             foreach (Flier flier in frame.Fliers) Throw(flier);
 
             if (frame.Line.Shown) Say(frame.Line);
+
+            if (_tray != null) _tray.Show(shown);
         }
 
         /// <summary>Sets off down the hall to meet whoever is entering.</summary>

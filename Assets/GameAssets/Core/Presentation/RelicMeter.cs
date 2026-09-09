@@ -74,6 +74,46 @@ namespace RelicRun.Core.Presentation
 
         public bool Spent { get { return Any && Left <= 0; } }
 
+        /// <summary>
+        /// The mark in the corner of a relic's slot: a tick, a cross, a number, or nothing.
+        /// </summary>
+        /// <remarks>
+        /// Nothing, most of the time, and that is the rule rather than an omission. A relic with
+        /// nine of ten uses left has nothing worth saying in six pixels, so the badge stays empty
+        /// until the budget is nearly out — at three — and only then starts counting down. A tray
+        /// of twelve relics each wearing a number would be a tray nobody reads.
+        ///
+        /// A debt reads the other way, because it is the other way: it counts UP toward a
+        /// reckoning, so a number means floors still owed and the tick means paid off. Showing a
+        /// debt with the spending rule would put a cross on a relic that had just finished
+        /// costing you nothing.
+        ///
+        /// Here rather than in the widget for the same reason the log's wording is: it is a rule
+        /// with four branches, and a rule with four branches drawn in two places is a rule with
+        /// two answers.
+        /// </remarks>
+        public string Badge
+        {
+            get
+            {
+                if (!Any) return "";
+
+                if (IsDebt) return Owed > 0 ? Owed.ToString() : Paid;
+                if (Left <= 0) return Gone;
+
+                return Left <= BadgeFrom ? Left.ToString() : "";
+            }
+        }
+
+        /// <summary>A debt that has been settled.</summary>
+        public const string Paid = "✓";
+
+        /// <summary>A budget with nothing left in it.</summary>
+        public const string Gone = "✗";
+
+        /// <summary>How few uses must remain before the number is worth the room.</summary>
+        public const int BadgeFrom = 3;
+
         public override string ToString()
         {
             if (!Any) return "none";

@@ -400,6 +400,58 @@ namespace RelicRun.Tests
             Assert.That(one.Hairline.Any, Is.False, "one clock is not two");
         }
 
+        /* ---------- the badge ---------- */
+
+        /// <summary>
+        /// The badge stays empty until a budget is nearly out.
+        /// </summary>
+        /// <remarks>
+        /// Six pixels in the corner of a 34-unit slot, so it has to be worth spending. A relic
+        /// with nine of ten uses left says nothing; at three it starts counting down; at nothing
+        /// it wears a cross and the slot greys out. A tray of twelve relics each wearing a number
+        /// is a tray nobody reads.
+        /// </remarks>
+        [TestCase(10, 10, "")]
+        [TestCase(4, 10, "")]
+        [TestCase(3, 10, "3")]
+        [TestCase(1, 10, "1")]
+        [TestCase(0, 10, Budget.Gone)]
+        public void TheBadgeCountsDownOnlyAtTheEnd(int left, int cap, string badge)
+        {
+            Assert.That(new Budget(left, cap).Badge, Is.EqualTo(badge));
+        }
+
+        /// <summary>
+        /// A relic with no budget at all wears no badge.
+        /// </summary>
+        /// <remarks>
+        /// Which is most of them. An empty budget is not a spent one, and a cross on every relic
+        /// that never had uses to spend would say the whole shelf was dead.
+        /// </remarks>
+        [Test]
+        public void ARelicWithNoBudgetWearsNoBadge()
+        {
+            Assert.That(default(Budget).Badge, Is.Empty);
+            Assert.That(default(Budget).Spent, Is.False, "having no budget is not being out of it");
+        }
+
+        /// <summary>
+        /// A debt reads the other way round, because it counts up rather than down.
+        /// </summary>
+        /// <remarks>
+        /// A number means floors still owed and the tick means paid off. Run through the spending
+        /// rule instead, a settled debt has nothing left and would wear a cross — a relic that had
+        /// just finished costing anything, marked as dead.
+        /// </remarks>
+        [Test]
+        public void ADebtWearsItsFloorsAndThenATick()
+        {
+            Assert.That(new Budget(0, 5, owed: 3).Badge, Is.EqualTo("3"));
+            Assert.That(new Budget(5, 5, owed: 0).Badge, Is.EqualTo(Budget.Paid));
+            Assert.That(new Budget(0, 5, owed: 0).Badge, Is.EqualTo(Budget.Paid),
+                "a paid debt is not a spent budget");
+        }
+
         [Test]
         public void ARelicCountingNothingShowsNothing()
         {

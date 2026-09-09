@@ -38,6 +38,19 @@ namespace RelicRun.Game.Presentation
         [Tooltip("The delver's level, which sets their opening stats.")]
         [Min(1)] [SerializeField] private int _level = 1;
 
+        [Tooltip("What is on the shelf. Chosen to make the tray show every kind of gauge.")]
+        [SerializeField] private RelicId[] _shelf =
+        {
+            RelicId.AnvilHeart,
+            RelicId.Whetstone,
+            RelicId.Whetstone,
+            RelicId.QuenchedBlade,
+            RelicId.SentinelBell,
+        };
+
+        [Tooltip("Which shelf slot carries a socket, or -1 for none.")]
+        [SerializeField] private int _socketed = 2;
+
         [Header("Watching")]
         [Tooltip("Skips the walk down the hall, which is three and a half seconds of scenery.")]
         [SerializeField] private bool _skipIntro;
@@ -92,7 +105,7 @@ namespace RelicRun.Game.Presentation
 
                 Pacing pacing = Pacing.For(events.Count, false, 1, _content.Presentation.ToPacing());
 
-                _view.Begin(events, pacing, Reading());
+                _view.Begin(events, pacing, Reading(), Shelf.Of(_delver), false);
                 _showing = new CombatPlaybackController(_content.Presentation);
 
                 await _showing.Show(events, _view, _skipIntro);
@@ -105,6 +118,16 @@ namespace RelicRun.Game.Presentation
                 _fighting = false;
             }
         }
+
+        /// <summary>
+        /// The hero the last fight was resolved for, kept so the tray can read their shelf.
+        /// </summary>
+        /// <remarks>
+        /// The shelf only. Nothing else about this object is safe to read afterwards — it is the
+        /// engine's working copy and holds the state the fight ENDED in, which is exactly why
+        /// every number the tray animates comes off the events instead.
+        /// </remarks>
+        private HeroState _delver;
 
         /// <summary>
         /// The fight itself, resolved before a single frame of it is drawn.
@@ -128,6 +151,20 @@ namespace RelicRun.Game.Presentation
                 BaseSpd = setup.Spd,
                 BaseLck = setup.Lck,
             };
+
+            hero.Items = new List<RelicId>(_shelf ?? new RelicId[0]);
+
+            if (_socketed >= 0 && _socketed < hero.Items.Count)
+            {
+                // On a DUPLICATE by default, because that is the case a tray gets wrong: two
+                // identical icons where only one of them is counting anything.
+                hero.SocketTriggers = new Dictionary<int, SocketTrigger>
+                {
+                    { _socketed, SocketTrigger.Attack },
+                };
+            }
+
+            _delver = hero;
 
             var rng = new Mulberry32(_seed);
             List<EnemyState> pack = EnemyPackGenerator.Build(_floor, rng, setup.Dungeon);

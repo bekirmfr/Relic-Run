@@ -44,6 +44,17 @@ namespace RelicRun.Editor.Importers
             "ScriptableObjects/SceneServiceSettings/GameSceneConfig.asset";
         public const string FlierPrefab = "Assets/GameAssets/Game/Presentation/FlyingNumber.prefab";
         public const string LinePrefab = "Assets/GameAssets/Game/Presentation/LogLine.prefab";
+        public const string SlotPrefab = "Assets/GameAssets/Game/Presentation/RelicSlot.prefab";
+
+        /// <summary>
+        /// A relic slot is a square, and this is its side in authored pixels.
+        /// </summary>
+        /// <remarks>
+        /// The source draws 34, in a 390-wide shell. This layout is halved from a 1080 reference
+        /// and lands near 480 units on a common phone, so 34 is close enough to the same share of
+        /// the screen to keep the source's proportions without a conversion nobody can check.
+        /// </remarks>
+        private const float SlotSide = 34f;
 
         /// <summary>
         /// Every size below is in authored pixels, and every text size is a multiple of eight.
@@ -95,9 +106,10 @@ namespace RelicRun.Editor.Importers
 
                 FlyingNumber flier = Flier(face);
                 LogLine line = Line(face);
+                RelicSlot slot = Slot(face);
 
                 Replace(scene);
-                Fit(scene, content, face, flier, line);
+                Fit(scene, content, face, flier, line, slot);
 
                 PrefabUtility.SaveAsPrefabAsset(scene, ScenePath);
             }
@@ -334,7 +346,7 @@ namespace RelicRun.Editor.Importers
 
         /// <summary>Builds the fight's whole hierarchy under one child of the scene.</summary>
         private static void Fit(GameObject scene, GameContent content, TMP_FontAsset face,
-            FlyingNumber flier, LogLine line)
+            FlyingNumber flier, LogLine line, RelicSlot slot)
         {
             var root = new GameObject(RootName);
             root.transform.SetParent(scene.transform, false);
@@ -373,6 +385,7 @@ namespace RelicRun.Editor.Importers
             GameObject goldFliers = Anchor(purse, "Fliers", new Vector2(0f, -20f));
 
             GameObject log = Log(canvas);
+            RelicTray tray = Tray(canvas, content, slot);
 
             Wire(view, new[]
             {
@@ -390,6 +403,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_log", (RectTransform)log.transform),
                 Pair("_flier", flier),
                 Pair("_line", line),
+                Pair("_tray", tray),
                 Pair("_content", content),
             });
 
@@ -620,7 +634,135 @@ namespace RelicRun.Editor.Importers
             return panel;
         }
 
+        /// <summary>
+        /// The shelf, along the bottom, under the delver.
+        /// </summary>
+        /// <remarks>
+        /// Under the delver because it is the delver's, which is the source's arrangement and
+        /// also the readable one: a gauge filling on a relic and a gauge filling on the hero are
+        /// the same kind of fact and belong near each other.
+        ///
+        /// Left-aligned rather than centred. Slots are added in inventory order as a run goes on,
+        /// and a centred row would shuffle every icon sideways each time one arrived — so the
+        /// relic a delver had learned the position of would move for the sake of symmetry.
+        /// </remarks>
+        private static RelicTray Tray(GameObject parent, GameContent content, RelicSlot slot)
+        {
+            // Above the Delver panel, which spans 55 to 205 units up from the bottom. At 230 the
+            // tray sits clear of it rather than a few units into its top edge.
+            GameObject panel = Panel(parent, "Tray", new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 230f), new Vector2(-40f, SlotSide));
+
+            var row = panel.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.LowerLeft;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childControlWidth = false;
+            row.childControlHeight = false;
+            row.spacing = 4f;
+
+            var tray = panel.AddComponent<RelicTray>();
+
+            Wire(tray, new[]
+            {
+                Pair("_row", (RectTransform)panel.transform),
+                Pair("_slot", slot),
+                Pair("_content", content),
+            });
+
+            return tray;
+        }
+
         /* ---------- the prefabs ---------- */
+
+        /// <summary>
+        /// One relic slot: an icon in the middle and three gauges on the edges.
+        /// </summary>
+        /// <remarks>
+        /// The crowding is the design problem. Four facts have to fit in a 34-unit square — what
+        /// the relic is, how close it is to firing, whether a second clock is running, and how
+        /// much budget is left — so the source puts three of them on the EDGES and leaves the
+        /// middle to the picture. A delver then reads the shape without reading anything: a gold
+        /// line creeping along the bottom, a violet hairline above it when a copy is counting two
+        /// things, a bar down the right that shortens as a relic runs out.
+        ///
+        /// Every bar is a FILLED image, because a Simple one ignores fillAmount and sits there
+        /// full — the same trap the health bars are gated against, and worse here, where a full
+        /// bar means "about to fire".
+        /// </remarks>
+        private static RelicSlot Slot(TMP_FontAsset face)
+        {
+            var made = new GameObject("RelicSlot", typeof(RectTransform), typeof(Image),
+                typeof(RelicSlot));
+
+            var rect = (RectTransform)made.transform;
+            rect.sizeDelta = new Vector2(SlotSide, SlotSide);
+
+            // The plate the icon sits on. Its colour is the widget's business and is set every
+            // time the slot is drawn, because it is also how a spent relic is greyed out.
+            Image frame = made.GetComponent<Image>();
+            frame.color = new Color(0.07f, 0.06f, 0.05f, 0.85f);
+
+            GameObject icon = Box(made, "Icon", new Vector2(0.5f, 0.5f),
+                new Vector2(SlotSide - 6f, SlotSide - 6f), Vector2.zero);
+            icon.GetComponent<Image>().enabled = true;
+            icon.GetComponent<Image>().preserveAspect = true;
+
+            // Bottom edge, full width: progress toward the next time this fires.
+            GameObject charge = Edge(made, "Charge", new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 1.5f), new Vector2(0f, 3f), Image.FillMethod.Horizontal,
+                (int)Image.OriginHorizontal.Left);
+
+            // A hairline above it, for a copy counting two different things at once.
+            GameObject hairline = Edge(made, "Hairline", new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 5f), new Vector2(0f, 2f), Image.FillMethod.Horizontal,
+                (int)Image.OriginHorizontal.Left);
+
+            // Right edge, draining downward, because a budget runs out rather than fills up.
+            GameObject uses = Edge(made, "Uses", new Vector2(1f, 0f), new Vector2(1f, 1f),
+                new Vector2(-1.5f, 0f), new Vector2(3f, 0f), Image.FillMethod.Vertical,
+                (int)Image.OriginVertical.Bottom);
+
+            GameObject badge = Say(made, face, "", Text(8), TextAlignmentOptions.TopRight,
+                Vector2.zero, new Vector2(SlotSide, SlotSide));
+
+            Wire(made.GetComponent<RelicSlot>(), new[]
+            {
+                Pair("_frame", frame),
+                Pair("_icon", icon.GetComponent<Image>()),
+                Pair("_badge", badge.GetComponent<TMP_Text>()),
+                Pair("_charge", charge.GetComponent<Image>()),
+                Pair("_hairline", hairline.GetComponent<Image>()),
+                Pair("_uses", uses.GetComponent<Image>()),
+            });
+
+            return Save(made, SlotPrefab).GetComponent<RelicSlot>();
+        }
+
+        /// <summary>A thin filled bar pinned along one edge of a slot.</summary>
+        private static GameObject Edge(GameObject parent, string name, Vector2 anchorMin,
+            Vector2 anchorMax, Vector2 at, Vector2 size, Image.FillMethod how, int from)
+        {
+            var bar = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)bar.transform;
+
+            rect.SetParent(parent.transform, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = at;
+
+            Image image = bar.GetComponent<Image>();
+            image.color = Color.white;
+            image.type = Image.Type.Filled;
+            image.fillMethod = how;
+            image.fillOrigin = from;
+            image.fillAmount = 1f;
+
+            return bar;
+        }
+
 
         private static FlyingNumber Flier(TMP_FontAsset face)
         {

@@ -67,6 +67,7 @@ namespace RelicRun.Tests.Editor
         {
             Assert.That(Find<CombatView>(), Is.Not.Null, "nothing in the scene draws a fight");
             Assert.That(Find<FightHarness>(), Is.Not.Null, "nothing in the scene starts one");
+            Assert.That(Find<RelicTray>(), Is.Not.Null, "nothing in the scene draws the shelf");
             Assert.That(Find<Canvas>(), Is.Not.Null, "no canvas to draw on");
         }
 
@@ -84,6 +85,7 @@ namespace RelicRun.Tests.Editor
             Filled(_scene.GetComponent<FightScene>());
             Filled(Find<CombatView>());
             Filled(Find<FightHarness>());
+            Filled(Find<RelicTray>());
         }
 
         private static void Filled(Component component)
@@ -385,15 +387,66 @@ namespace RelicRun.Tests.Editor
             }
         }
 
-        /// <summary>The two prefabs the view spawns exist and carry their text.</summary>
+        /// <summary>
+        /// A relic slot's three gauges all actually fill.
+        /// </summary>
+        /// <remarks>
+        /// The same trap as the health bars and worse here. An <c>Image</c> left on Simple ignores
+        /// <c>fillAmount</c> and sits there FULL, and on a charge bar full means "about to fire" —
+        /// so every relic on the shelf would look permanently one strike from going off.
+        ///
+        /// The directions matter as much as the type. Charge and hairline run along the bottom
+        /// left to right because they fill toward something; the uses bar runs down the right side
+        /// because a budget empties rather than fills, and one drawn the other way would read as a
+        /// relic getting stronger as it ran out.
+        /// </remarks>
+        [Test]
+        public void EveryGaugeOnASlotIsAFillingBar()
+        {
+            var slot = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.SlotPrefab);
+
+            Assert.That(slot, Is.Not.Null, "no relic slot — rebuild the fight scene");
+
+            var along = new[] { "Charge", "Hairline" };
+            var found = new List<string>();
+
+            foreach (UnityEngine.UI.Image bar in
+                     slot.GetComponentsInChildren<UnityEngine.UI.Image>(true))
+            {
+                if (bar.name != "Charge" && bar.name != "Hairline" && bar.name != "Uses") continue;
+
+                found.Add(bar.name);
+
+                Assert.That(bar.type, Is.EqualTo(UnityEngine.UI.Image.Type.Filled),
+                    bar.name + " would ignore fillAmount and sit there full, which on a charge " +
+                    "bar means every relic looks one strike from firing");
+
+                bool sideways = System.Array.IndexOf(along, bar.name) >= 0;
+
+                Assert.That(bar.fillMethod,
+                    Is.EqualTo(sideways
+                        ? UnityEngine.UI.Image.FillMethod.Horizontal
+                        : UnityEngine.UI.Image.FillMethod.Vertical),
+                    bar.name + " fills the wrong way");
+            }
+
+            Assert.That(found, Is.EquivalentTo(new[] { "Charge", "Hairline", "Uses" }),
+                "a slot draws two cadences and a budget, and found: " + string.Join(", ", found));
+        }
+
+        /// <summary>The three prefabs the view spawns exist and carry their text.</summary>
         [Test]
         public void TheSpawnedPrefabsAreWholeToo()
         {
             var flier = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.FlierPrefab);
             var line = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.LinePrefab);
+            var slot = AssetDatabase.LoadAssetAtPath<GameObject>(FightSceneBuilder.SlotPrefab);
 
             Assert.That(flier, Is.Not.Null, "no flying number to spawn");
             Assert.That(line, Is.Not.Null, "no log line to spawn");
+            Assert.That(slot, Is.Not.Null, "no relic slot to spawn");
+
+            Filled(slot.GetComponent<RelicSlot>());
 
             // These live outside the scene and are spawned into it, so the walk above never sees
             // them — and between them they are most of the text a delver actually reads.
