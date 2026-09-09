@@ -400,6 +400,140 @@ namespace RelicRun.Tests
             Assert.That(one.Hairline.Any, Is.False, "one clock is not two");
         }
 
+        /* ---------- dressing a hero ---------- */
+
+        /// <summary>
+        /// A shelf put on a hero and read back off is the same shelf.
+        /// </summary>
+        /// <remarks>
+        /// The two directions exist because a fight can be typed into an inspector as well as
+        /// generated, and both have to produce the same thing. Written by hand at each call site
+        /// it is four collections that have to agree — items in order, sockets keyed by index,
+        /// emitters keyed by index, awakenings keyed by relic — and the asymmetry between the
+        /// last two is what a second implementation gets wrong.
+        /// </remarks>
+        [Test]
+        public void AShelfSurvivesBeingWornAndReadBack()
+        {
+            var copies = new List<RelicCopy>
+            {
+                new RelicCopy(RelicId.AnvilHeart),
+                new RelicCopy(RelicId.Whetstone),
+                new RelicCopy(RelicId.Whetstone, SocketTrigger.Attack),
+                new RelicCopy(RelicId.QuenchedBlade, SocketTrigger.None, SocketEmitter.Def),
+                new RelicCopy(RelicId.SentinelBell),
+            };
+
+            var hero = new HeroState();
+            Shelf.Dress(hero, copies);
+            Shelf worn = Shelf.Of(hero);
+
+            Assert.That(worn.Count, Is.EqualTo(copies.Count));
+
+            for (int i = 0; i < copies.Count; i++)
+            {
+                Assert.That(worn[i].Relic, Is.EqualTo(copies[i].Relic), "slot " + i);
+                Assert.That(worn[i].Trigger, Is.EqualTo(copies[i].Trigger), "slot " + i);
+                Assert.That(worn[i].Emitter, Is.EqualTo(copies[i].Emitter), "slot " + i);
+            }
+        }
+
+        /// <summary>
+        /// Waking one copy wakes every copy of that relic, on the way out as on the way in.
+        /// </summary>
+        /// <remarks>
+        /// The one thing that does NOT round-trip per copy, and it is the source's rule rather
+        /// than a rough edge: awakenings key by relic. So dressing a hero in one woken Whetstone
+        /// and one sleeping one gives back two woken ones — which is right, and is asserted here
+        /// so that nobody later "fixes" it into a per-copy flag and quietly changes what an
+        /// awakening costs.
+        /// </remarks>
+        [Test]
+        public void WakingOneCopyWakesThemAll()
+        {
+            var hero = new HeroState();
+
+            Shelf.Dress(hero, new List<RelicCopy>
+            {
+                new RelicCopy(RelicId.Whetstone),
+                new RelicCopy(RelicId.Whetstone, awakened: true),
+                new RelicCopy(RelicId.AnvilHeart),
+            });
+
+            Shelf worn = Shelf.Of(hero);
+
+            Assert.That(worn[0].Awakened, Is.True, "waking keys by relic, so its twin wakes too");
+            Assert.That(worn[1].Awakened, Is.True);
+            Assert.That(worn[2].Awakened, Is.False, "and only that relic");
+        }
+
+        [Test]
+        public void DressingAHeroInNothingLeavesAnEmptyShelf()
+        {
+            var hero = new HeroState();
+            Shelf.Dress(hero, null);
+
+            Assert.That(Shelf.Of(hero).Count, Is.Zero);
+            Assert.That(hero.Items, Is.Not.Null, "an empty shelf is a list, not a null");
+
+            // And no throw: the harness dresses a hero before every fight, including the first.
+            Shelf.Dress(null, new List<RelicCopy> { new RelicCopy(RelicId.Whetstone) });
+        }
+
+        /* ---------- a foe somebody typed in ---------- */
+
+        /// <summary>
+        /// An authored foe is the same KIND of thing a generated one is.
+        /// </summary>
+        /// <remarks>
+        /// Three details separate a foe that behaves like a real one from a foe that merely has
+        /// the same numbers, and all three are silent when wrong.
+        ///
+        /// The sheet column comes from the RANK. A variant somebody could type is a boss drawn
+        /// as a guard — the art would simply be wrong, with nothing to say so.
+        ///
+        /// The HP ceiling starts equal to the pool, so an authored foe does not arrive already
+        /// wounded.
+        ///
+        /// And an empty relic list becomes no list at all, because null and empty are different
+        /// here: the source only reports a foe's relics when the list exists. A serialized array
+        /// in Unity is never null, so without this every authored foe would emit relic events
+        /// that a generated foe with no relics does not.
+        /// </remarks>
+        [Test]
+        public void AnAuthoredFoeIsBuiltLikeAGeneratedOne()
+        {
+            EnemyState guard = EnemyPackGenerator.Authored(3, EnemyRank.Guard, 20, 4, 1, 25, 10, 6,
+                new List<RelicId>());
+
+            Assert.That(guard.SpeciesIndex, Is.EqualTo(3));
+            Assert.That(guard.Variant, Is.EqualTo(EnemyPackGenerator.VariantOf(EnemyRank.Guard)));
+            Assert.That(guard.MaxHp, Is.EqualTo(guard.Hp), "a foe should not start wounded");
+            Assert.That(guard.Relics, Is.Null, "an empty list is not the same as no list");
+
+            EnemyState boss = EnemyPackGenerator.Authored(3, EnemyRank.Boss, 90, 9, 3, 30, 12, 40,
+                new List<RelicId> { RelicId.ThornVest });
+
+            Assert.That(boss.Variant, Is.EqualTo(EnemyPackGenerator.VariantOf(EnemyRank.Boss)));
+            Assert.That(boss.Variant, Is.Not.EqualTo(guard.Variant),
+                "a boss and a guard are drawn from different columns");
+            Assert.That(boss.Relics, Is.Not.Null.And.Count.EqualTo(1));
+        }
+
+        /// <summary>Every rank knows which column of the sheet it is drawn from.</summary>
+        /// <remarks>
+        /// Guard bare, elite armed, boss and king armed and shielded — three columns for four
+        /// ranks, which is the sheet's shape and not an oversight.
+        /// </remarks>
+        [TestCase(EnemyRank.Guard, 0)]
+        [TestCase(EnemyRank.Elite, 1)]
+        [TestCase(EnemyRank.Boss, 2)]
+        [TestCase(EnemyRank.King, 2)]
+        public void ARankKnowsItsColumn(EnemyRank rank, int column)
+        {
+            Assert.That(EnemyPackGenerator.VariantOf(rank), Is.EqualTo(column));
+        }
+
         /* ---------- the badge ---------- */
 
         /// <summary>

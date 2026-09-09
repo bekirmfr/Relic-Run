@@ -64,7 +64,11 @@ namespace RelicRun.Core.Run
         private const int Spare = 7;
 
         /// <summary>Sheet column per rank: guard bare, elite armed, boss armed and shielded.</summary>
-        private static int VariantOf(EnemyRank rank)
+        /// <remarks>
+        /// Public because a hand-authored foe needs the same answer, and a second copy of this
+        /// mapping is a boss that can be drawn as a guard.
+        /// </remarks>
+        public static int VariantOf(EnemyRank rank)
         {
             switch (rank)
             {
@@ -73,6 +77,44 @@ namespace RelicRun.Core.Run
                 case EnemyRank.King: return 2;
                 default: return 0;
             }
+        }
+
+        /// <summary>
+        /// A foe somebody typed in rather than one a floor produced.
+        /// </summary>
+        /// <remarks>
+        /// For the harness, and it exists so that a hand-authored foe is the same KIND of thing a
+        /// generated one is. Three details separate a foe that behaves like a real one from a
+        /// foe that merely has the same numbers, and all three are easy to miss:
+        ///
+        /// The sheet column comes from the rank, never from a field — a variant somebody could
+        /// type is a boss that gets drawn as a guard.
+        ///
+        /// The HP ceiling starts equal to the pool. Only an awakened Vampire Tooth moves it, and
+        /// a foe authored with a ceiling above its pool would arrive already wounded.
+        ///
+        /// An EMPTY relic list becomes no list at all. Null and empty are different here — the
+        /// source only reports a foe's relics when the list exists — and a serialized array in
+        /// Unity is never null, so every authored foe would otherwise carry an empty list and
+        /// emit events that a generated foe with no relics does not.
+        /// </remarks>
+        public static EnemyState Authored(int species, EnemyRank rank, int hp, int atk, int armor,
+            int spd, int lck, int drop, IReadOnlyList<RelicId> relics)
+        {
+            return new EnemyState
+            {
+                SpeciesIndex = species,
+                Rank = rank,
+                Variant = VariantOf(rank),
+                Hp = hp,
+                MaxHp = hp,
+                Atk = atk,
+                Armor = armor,
+                Spd = spd,
+                Lck = lck,
+                Drop = drop,
+                Relics = relics == null || relics.Count == 0 ? null : relics,
+            };
         }
 
         /// <summary>The pack for a floor, already scaled to its dungeon. Port of <c>tierPack</c>.</summary>

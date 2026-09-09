@@ -35,25 +35,21 @@ namespace RelicRun.Game.Presentation
         [Tooltip("Which floor of the first hall. Seven is the bazaar and has no fight.")]
         [Range(1, 13)] [SerializeField] private int _floor = 1;
 
-        [Tooltip("The delver's level, which sets their opening stats.")]
-        [Min(1)] [SerializeField] private int _level = 1;
+        [Header("The delver")]
+        [SerializeField] private DelverSetup _delverSetup = new DelverSetup();
 
-        [Tooltip("What is on the shelf. Chosen to make the tray show every kind of gauge.")]
-        [SerializeField] private RelicId[] _shelf =
-        {
-            RelicId.AnvilHeart,
-            RelicId.Whetstone,
-            RelicId.Whetstone,
-            RelicId.QuenchedBlade,
-            RelicId.SentinelBell,
-        };
-
-        [Tooltip("Which shelf slot carries a socket, or -1 for none.")]
-        [SerializeField] private int _socketed = 2;
+        [Header("The opposition")]
+        [SerializeField] private FoeSetup _foeSetup = new FoeSetup();
 
         [Header("Watching")]
         [Tooltip("Skips the walk down the hall, which is three and a half seconds of scenery.")]
         [SerializeField] private bool _skipIntro;
+
+        [Tooltip("How fast the fight is read out. The pacing decides the beat; this multiplies it.")]
+        [Range(1, 4)] [SerializeField] private int _speed = 1;
+
+        [Tooltip("What a delver who asked their system for less motion would see.")]
+        [SerializeField] private bool _reducedMotion;
 
         private CombatPlaybackController _showing;
         private bool _fighting;
@@ -101,9 +97,13 @@ namespace RelicRun.Game.Presentation
             try
             {
                 IReadOnlyList<CombatEvent> events = Resolve();
-                Debug.Log("seed " + _seed + ", floor " + _floor + ": " + events.Count + " events", this);
+                Debug.Log("seed " + _seed + ", floor " + _floor + ", " +
+                          _delverSetup.Shelf.Length + " relics vs " +
+                          (_foeSetup.Override ? "an authored pack" : "the floor's own pack") +
+                          ": " + events.Count + " events", this);
 
-                Pacing pacing = Pacing.For(events.Count, false, 1, _content.Presentation.ToPacing());
+                Pacing pacing = Pacing.For(events.Count, _reducedMotion, _speed,
+                    _content.Presentation.ToPacing());
 
                 _view.Begin(events, pacing, Reading(), Shelf.Of(_delver), false);
                 _showing = new CombatPlaybackController(_content.Presentation);
@@ -138,36 +138,18 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         private IReadOnlyList<CombatEvent> Resolve()
         {
-            RunSetup setup = RunSetup.ForLevel(_level);
-
-            var hero = new HeroState
-            {
-                Floor = _floor,
-                Php = setup.Hp,
-                Pmax = setup.Hp,
-                Gold = setup.Gold,
-                BaseAtk = setup.Atk,
-                BaseDef = setup.Def,
-                BaseSpd = setup.Spd,
-                BaseLck = setup.Lck,
-            };
-
-            hero.Items = new List<RelicId>(_shelf ?? new RelicId[0]);
-
-            if (_socketed >= 0 && _socketed < hero.Items.Count)
-            {
-                // On a DUPLICATE by default, because that is the case a tray gets wrong: two
-                // identical icons where only one of them is counting anything.
-                hero.SocketTriggers = new Dictionary<int, SocketTrigger>
-                {
-                    { _socketed, SocketTrigger.Attack },
-                };
-            }
-
+            HeroState hero = _delverSetup.Build(_floor);
             _delver = hero;
 
+            // One stream for both, which is why an authored pack changes the whole fight and not
+            // just who is standing in it: generating a pack CONSUMES draws, so skipping that
+            // leaves every later roll reading a different part of the sequence. The same seed
+            // then describes a different fight, which is fine until somebody compares the two and
+            // concludes the engine moved.
             var rng = new Mulberry32(_seed);
-            List<EnemyState> pack = EnemyPackGenerator.Build(_floor, rng, setup.Dungeon);
+
+            List<EnemyState> pack = _foeSetup.Build(_floor, rng,
+                RunSetup.ForLevel(_delverSetup.Level).Dungeon);
 
             return new CombatEngine(CombatRules.Delve()).ResolveFloor(hero, pack, rng).Events;
         }

@@ -123,6 +123,52 @@ namespace RelicRun.Core.Presentation
             return new Shelf(copies);
         }
 
+        /// <summary>
+        /// Puts a shelf ONTO a hero, which is the inverse of reading one off.
+        /// </summary>
+        /// <remarks>
+        /// So that a shelf somebody types into an inspector and a shelf the tray draws are the
+        /// same thing, unfolded and refolded by one pair of methods. Written by hand at the call
+        /// site it is four collections that have to agree — items in order, sockets keyed by
+        /// index, emitters keyed by index, awakenings keyed by relic — and the asymmetry between
+        /// the last two is exactly the sort of thing a second implementation gets wrong.
+        ///
+        /// Round-tripping is the gate: dress a hero in some copies, read the shelf back, and it
+        /// has to be the same shelf. Awakening is the one place that does NOT round-trip
+        /// per-copy, and deliberately — it keys by relic, so waking one copy wakes every copy of
+        /// that relic on the way back out. That is the source's rule and it is asserted rather
+        /// than smoothed over.
+        /// </remarks>
+        public static void Dress(HeroState hero, IReadOnlyList<RelicCopy> copies)
+        {
+            if (hero == null) return;
+
+            var items = new List<RelicId>();
+            var triggers = new Dictionary<int, SocketTrigger>();
+            var emitters = new Dictionary<int, SocketEmitter>();
+            var awake = new List<RelicId>();
+
+            if (copies != null)
+            {
+                for (int index = 0; index < copies.Count; index++)
+                {
+                    RelicCopy copy = copies[index];
+
+                    items.Add(copy.Relic);
+
+                    if (copy.Trigger != SocketTrigger.None) triggers[index] = copy.Trigger;
+                    if (copy.Emitter != SocketEmitter.None) emitters[index] = copy.Emitter;
+
+                    if (copy.Awakened && !Contains(awake, copy.Relic)) awake.Add(copy.Relic);
+                }
+            }
+
+            hero.Items = items;
+            hero.SocketTriggers = triggers;
+            hero.SocketEmitters = emitters;
+            hero.Awakened = awake;
+        }
+
         private static bool Contains(IReadOnlyCollection<RelicId> awakened, RelicId relic)
         {
             foreach (RelicId each in awakened)
