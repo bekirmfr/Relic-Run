@@ -1,0 +1,77 @@
+{
+  "name": "which of the three layouts a screen gets",
+  "mutants": [
+    {
+      "name": "a desktop needs width alone, not height",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            if (wide >= DesktopWide && tall >= DesktopTall && wide > tall) return View.Desktop;",
+      "replace": "            if (wide >= DesktopWide && wide > tall) return View.Desktop;"
+    },
+    {
+      "name": "a desktop may be portrait",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            if (wide >= DesktopWide && tall >= DesktopTall && wide > tall) return View.Desktop;",
+      "replace": "            if (wide >= DesktopWide && tall >= DesktopTall) return View.Desktop;"
+    },
+    {
+      "name": "a desktop needs height alone, not width",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            if (wide >= DesktopWide && tall >= DesktopTall && wide > tall) return View.Desktop;",
+      "replace": "            if (tall >= DesktopTall && wide > tall) return View.Desktop;"
+    },
+    {
+      "name": "a tablet must also be landscape, as the desktop must",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            return wide >= TabletWide ? View.Tablet : View.Phone;",
+      "replace": "            return wide >= TabletWide && wide > tall ? View.Tablet : View.Phone;"
+    },
+    {
+      "name": "the thresholds are exclusive rather than inclusive",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            if (wide >= DesktopWide && tall >= DesktopTall && wide > tall) return View.Desktop;",
+      "replace": "            if (wide > DesktopWide && tall > DesktopTall && wide > tall) return View.Desktop;"
+    },
+    {
+      "name": "the tablet threshold is exclusive rather than inclusive",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            return wide >= TabletWide ? View.Tablet : View.Phone;",
+      "replace": "            return wide > TabletWide ? View.Tablet : View.Phone;"
+    },
+    {
+      "name": "the desktop turns over where a common laptop sits",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "        public const int DesktopWide = 1100;",
+      "replace": "        public const int DesktopWide = 1280;"
+    },
+    {
+      "name": "the desktop's height threshold is the shell's own height",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "        public const int DesktopTall = 700;",
+      "replace": "        public const int DesktopTall = 844;"
+    },
+    {
+      "name": "the tablet turns over at the source's second, inert number",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "        public const int TabletWide = 760;",
+      "replace": "        public const int TabletWide = 430;"
+    },
+    {
+      "name": "the room is the screen, undivided by the scale",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "            return PixelScale.Units(screenPixels, scale);",
+      "replace": "            return screenPixels;"
+    },
+    {
+      "name": "a layout is built against the next threshold up",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "                case View.Tablet: return TabletWide;",
+      "replace": "                case View.Tablet: return DesktopWide;"
+    },
+    {
+      "name": "every layout is drawn against the phone's width",
+      "file": "Assets/GameAssets/Core/Presentation/ViewMode.cs",
+      "find": "                case View.Desktop: return DesktopWide;",
+      "replace": "                case View.Desktop: return PixelScale.DesignWidth;"
+    }
+  ]
+}

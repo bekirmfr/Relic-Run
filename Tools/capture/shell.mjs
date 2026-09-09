@@ -19,6 +19,11 @@
  * rasterises outlines afresh at any size. The port cannot: it magnifies a baked bitmap, so it
  * floors to a whole number instead. Recording the number the port does not use is what makes
  * that a decision rather than an oversight.
+ *
+ * The three layouts' breakpoints are read off the same line of the source, for the same reason.
+ * They are four numbers on one line and they decide which of three layouts every screen in the
+ * game is drawn in — exactly the sort of thing that is copied correctly, then quietly edited on
+ * one side. ViewModes asserts against these.
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -38,6 +43,14 @@ if (!shell) throw new Error("no .dd-shell with a fixed width and height — has 
 /** What the source divides the viewport by before scaling the shell down. */
 const divisor = html.match(/--dd-scale",\s*Math\.min\(1,\s*\(window\.innerHeight\s*-\s*(\d+)\)\s*\/\s*(\d+)\)/);
 if (!divisor) throw new Error("no --dd-scale calculation — the source no longer scales its shell");
+
+/*
+ * The one line that picks a layout. Read whole, so a threshold that moves is a threshold this
+ * notices rather than a regular expression matching a number that happens to sit nearby.
+ */
+const view = html.match(
+  /mode = \(w >= (\d+) && h >= (\d+) && w > h\) \? "desktop" : \(w >= (\d+) && w > (\d+)\) \? "tablet" : "phone"/);
+if (!view) throw new Error("no view-mode breakpoints — the source no longer picks between three layouts");
 
 const width = Number(shell[1]);
 const height = Number(shell[2]);
@@ -59,6 +72,21 @@ const shellData = {
     divisor: Number(divisor[2]),
     capped: 1,
   },
+  /*
+   * The breakpoints, in the source's CSS pixels. The port measures the same thresholds in canvas
+   * units instead — it has no fractional device-pixel-ratio to divide by — which is a difference
+   * in what is measured, not in where the lines are drawn.
+   *
+   * `tabletFloor` is the source's `w > 430`, recorded and not ported: it cannot fail once
+   * `w >= 760` has passed. Recorded anyway so the omission is a reading of the line rather than
+   * a part of it that was missed.
+   */
+  view: {
+    desktopWide: Number(view[1]),
+    desktopTall: Number(view[2]),
+    tabletWide: Number(view[3]),
+    tabletFloor: Number(view[4]),
+  },
 };
 
 mkdirSync(OUT, { recursive: true });
@@ -70,3 +98,5 @@ console.log("  → shell.json         " + json.length + " bytes");
 console.log("  the game is drawn in " + width + "x" + height);
 console.log("  and scaled by min(1, (height - " + shellData.scale.inset + ") / " +
             shellData.scale.divisor + "), which the port floors instead");
+console.log("  the layouts turn over at " + shellData.view.tabletWide + " and " +
+            shellData.view.desktopWide + "x" + shellData.view.desktopTall);
