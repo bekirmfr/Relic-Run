@@ -1,0 +1,71 @@
+{
+  "name": "the walk down the hall",
+  "mutants": [
+    {
+      "name": "the strides are counted by foes rather than by doors",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            int strides = foes + 1;",
+      "replace": "            int strides = foes;"
+    },
+    {
+      "name": "one stride too many, so the door is never reached",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            int strides = foes + 1;",
+      "replace": "            int strides = foes + 2;"
+    },
+    {
+      "name": "the pan runs past the right door",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            if (stride >= strides) return 1d;",
+      "replace": "            if (stride > strides + 1) return 1d;"
+    },
+    {
+      "name": "a walk that has not happened is already underway",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            if (stride <= 0) return 0d;",
+      "replace": "            if (stride < 0) return 0d;"
+    },
+    {
+      "name": "the strides are integer-divided and all land on nothing",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            return (double)stride / strides;",
+      "replace": "            return stride / strides;"
+    },
+    {
+      "name": "the hall slides right instead of left",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            double room = windowWidth - artWidth;",
+      "replace": "            double room = artWidth - windowWidth;"
+    },
+    {
+      "name": "art narrower than its window is allowed to slide",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            return room >= 0d ? 0d : room * pan;",
+      "replace": "            return room * pan;"
+    },
+    {
+      "name": "the offset ignores how far along the walk is",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            return room >= 0d ? 0d : room * pan;",
+      "replace": "            return room >= 0d ? 0d : room;"
+    },
+    {
+      "name": "the hall is sized by the inverse of its aspect",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            return windowHeight * (artWidth / artHeight);",
+      "replace": "            return windowHeight * (artHeight / artWidth);"
+    },
+    {
+      "name": "art of no height divides by zero",
+      "file": "Assets/GameAssets/Core/Presentation/HallPan.cs",
+      "find": "            if (artHeight <= 0d) return windowHeight;",
+      "replace": "            if (artHeight < 0d) return windowHeight;"
+    },
+    {
+      "name": "the hall takes as long to settle as the walk does",
+      "file": "Assets/GameAssets/Core/Presentation/PacingRules.cs",
+      "find": "        public int PanMs = 2600;",
+      "replace": "        public int PanMs = 3350;"
+    }
+  ]
+}

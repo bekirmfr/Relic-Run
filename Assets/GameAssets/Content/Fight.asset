@@ -48,6 +48,10 @@ MonoBehaviour:
       Trigger: 0
       Emitter: 0
       Awakened: 0
+    - Relic: 19
+      Trigger: 0
+      Emitter: 0
+      Awakened: 0
   Foes:
     Override: 1
     Pack:
@@ -59,7 +63,15 @@ MonoBehaviour:
       Spd: 25
       Lck: 10
       Drop: 26
-      Wearing: []
+      Wearing:
+      - Relic: 26
+        Trigger: 0
+        Emitter: 0
+        Awakened: 0
+      - Relic: 1
+        Trigger: 0
+        Emitter: 0
+        Awakened: 0
   SkipIntro: 0
   Speed: 1
   ReducedMotion: 0

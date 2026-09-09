@@ -70,6 +70,18 @@ namespace RelicRun.Core.Presentation
         public int WalkMs = 3350;
 
         /// <summary>
+        /// How long the hall itself takes to slide, which is SHORTER than the walk.
+        /// </summary>
+        /// <remarks>
+        /// Two thousand six hundred against three thousand three hundred and fifty, and the gap
+        /// is deliberate in the source: the hall arrives before the delver stops walking, so the
+        /// next foe is standing in a settled room rather than sliding into place underneath it.
+        /// A pan timed to the walk would finish exactly as the fight starts, which reads as the
+        /// room still moving when the first blow lands.
+        /// </remarks>
+        public int PanMs = 2600;
+
+        /// <summary>
         /// Whether pressing the speed control also shortens the tick-proportional waits.
         /// </summary>
         /// <remarks>
