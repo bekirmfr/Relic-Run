@@ -157,7 +157,11 @@ namespace RelicRun.Game.Presentation
             var address = _content.Halls.For(tier);
             if (address == null) return;
 
-            Sprite drawn = await address.LoadAssetAsync<Sprite>();
+            // Through .Task rather than awaiting the handle. An AsyncOperationHandle<T> converts
+            // implicitly to the non-generic handle, and UniTask's awaiter for THAT one yields
+            // void — so awaiting the handle directly compiles the sprite away and then complains
+            // it cannot turn void into one. The scene service loads its prefabs the same way.
+            Sprite drawn = await address.LoadAssetAsync<Sprite>().Task;
 
             // The fight may have ended, or moved on to another hall, while this was in flight.
             if (this == null || _picture == null) return;

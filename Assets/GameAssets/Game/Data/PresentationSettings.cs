@@ -63,6 +63,10 @@ namespace RelicRun.Game.Data
                  "Skipped entirely under reduced motion.")]
         [Min(0)] public int WalkMs = 3350;
 
+        [Tooltip("How long the hall itself takes to slide. Shorter than the walk on purpose, so " +
+                 "the room has settled by the time the next foe is standing in it.")]
+        [Min(0)] public int PanMs = 2600;
+
         [Tooltip("Whether pressing the control also shortens the long waits. The source only " +
                  "shortened the gaps between events on the same tick, which was most likely a " +
                  "slip: it changed the least of what a delver pressing it wanted skipped.")]
@@ -85,6 +89,7 @@ namespace RelicRun.Game.Data
                 SpeedSteps = SpeedSteps,
                 SpeedShortensTheTickWait = SpeedShortensTheTickWait,
                 WalkMs = WalkMs,
+                PanMs = PanMs,
             };
         }
     }
