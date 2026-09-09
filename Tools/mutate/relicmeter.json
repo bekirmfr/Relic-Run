@@ -16,8 +16,8 @@
     {
       "name": "a socket nothing counts toward shows an empty gauge",
       "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
-      "find": "                default:\n                    return default(Cadence);\n            }\n        }\n\n        /// <summary>The relic's own rhythm, for the four that have one.</summary>",
-      "replace": "                default:\n                    return new Cadence(0, SocketEvery, \"nothing\");\n            }\n        }\n\n        /// <summary>The relic's own rhythm, for the four that have one.</summary>"
+      "find": "            return default(Cadence);\n        }\n\n        /// <summary>The relic's own rhythm, for the four that have one.</summary>",
+      "replace": "            return new Cadence(0, SocketEvery, \"nothing\");\n        }\n\n        /// <summary>The relic's own rhythm, for the four that have one.</summary>"
     },
     {
       "name": "the anvil counts this fight's strikes rather than the run's",
@@ -40,8 +40,8 @@
     {
       "name": "the anvil's budget is the woken one whether or not it was woken",
       "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
-      "find": "                    return new Budget(Sharpenings(hero, false), AnvilCap);",
-      "replace": "                    return new Budget(Sharpenings(hero, true), AnvilCap);"
+      "find": "                    return new Budget(Sharpenings(hero, awakened),\n                        awakened ? AwokenAnvilCap : AnvilCap);",
+      "replace": "                    return new Budget(Sharpenings(hero, true), AwokenAnvilCap);"
     },
     {
       "name": "the quenched blade counts what the bead counts",
@@ -90,6 +90,36 @@
       "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
       "find": "        public bool Spent { get { return Any && Left <= 0; } }",
       "replace": "        public bool Spent { get { return Any && Left < 0; } }"
+    },
+    {
+      "name": "the woken Anvil's budget uses the sleeping cap",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                    return new Budget(Sharpenings(hero, awakened),\n                        awakened ? AwokenAnvilCap : AnvilCap);",
+      "replace": "                    return new Budget(Sharpenings(hero, false), AnvilCap);"
+    },
+    {
+      "name": "the woken Anvil's budget counts against the woken cap but reports the sleeping one",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                        awakened ? AwokenAnvilCap : AnvilCap);",
+      "replace": "                        AnvilCap);"
+    },
+    {
+      "name": "a defence emitter counts nothing",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            if (emitter == SocketEmitter.Def)",
+      "replace": "            if (false)"
+    },
+    {
+      "name": "a defence emitter counts strikes rather than activations",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "                return new Cadence(counters.StoneCount % SocketEvery, SocketEvery, \"activations\");",
+      "replace": "                return new Cadence(counters.Strikes % SocketEvery, SocketEvery, \"activations\");"
+    },
+    {
+      "name": "every emitter counts, not only the defence one",
+      "file": "Assets/GameAssets/Core/Presentation/RelicMeter.cs",
+      "find": "            if (emitter == SocketEmitter.Def)",
+      "replace": "            if (emitter != SocketEmitter.None)"
     }
   ]
 }

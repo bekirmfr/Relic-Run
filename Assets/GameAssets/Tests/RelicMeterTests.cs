@@ -18,9 +18,10 @@ namespace RelicRun.Tests
     public class RelicMeterTests
     {
         private static CombatCounters Counted(int strikes = 0, int pain = 0, int gold = 0,
-            int quench = 0, int momentum = 0, int rabbit = 0, int strikeTotal = 0, int sentinel = 0)
+            int quench = 0, int momentum = 0, int rabbit = 0, int strikeTotal = 0, int sentinel = 0,
+            int stone = 0)
         {
-            return new CombatCounters(strikes, pain, gold, 0, 0, quench, momentum, rabbit,
+            return new CombatCounters(strikes, pain, gold, stone, 0, quench, momentum, rabbit,
                 strikeTotal, sentinel);
         }
 
@@ -31,9 +32,11 @@ namespace RelicRun.Tests
 
         private static RelicMeter Meter(RelicId relic, SocketTrigger socket = SocketTrigger.None,
             CombatCounters counters = default(CombatCounters), HeroState hero = null,
-            bool awakened = false, bool versus = false)
+            bool awakened = false, bool versus = false,
+            SocketEmitter emitter = SocketEmitter.None)
         {
-            return RelicMeter.For(relic, socket, counters, hero ?? Delver(), awakened, versus);
+            return RelicMeter.For(relic, socket, counters, hero ?? Delver(), awakened, versus,
+                emitter);
         }
 
         /* ---------- sockets ---------- */
@@ -110,15 +113,100 @@ namespace RelicRun.Tests
             Assert.That(meter.Uses.Spent, Is.True);
         }
 
-        /// <summary>Waking the Anvil buys two more, and the count does not move.</summary>
+        /// <summary>
+        /// Waking the Anvil buys two more, and BOTH gauges are told.
+        /// </summary>
+        /// <remarks>
+        /// The rhythm half of this was asserted and the budget half was not, which is exactly
+        /// where the bug was: the budget asked for sharpenings against a cap of ten no matter
+        /// what, so a woken Anvil at ten used showed a rhythm still counting and a budget already
+        /// spent. Two gauges on one relic disagreeing about whether it can still do anything.
+        ///
+        /// The tray greys a spent relic and puts a cross on it, so the delver would have been
+        /// shown a dead relic that was not dead — by the gauge whose whole job is to answer that
+        /// question.
+        /// </remarks>
         [Test]
-        public void AWokenAnvilHasTwoMore()
+        public void AWokenAnvilHasTwoMoreOnBothGauges()
         {
             HeroState spent = Delver(anvil: 10);
 
-            Assert.That(Meter(RelicId.AnvilHeart, hero: spent).Native.Any, Is.False);
-            Assert.That(Meter(RelicId.AnvilHeart, hero: spent, awakened: true).Native.Any, Is.True,
+            RelicMeter asleep = Meter(RelicId.AnvilHeart, hero: spent);
+            RelicMeter awake = Meter(RelicId.AnvilHeart, hero: spent, awakened: true);
+
+            Assert.That(asleep.Native.Any, Is.False);
+            Assert.That(asleep.Uses.Left, Is.Zero);
+            Assert.That(asleep.Uses.Cap, Is.EqualTo(RelicMeter.AnvilCap));
+            Assert.That(asleep.Uses.Spent, Is.True);
+
+            Assert.That(awake.Native.Any, Is.True,
                 "the bazaar bought it two more sharpenings");
+
+            Assert.That(awake.Uses.Left, Is.EqualTo(2),
+                "the budget still thinks the cap is ten, so it reads a live relic as spent");
+            Assert.That(awake.Uses.Cap, Is.EqualTo(RelicMeter.AwokenAnvilCap));
+            Assert.That(awake.Uses.Spent, Is.False,
+                "a relic with two sharpenings left is not spent, and the tray would grey it out");
+        }
+
+        /// <summary>
+        /// A defence emitter counts activations, like the three triggers do.
+        /// </summary>
+        /// <remarks>
+        /// The fourth cadence, and it was missing. The source keeps triggers and emitters in one
+        /// table per inventory slot — t_attack, t_hit, t_gold, e_def as four peers — and this
+        /// port splits them into two dictionaries, so the one that was not a trigger fell down
+        /// the gap between them and its gauge never filled.
+        /// </remarks>
+        [Test]
+        public void ADefenceEmitterCountsActivations()
+        {
+            RelicMeter meter = Meter(RelicId.Whetstone, emitter: SocketEmitter.Def,
+                counters: Counted(stone: 8));
+
+            Assert.That(meter.Attached.Any, Is.True, "the fourth cadence never fills");
+            Assert.That(meter.Attached.Filled, Is.EqualTo(2));
+            Assert.That(meter.Attached.Total, Is.EqualTo(RelicMeter.SocketEvery));
+            Assert.That(meter.Attached.Counting, Is.EqualTo("activations"));
+        }
+
+        /// <summary>
+        /// The emitters that are not Def have nothing to count, and neither do most triggers.
+        /// </summary>
+        /// <remarks>
+        /// Asserted rather than assumed, because "add the missing one" is the kind of fix that
+        /// keeps going. Kill, Dodge and Luck fire on the event itself rather than on every third
+        /// of it, so a gauge on them would fill toward nothing.
+        /// </remarks>
+        [Test]
+        public void TheOtherSocketsCountNothing()
+        {
+            foreach (SocketEmitter emitter in
+                     new[] { SocketEmitter.Dmg, SocketEmitter.Heal, SocketEmitter.Gold,
+                             SocketEmitter.Atk, SocketEmitter.Spd })
+            {
+                Assert.That(Meter(RelicId.Whetstone, emitter: emitter,
+                    counters: Counted(stone: 8)).Attached.Any, Is.False, emitter + " grew a gauge");
+            }
+
+            foreach (SocketTrigger trigger in
+                     new[] { SocketTrigger.Kill, SocketTrigger.Dodge, SocketTrigger.Luck })
+            {
+                Assert.That(Meter(RelicId.Whetstone, trigger,
+                    Counted(strikes: 8, pain: 8, gold: 8, stone: 8)).Attached.Any, Is.False,
+                    trigger + " fires on the event, so it counts toward nothing");
+            }
+        }
+
+        /// <summary>A trigger wins over an emitter, because a copy showing two would show one.</summary>
+        [Test]
+        public void ATriggerIsPreferredToAnEmitter()
+        {
+            RelicMeter meter = Meter(RelicId.Whetstone, SocketTrigger.Attack,
+                Counted(strikes: 7, stone: 8), emitter: SocketEmitter.Def);
+
+            Assert.That(meter.Attached.Counting, Is.EqualTo("strikes"));
+            Assert.That(meter.Attached.Filled, Is.EqualTo(1));
         }
 
         [Test]

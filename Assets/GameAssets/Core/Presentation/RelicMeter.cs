@@ -134,11 +134,14 @@ namespace RelicRun.Core.Presentation
         /// <param name="socket">The trigger bolted to this copy, or None.</param>
         /// <param name="awakened">Whether this copy has been woken.</param>
         /// <param name="versus">Whether this is a duel. One relic only counts there.</param>
+        /// <param name="emitter">The emitter bolted to this copy, or None. Only Def counts.</param>
         public static RelicMeter For(RelicId relic, SocketTrigger socket, CombatCounters counters,
-            HeroState hero, bool awakened, bool versus)
+            HeroState hero, bool awakened, bool versus,
+            SocketEmitter emitter = SocketEmitter.None)
         {
-            return new RelicMeter(Socketed(socket, counters), Rhythm(relic, counters, hero, awakened, versus),
-                Spending(relic, hero, counters));
+            return new RelicMeter(Socketed(socket, emitter, counters),
+                Rhythm(relic, counters, hero, awakened, versus),
+                Spending(relic, hero, counters, awakened));
         }
 
         /// <summary>
@@ -149,7 +152,8 @@ namespace RelicRun.Core.Presentation
         /// both and they count different things. Merging them would show one number for two
         /// clocks.
         /// </remarks>
-        private static Cadence Socketed(SocketTrigger socket, CombatCounters counters)
+        private static Cadence Socketed(SocketTrigger socket, SocketEmitter emitter,
+            CombatCounters counters)
         {
             switch (socket)
             {
@@ -161,10 +165,20 @@ namespace RelicRun.Core.Presentation
 
                 case SocketTrigger.Gold:
                     return new Cadence(counters.Gold % SocketEvery, SocketEvery, "gold gains");
-
-                default:
-                    return default(Cadence);
             }
+
+            // A defence emitter counts too, and it was missed. The source keeps triggers and
+            // emitters in ONE table per inventory slot, so its cadence list reads
+            // t_attack/t_hit/t_gold/e_def as four peers; this port splits them into two
+            // dictionaries, and the fourth fell down the gap between them. Kill, Dodge and Luck
+            // are absent from that table on purpose — they fire on the event rather than on
+            // every third of it, so they have nothing to count toward.
+            if (emitter == SocketEmitter.Def)
+            {
+                return new Cadence(counters.StoneCount % SocketEvery, SocketEvery, "activations");
+            }
+
+            return default(Cadence);
         }
 
         /// <summary>The relic's own rhythm, for the four that have one.</summary>
@@ -202,12 +216,23 @@ namespace RelicRun.Core.Presentation
         }
 
         /// <summary>What is left of the budget, for the six that have one.</summary>
-        private static Budget Spending(RelicId relic, HeroState hero, CombatCounters counters)
+        /// <remarks>
+        /// The Anvil's cap MOVES when it is woken, and this used to be told it never was. It
+        /// asked for sharpenings against a cap of ten while <see cref="Rhythm"/> asked against
+        /// twelve, so a woken Anvil that had sharpened ten times showed a full rhythm gauge and
+        /// an empty budget at the same time: still counting toward a sharpening, and reported as
+        /// spent. The tray draws a spent relic greyed with a cross through it, so the delver
+        /// would have been told a live relic was dead — by the gauge that exists to tell them
+        /// otherwise.
+        /// </remarks>
+        private static Budget Spending(RelicId relic, HeroState hero, CombatCounters counters,
+            bool awakened)
         {
             switch (relic)
             {
                 case RelicId.AnvilHeart:
-                    return new Budget(Sharpenings(hero, false), AnvilCap);
+                    return new Budget(Sharpenings(hero, awakened),
+                        awakened ? AwokenAnvilCap : AnvilCap);
 
                 case RelicId.SentinelBell:
                     return new Budget(Max(SentinelCap - counters.SentinelBonus), SentinelCap);
