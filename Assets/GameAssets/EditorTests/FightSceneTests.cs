@@ -225,6 +225,43 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
+        /// The three stacked panels share one margin, so they share one left edge.
+        /// </summary>
+        /// <remarks>
+        /// Foe, Delver and Log are the full-width column of the screen and each was free to pick
+        /// its own width. They did: the log was authored at 450 units against panels that
+        /// stretched, which put its left edge somewhere different from the bars' on every device,
+        /// because a whole scale factor gives each screen a different number of units.
+        ///
+        /// The log's width does more than line things up — it decides where a line WRAPS. Fixed,
+        /// a translated line breaks in a different place on every device and whether it fits at
+        /// all is settled by whichever phone somebody happened to test on.
+        ///
+        /// Purse is deliberately not in this list: it is a badge in the top corner, and a badge
+        /// that stretched across the screen would be a mistake of a different kind.
+        /// </remarks>
+        [Test]
+        public void TheStackedPanelsShareOneMargin()
+        {
+            foreach (string name in new[] { "Foe", "Delver", "Log" })
+            {
+                RectTransform panel = null;
+
+                foreach (RectTransform each in _scene.GetComponentsInChildren<RectTransform>(true))
+                {
+                    if (each.name == name) panel = each;
+                }
+
+                Assert.That(panel, Is.Not.Null, "no " + name + " panel in the built fight");
+
+                Assert.That(panel.anchorMin.x, Is.EqualTo(0f), name + " does not start at the left");
+                Assert.That(panel.anchorMax.x, Is.EqualTo(1f), name + " has an authored width");
+                Assert.That(panel.sizeDelta.x, Is.EqualTo(-40f),
+                    name + " keeps a different margin from the panels it stacks with");
+            }
+        }
+
+        /// <summary>
         /// Rebuilding replaces the fight and leaves the rest of the scene alone.
         /// </summary>
         /// <remarks>

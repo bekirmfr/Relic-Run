@@ -598,8 +598,16 @@ namespace RelicRun.Editor.Importers
         /// </remarks>
         private static GameObject Log(GameObject parent)
         {
-            GameObject panel = Panel(parent, "Log", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, -40f), new Vector2(450f, 310f));
+            // Stretched to the same margin as the panels above and below it, so all three share
+            // one left edge. It was 450 units wide and centred, which is 94% of the canvas at 3x
+            // and 83% at 2x — nearly touching the edges on one device and inset on another, with
+            // the log's own left edge landing somewhere different from the bars' every time.
+            //
+            // This one is not only tidiness. The width decides where a line WRAPS, so a fixed
+            // width means a translated line breaks in a different place on every device, and
+            // whether it fits at all is decided by which phone somebody happened to test on.
+            GameObject panel = Panel(parent, "Log", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, -40f), new Vector2(-40f, 310f));
 
             var group = panel.AddComponent<VerticalLayoutGroup>();
             group.childAlignment = TextAnchor.LowerLeft;
