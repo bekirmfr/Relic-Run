@@ -207,6 +207,20 @@ namespace RelicRun.Tests.Editor
                     bar.name + " would ignore fillAmount and sit there full");
                 Assert.That(bar.fillMethod, Is.EqualTo(UnityEngine.UI.Image.FillMethod.Horizontal),
                     bar.name + " fills the wrong way");
+
+                // Width from the panel, never a number. A whole scale factor gives the bigger
+                // screen the smaller canvas — 540 units at 2x, 480 at 3x — so a bar with an
+                // authored width is a different fraction of the screen on every device. For the
+                // one element read as a proportion, that is telling each delver something
+                // different about how much trouble they are in.
+                var rect = (RectTransform)bar.transform;
+
+                Assert.That(rect.anchorMin.x, Is.EqualTo(0f),
+                    bar.name + " does not start at its panel's left edge");
+                Assert.That(rect.anchorMax.x, Is.EqualTo(1f),
+                    bar.name + " has an authored width instead of its panel's");
+                Assert.That(rect.sizeDelta.x, Is.EqualTo(0f),
+                    bar.name + " insets itself from the panel that already holds the margin");
             }
         }
 

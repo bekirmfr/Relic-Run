@@ -508,7 +508,22 @@ namespace RelicRun.Editor.Importers
             return box;
         }
 
-        /// <summary>A bar that fills from the left, which is what both gauges and both healths are.</summary>
+        /// <summary>
+        /// A bar that fills from the left, which is what both gauges and both healths are.
+        /// </summary>
+        /// <remarks>
+        /// Its WIDTH comes from its panel, not from a number here. It was 300 units, which took
+        /// 56% of the canvas on a 1080-wide phone and 62% on a 1440-wide one — the same bar
+        /// showing a different amount of screen, because a whole scale factor gives the bigger
+        /// screen the smaller canvas.
+        ///
+        /// A health bar is the one thing on this screen that has to be read as a PROPORTION. A
+        /// delver judges how much trouble they are in by how much of the bar is left, so a bar
+        /// whose full length is a different fraction of the screen on each device is quietly
+        /// telling each of them something different.
+        ///
+        /// Only the height stays authored, because that is thickness rather than measure.
+        /// </remarks>
         private static GameObject Bar(GameObject parent, string name, Color colour, Vector2 at,
             float height = 13f)
         {
@@ -517,10 +532,13 @@ namespace RelicRun.Editor.Importers
 
             rect.SetParent(parent.transform, false);
             rect.anchorMin = new Vector2(0f, 0.5f);
-            rect.anchorMax = new Vector2(0f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.sizeDelta = new Vector2(300f, height);
-            rect.anchoredPosition = at;
+            rect.anchorMax = new Vector2(1f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+
+            // Stretched, so x is an inset from the panel's width rather than a width. Zero means
+            // the panel's width exactly; the panel already holds the margin.
+            rect.sizeDelta = new Vector2(0f, height);
+            rect.anchoredPosition = new Vector2(0f, at.y);
 
             Image image = bar.GetComponent<Image>();
             image.color = colour;
