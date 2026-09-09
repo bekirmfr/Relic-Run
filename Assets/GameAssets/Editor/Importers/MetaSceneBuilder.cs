@@ -228,6 +228,11 @@ namespace RelicRun.Editor.Importers
             ProfilePanel profile = Sheet<ProfilePanel>(canvas, face, "ProfilePanel");
             BestiaryPanel bestiary = Sheet<BestiaryPanel>(canvas, face, "BestiaryPanel");
             RelicBookPanel relics = Sheet<RelicBookPanel>(canvas, face, "RelicBookPanel");
+            HowPanel how = Sheet<HowPanel>(canvas, face, "HowPanel");
+
+            OverPanel over = Over(canvas, face);
+            XpPanel xp = Xp(canvas, face);
+            StagingPanel staging = Staging(canvas, face, tile);
 
             MetaScene shell = scene.GetComponent<MetaScene>();
 
@@ -244,7 +249,7 @@ namespace RelicRun.Editor.Importers
 
             var built = new MetaPanel[]
             {
-                title, modes, levels, board, profile, bestiary, relics,
+                title, modes, levels, board, profile, bestiary, relics, how, over, xp, staging,
             };
 
             panels.arraySize = built.Length;
@@ -508,6 +513,147 @@ namespace RelicRun.Editor.Importers
             Line(tile, face, "", Small, TextAlignmentOptions.Right, -30f).name = "Right";
 
             return tile;
+        }
+
+        /* ---------- the end of a run ---------- */
+
+        private static OverPanel Over(GameObject canvas, TMP_FontAsset face)
+        {
+            GameObject panel = Full(canvas, "OverPanel");
+
+            GameObject title = Line(panel, face, "", 32, TextAlignmentOptions.Center, 0f);
+            Place(title, 1f, -120f, 40f);
+
+            GameObject under = Line(panel, face, "", 32, TextAlignmentOptions.Center, 0f);
+            Place(under, 1f, -164f, 40f);
+
+            GameObject score = Line(panel, face, "", 48, TextAlignmentOptions.Center, 0f);
+            Place(score, 0.5f, 40f, 56f);
+
+            GameObject note = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(note, 0.5f, -8f, 16f);
+
+            GameObject rate = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(rate, 0.5f, -32f, 16f);
+
+            GameObject stats = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(stats, 0.5f, -72f, 16f);
+
+            GameObject homePanel = Strip(panel, "HomePanel", 0f, 108f, 48f);
+            GameObject home = Press(homePanel, "Home", face, "CONTINUE", Text(16),
+                new Color(0.89f, 0.70f, 0.25f), new Color(0.08f, 0.07f, 0.06f), 48f);
+
+            GameObject boardPanel = Strip(panel, "BoardPanel", 0f, 56f, 40f);
+            GameObject board = Press(boardPanel, "Board", face, "RUNS", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            var view = panel.AddComponent<OverPanel>();
+
+            Wire(view, new[]
+            {
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_titleUnder", under.GetComponent<TMP_Text>()),
+                Pair("_score", score.GetComponent<TMP_Text>()),
+                Pair("_note", note.GetComponent<TMP_Text>()),
+                Pair("_rate", rate.GetComponent<TMP_Text>()),
+                Pair("_stats", stats.GetComponent<TMP_Text>()),
+                Pair("_home", home.GetComponent<Button>()),
+                Pair("_board", board.GetComponent<Button>()),
+            });
+
+            return view;
+        }
+
+        /* ---------- what it earned ---------- */
+
+        private static XpPanel Xp(GameObject canvas, TMP_FontAsset face)
+        {
+            GameObject panel = Full(canvas, "XpPanel");
+
+            GameObject kicker = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(kicker, 1f, -120f, 16f);
+
+            GameObject gained = Line(panel, face, "", 48, TextAlignmentOptions.Center, 0f);
+            Place(gained, 1f, -168f, 56f);
+
+            GameObject level = Line(panel, face, "", 24, TextAlignmentOptions.Center, 0f);
+            Place(level, 0.5f, 40f, 32f);
+
+            GameObject barPanel = Panel(panel, "BarPanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, 8f), new Vector2(-Margin * 2f, 12f));
+            GameObject bar = Bar(barPanel, "Fill", new Color(0.49f, 0.60f, 0.42f),
+                Vector2.zero, 12f);
+
+            GameObject next = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(next, 0.5f, -16f, 16f);
+
+            GameObject gains = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(gains, 0.5f, -64f, 72f);
+
+            GameObject onPanel = Strip(panel, "OnPanel", 0f, 56f, 48f);
+            GameObject on = Press(onPanel, "On", face, "CONTINUE", Text(16),
+                new Color(0.89f, 0.70f, 0.25f), new Color(0.08f, 0.07f, 0.06f), 48f);
+
+            var view = panel.AddComponent<XpPanel>();
+
+            Wire(view, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_gained", gained.GetComponent<TMP_Text>()),
+                Pair("_level", level.GetComponent<TMP_Text>()),
+                Pair("_next", next.GetComponent<TMP_Text>()),
+                Pair("_bar", bar.GetComponent<Image>()),
+                Pair("_gains", gains.GetComponent<TMP_Text>()),
+                Pair("_on", on.GetComponent<Button>()),
+            });
+
+            return view;
+        }
+
+        /* ---------- the staging hall ---------- */
+
+        private static StagingPanel Staging(GameObject canvas, TMP_FontAsset face,
+            HallTileView tile)
+        {
+            GameObject panel = Full(canvas, "StagingPanel");
+
+            GameObject head = Strip(panel, "Head", 1f, -44f, 40f);
+            GameObject back = Press(head, "Back", face, "‹ BACK", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            GameObject grid = Strip(panel, "Grid", 1f, -180f, 200f);
+            var layout = grid.AddComponent<GridLayoutGroup>();
+
+            layout.cellSize = new Vector2(TileSide, TileSide);
+            layout.spacing = new Vector2(8f, 8f);
+            layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            layout.constraintCount = 4;
+            layout.childAlignment = TextAnchor.UpperCenter;
+
+            GameObject hall = Line(panel, face, "", 24, TextAlignmentOptions.Center, 0f);
+            Place(hall, 0.5f, 40f, 32f);
+
+            GameObject roster = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
+            Place(roster, 0.5f, 4f, 16f);
+
+            GameObject fightPanel = Strip(panel, "FightPanel", 0f, 56f, 48f);
+            GameObject fight = Press(fightPanel, "Fight", face, StagingPanel.FightLabel, Text(16),
+                new Color(0.89f, 0.70f, 0.25f), new Color(0.08f, 0.07f, 0.06f), 48f);
+
+            var view = panel.AddComponent<StagingPanel>();
+
+            Wire(view, new[]
+            {
+                Pair("_tile", tile),
+                Pair("_grid", (RectTransform)grid.transform),
+                Pair("_hall", hall.GetComponent<TMP_Text>()),
+                Pair("_roster", roster.GetComponent<TMP_Text>()),
+                Pair("_fight", fight.GetComponent<Button>()),
+                Pair("_fightLabel", fight.GetComponentInChildren<TMP_Text>(true)),
+                Pair("_back", back.GetComponent<Button>()),
+            });
+
+            return view;
         }
 
         /* ---------- the dungeon list ---------- */
