@@ -334,10 +334,14 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
 - **`FightFrame` (Core, done)** — one event becomes the fliers and the two gauge instructions.
   Each gauge fills over exactly the time until its owner strikes again, read forward off the
   events themselves
-- **`CombatView` + `WindingGauge` + `FlyingNumber` + `LogLine` (Game, written, unwired)** — the
-  widgets a scene attaches. They decide nothing; the frame does
-- `CombatView.Apply(CombatEvent)`, hero/enemy units, damage numbers, log strip with `↳` depth indent,
-  relic tray with the `relicMeter` charge/uses gauges, hall pan
+- **`CombatView` + `WindingGauge` + `FlyingNumber` + `LogLine` (Game, done, wired)** — the
+  widgets a scene attaches. They decide nothing; the frame does. Built into `GameScene.prefab`
+  by `FightSceneBuilder` and gated by `FightSceneTests`
+- Done: `CombatView.Show(index, event)`, hero/enemy units, damage numbers, log strip
+- **Still missing, and visible**: the relic tray with the `relicMeter` charge/uses gauges (Core's
+  `RelicMeter` is done and nothing draws it), the `↳` depth indent on the log, and the hall pan —
+  `Walk` only swaps the foe sprite, so the 3.35s approach reads as a pause unless **Skip Intro**
+  is ticked
 - **`PixelScale` (Core, done) + `PixelCanvas` (Game, done)** — the canvas scales by a WHOLE
   number of screen pixels per authored pixel, and every text size is a multiple of 8.
   `ScaleWithScreenSize` is the sensible default for almost any interface and is wrong for this
