@@ -205,8 +205,7 @@ namespace RelicRun.Tests.Editor
 
             foreach (UnityEngine.UI.Image bar in bars)
             {
-                Assert.That(bar.type, Is.EqualTo(UnityEngine.UI.Image.Type.Filled),
-                    bar.name + " would ignore fillAmount and sit there full");
+                Filling(bar);
                 Assert.That(bar.fillMethod, Is.EqualTo(UnityEngine.UI.Image.FillMethod.Horizontal),
                     bar.name + " fills the wrong way");
 
@@ -381,6 +380,33 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
+        /// A bar that can actually show a fraction.
+        /// </summary>
+        /// <remarks>
+        /// Two questions, and this test used to ask only the first — which was the more obvious
+        /// one and, on its own, worth nothing.
+        ///
+        /// The type has to be Filled, or <c>fillAmount</c> is not consulted. But an
+        /// <c>Image</c> with no SPRITE never gets that far: Unity's <c>OnPopulateMesh</c> checks
+        /// for a sprite first and falls back to a plain quad, so a Filled image with nothing in
+        /// it draws a full rectangle for ever. Type Filled, method Horizontal, origin Left, wired
+        /// correctly, permanently full.
+        ///
+        /// That was every bar on this screen. A foe at zero hit points had a full red bar and the
+        /// attack gauges never moved, and the test that existed to catch exactly this passed
+        /// throughout, because it asked the question whose answer was already yes.
+        /// </remarks>
+        private static void Filling(UnityEngine.UI.Image bar)
+        {
+            Assert.That(bar.type, Is.EqualTo(UnityEngine.UI.Image.Type.Filled),
+                bar.name + " would ignore fillAmount and sit there full");
+
+            Assert.That(bar.sprite, Is.Not.Null,
+                bar.name + " has no sprite, so Unity draws a plain quad and ignores its type " +
+                "entirely — it is full at every value, including zero");
+        }
+
+        /// <summary>
         /// Rebuilding replaces the fight and leaves the rest of the scene alone.
         /// </summary>
         /// <remarks>
@@ -534,9 +560,7 @@ namespace RelicRun.Tests.Editor
 
                 found.Add(bar.name);
 
-                Assert.That(bar.type, Is.EqualTo(UnityEngine.UI.Image.Type.Filled),
-                    bar.name + " would ignore fillAmount and sit there full, which on a charge " +
-                    "bar means every relic looks one strike from firing");
+                Filling(bar);
 
                 bool sideways = System.Array.IndexOf(along, bar.name) >= 0;
 

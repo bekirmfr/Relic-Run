@@ -55,7 +55,6 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private FlyingNumber _flier;
         [SerializeField] private LogLine _line;
 
-        [Tooltip("How many lines the log keeps. The source keeps 240.")]
         [Tooltip("The source keeps sixty. Older lines are gone rather than merely clipped.")]
         [SerializeField] private int _logLength = 60;
 

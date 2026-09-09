@@ -71,6 +71,25 @@ namespace RelicRun.Editor.Importers
         private const float SlotSide = 34f;
 
         /// <summary>
+        /// One white pixel, which is what every bar on this screen is actually made of.
+        /// </summary>
+        /// <remarks>
+        /// Not decoration. An <c>Image</c> with NO sprite ignores its own type: Unity's
+        /// <c>OnPopulateMesh</c> checks for a sprite first and falls back to a plain quad, so a
+        /// Filled image with nothing in it draws a full rectangle and <c>fillAmount</c> does
+        /// nothing whatsoever.
+        ///
+        /// That was the state of every bar in this scene. Both healths, both attack gauges and
+        /// all three gauges on a relic slot were Filled, horizontal, correctly wired, and
+        /// permanently full — a foe at zero hit points still had a full red bar, and the attack
+        /// gauges never moved because nothing they were told could reach the screen.
+        ///
+        /// One pixel rather than Unity's built-in UISprite, which is rounded and nine-sliced. A
+        /// bar three units tall with rounded ends is a bar with no ends.
+        /// </remarks>
+        public const string WhitePath = "Assets/GameAssets/Art/Sheets/White.png";
+
+        /// <summary>
         /// Every size below is in authored pixels, and every text size is a multiple of eight.
         /// </summary>
         /// <remarks>
@@ -117,6 +136,10 @@ namespace RelicRun.Editor.Importers
             try
             {
                 TMP_FontAsset face = content.Fonts == null ? null : content.Fonts.For(FontBook.Ui);
+
+                // Before anything is built, because every bar needs it and a bar without it is
+                // a bar that cannot show a fraction.
+                White();
 
                 FlyingNumber flier = Flier(face);
                 LogLine line = Line(face);
@@ -624,6 +647,7 @@ namespace RelicRun.Editor.Importers
             rect.anchoredPosition = new Vector2(0f, at.y);
 
             Image image = bar.GetComponent<Image>();
+            image.sprite = White();
             image.color = colour;
             image.type = Image.Type.Filled;
             image.fillMethod = Image.FillMethod.Horizontal;
@@ -813,6 +837,50 @@ namespace RelicRun.Editor.Importers
             return tray;
         }
 
+        /// <summary>
+        /// The white pixel, written once and loaded ever after.
+        /// </summary>
+        /// <remarks>
+        /// Generated rather than committed as art, because it is not art — it is a consequence of
+        /// how <c>Image</c> works, and a checked-in PNG of one white pixel is a thing nobody can
+        /// look at and understand.
+        ///
+        /// Point filtered and uncompressed, like everything else on this screen. A compressed
+        /// single pixel is not smaller and a filtered one is not white.
+        /// </remarks>
+        private static Sprite White()
+        {
+            var found = AssetDatabase.LoadAssetAtPath<Sprite>(WhitePath);
+            if (found != null) return found;
+
+            ContentPaths.EnsureFolder(ContentPaths.Sheets);
+
+            var pixel = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            pixel.SetPixel(0, 0, Color.white);
+            pixel.Apply();
+
+            System.IO.File.WriteAllBytes(
+                System.IO.Path.Combine(ContentPaths.ProjectRoot, WhitePath),
+                pixel.EncodeToPNG());
+
+            Object.DestroyImmediate(pixel);
+            AssetDatabase.ImportAsset(WhitePath, ImportAssetOptions.ForceSynchronousImport);
+
+            var importer = AssetImporter.GetAtPath(WhitePath) as TextureImporter;
+
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.filterMode = FilterMode.Point;
+                importer.mipmapEnabled = false;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.SaveAndReimport();
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(WhitePath);
+        }
+
         /* ---------- the prefabs ---------- */
 
         /// <summary>
@@ -894,6 +962,7 @@ namespace RelicRun.Editor.Importers
             rect.anchoredPosition = at;
 
             Image image = bar.GetComponent<Image>();
+            image.sprite = White();
             image.color = Color.white;
             image.type = Image.Type.Filled;
             image.fillMethod = how;

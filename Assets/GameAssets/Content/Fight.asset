@@ -24,42 +24,38 @@ MonoBehaviour:
     Spd: 25
     Lck: 10
     Shelf:
-    - Relic: 4
+    - Relic: 27
       Trigger: 0
       Emitter: 0
       Awakened: 0
-    - Relic: 5
+    - Relic: 0
       Trigger: 0
       Emitter: 0
       Awakened: 0
-    - Relic: 6
+    - Relic: 0
       Trigger: 1
       Emitter: 0
       Awakened: 0
-    - Relic: 7
+    - Relic: 32
       Trigger: 0
       Emitter: 0
       Awakened: 0
-    - Relic: 12
-      Trigger: 0
-      Emitter: 0
-      Awakened: 0
-    - Relic: 19
+    - Relic: 28
       Trigger: 0
       Emitter: 0
       Awakened: 0
   Foes:
     Override: 0
     Pack:
-    - Species: 1
-      Rank: 3
-      Hp: 50
+    - Species: 0
+      Rank: 1
+      Hp: 20
       Atk: 4
-      Armor: 2
+      Armor: 0
       Spd: 25
       Lck: 10
-      Drop: 20
-      Relics: 1a00000007000000
+      Drop: 6
+      Relics: 
   SkipIntro: 0
   Speed: 1
   ReducedMotion: 0
