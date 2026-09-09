@@ -64,6 +64,24 @@ namespace RelicRun.Editor.Importers
         /// <summary>A hall's square, in authored pixels. The source draws 72.</summary>
         private const float TileSide = 72f;
 
+        /// <summary>How much of a tile's edge shows around its fill. The source draws 2.</summary>
+        private const float Border = 2f;
+
+        /// <summary>
+        /// The size the small print is drawn at: the face's own, undoubled.
+        /// </summary>
+        /// <remarks>
+        /// The captions under a banner and the line under PLAY are META text — the source sets
+        /// them at five and a half pixels inside a 390-wide shell. Drawn at sixteen they are
+        /// three times that, and the screenshot showed exactly what that costs: the Daily's two
+        /// captions ran into each other as LOCKEDREACH DELVER LV 3 IN DUNGEONS, and the line
+        /// under PLAY wrapped and dropped its last word out of the row.
+        ///
+        /// Eight is the size the ui face is baked at, so it is also the one size that is drawn
+        /// pixel for pixel with no scaling at all.
+        /// </remarks>
+        private const int Small = 8;
+
         private const string BuildItem = "Tools/Relic Run/Build Menu Scene";
 
         [MenuItem(BuildItem, priority = 122)]
@@ -244,7 +262,7 @@ namespace RelicRun.Editor.Importers
 
             GameObject featured = Strip(panel, "Featured", 0.5f, 40f, 128f);
 
-            GameObject kicker = Line(featured, face, "DUNGEONS", 16,
+            GameObject kicker = Line(featured, face, "DUNGEONS", Small,
                 TextAlignmentOptions.Center, 48f);
 
             GameObject playPanel = Panel(featured, "PlayPanel", new Vector2(0f, 0.5f),
@@ -252,7 +270,7 @@ namespace RelicRun.Editor.Importers
             GameObject play = Press(playPanel, "Play", face, "PLAY", Text(32),
                 new Color(0.55f, 0.22f, 0.18f), new Color(0.95f, 0.92f, 0.86f), 56f);
 
-            GameObject sub = Line(featured, face, "", 16, TextAlignmentOptions.Center, -40f);
+            GameObject sub = Line(featured, face, "", Small, TextAlignmentOptions.Center, -40f);
 
             GameObject daily = Banner(panel, face, "Daily", -120f, "TODAY");
             GameObject versus = Banner(panel, face, "Versus", -224f, "VERSUS");
@@ -301,8 +319,8 @@ namespace RelicRun.Editor.Importers
             GameObject banner = Press(strip, name, face, title, Text(24),
                 new Color(0.13f, 0.12f, 0.10f), new Color(0.90f, 0.87f, 0.80f), 88f);
 
-            Line(banner, face, "", 16, TextAlignmentOptions.Left, -26f).name = "Left";
-            Line(banner, face, "", 16, TextAlignmentOptions.Right, -26f).name = "Right";
+            Line(banner, face, "", Small, TextAlignmentOptions.Left, -26f).name = "Left";
+            Line(banner, face, "", Small, TextAlignmentOptions.Right, -26f).name = "Right";
 
             return banner;
         }
@@ -360,9 +378,9 @@ namespace RelicRun.Editor.Importers
             GameObject tile = Press(strip, name, face, title, Text(24),
                 new Color(0.13f, 0.12f, 0.10f), new Color(0.90f, 0.87f, 0.80f), 104f);
 
-            Line(tile, face, "", 16, TextAlignmentOptions.Right, 26f).name = "Tag";
-            Line(tile, face, "", 16, TextAlignmentOptions.Left, -30f).name = "Left";
-            Line(tile, face, "", 16, TextAlignmentOptions.Right, -30f).name = "Right";
+            Line(tile, face, "", Small, TextAlignmentOptions.Right, 26f).name = "Tag";
+            Line(tile, face, "", Small, TextAlignmentOptions.Left, -30f).name = "Left";
+            Line(tile, face, "", Small, TextAlignmentOptions.Right, -30f).name = "Right";
 
             return tile;
         }
@@ -391,7 +409,7 @@ namespace RelicRun.Editor.Importers
             GameObject title = Line(panel, face, "", 24, TextAlignmentOptions.Left, 0f);
             Place(title, 0.5f, 56f, 32f);
 
-            GameObject lore = Line(panel, face, "", 16, TextAlignmentOptions.TopLeft, 0f);
+            GameObject lore = Line(panel, face, "", Small, TextAlignmentOptions.TopLeft, 0f);
             Place(lore, 0.5f, -6f, 96f);
             lore.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
 
@@ -406,11 +424,11 @@ namespace RelicRun.Editor.Importers
 
             // The row template, kept inactive: the panel spawns from it and a live copy sitting
             // in the layout would be an eighth row nobody asked for.
-            GameObject statLine = Line(stats, face, "", 16, TextAlignmentOptions.Left, 0f);
+            GameObject statLine = Line(stats, face, "", Small, TextAlignmentOptions.Left, 0f);
             statLine.name = "StatLine";
             statLine.SetActive(false);
 
-            GameObject relics = Line(panel, face, "", 16, TextAlignmentOptions.Center, 0f);
+            GameObject relics = Line(panel, face, "", Small, TextAlignmentOptions.Center, 0f);
             Place(relics, 0f, 118f, 24f);
 
             GameObject delvePanel = Strip(panel, "DelvePanel", 0f, 56f, 48f);
@@ -451,11 +469,22 @@ namespace RelicRun.Editor.Importers
 
             made.GetComponent<Button>().targetGraphic = frame;
 
-            GameObject number = Say(made, face, "1", Text(24), TextAlignmentOptions.Center,
+            // The fill sits inside the frame with two units showing all round, which IS the
+            // border. One image doing both jobs made the chosen tile gold and its gold number
+            // invisible — a bug only a screenshot could report.
+            GameObject inside = Panel(made, "Fill", Vector2.zero, Vector2.one, Vector2.zero,
+                new Vector2(-Border * 2f, -Border * 2f));
+
+            var fill = inside.AddComponent<Image>();
+            fill.sprite = White();
+            fill.color = new Color(0.10f, 0.08f, 0.06f);
+            fill.raycastTarget = false;
+
+            GameObject number = Say(inside, face, "1", Text(24), TextAlignmentOptions.Center,
                 new Vector2(0f, 8f), new Vector2(0f, 28f), true);
             number.name = "Number";
 
-            GameObject tag = Say(made, face, "", Text(8), TextAlignmentOptions.Center,
+            GameObject tag = Say(inside, face, "", Text(8), TextAlignmentOptions.Center,
                 new Vector2(0f, -18f), new Vector2(0f, 12f), true);
             tag.name = "Tag";
 
@@ -463,6 +492,7 @@ namespace RelicRun.Editor.Importers
             {
                 Pair("_press", made.GetComponent<Button>()),
                 Pair("_frame", frame),
+                Pair("_fill", fill),
                 Pair("_number", number.GetComponent<TMP_Text>()),
                 Pair("_tag", tag.GetComponent<TMP_Text>()),
             });
