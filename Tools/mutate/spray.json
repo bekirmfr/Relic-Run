@@ -1,0 +1,77 @@
+{
+  "name": "what comes off a body",
+  "mutants": [
+    {
+      "name": "a killed foe does not come apart",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                    return new Spray(SprayKind.Blood, false, Drops, true);",
+      "replace": "                    return new Spray(SprayKind.Blood, false, Drops, false);"
+    },
+    {
+      "name": "a killed foe bleeds like a struck one",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                    return new Spray(SprayKind.Blood, false, Drops, true);",
+      "replace": "                    return new Spray(SprayKind.Blood, false, Motes, true);"
+    },
+    {
+      "name": "the delver's death happens to the foe",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                    return new Spray(SprayKind.Blood, true, Drops, true);",
+      "replace": "                    return new Spray(SprayKind.Blood, false, Drops, true);"
+    },
+    {
+      "name": "a struck foe bleeds rather than raising dust",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                        : new Spray(SprayKind.Dust, false, Motes);",
+      "replace": "                        : new Spray(SprayKind.Blood, false, Motes);"
+    },
+    {
+      "name": "a struck body comes apart",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                    return new Spray(SprayKind.Dust, true, Motes);",
+      "replace": "                    return new Spray(SprayKind.Dust, true, Motes, true);"
+    },
+    {
+      "name": "chained relic damage dusts the foe too",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                    return shown.Depth > 0",
+      "replace": "                    return shown.Depth > 99"
+    },
+    {
+      "name": "only chained damage dusts the foe",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                    return shown.Depth > 0",
+      "replace": "                    return shown.Depth < 1"
+    },
+    {
+      "name": "the delver's dust is filtered by depth as well",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                case CombatEventType.PlayerDamage:\n                    return new Spray(SprayKind.Dust, true, Motes);",
+      "replace": "                case CombatEventType.PlayerDamage:\n                    return shown.Depth > 0 ? default(Spray) : new Spray(SprayKind.Dust, true, Motes);"
+    },
+    {
+      "name": "the dust is as heavy as the blood",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "        public const int Motes = 4;",
+      "replace": "        public const int Motes = 8;"
+    },
+    {
+      "name": "a death throws as little as a graze",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "        public const int Drops = 8;",
+      "replace": "        public const int Drops = 4;"
+    },
+    {
+      "name": "every event sprays something",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "                default:\n                    return default(Spray);",
+      "replace": "                default:\n                    return new Spray(SprayKind.Dust, false, Motes);"
+    },
+    {
+      "name": "a spray of nothing still counts as one",
+      "file": "Assets/GameAssets/Core/Presentation/Spray.cs",
+      "find": "        public bool Any { get { return Kind != SprayKind.None && Count > 0; } }",
+      "replace": "        public bool Any { get { return Count > 0; } }"
+    }
+  ]
+}

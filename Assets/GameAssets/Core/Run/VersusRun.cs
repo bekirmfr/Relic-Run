@@ -298,17 +298,9 @@ namespace RelicRun.Core.Run
             match.Foe = chosen;
 
             Rival rival = match.Roster[chosen];
-            int Held(RelicId id)
-            {
-                int n = 0;
-                for (int i = 0; i < rival.Relics.Count; i++)
-                {
-                    if (rival.Relics[i] == id) n++;
-                }
 
-                return n;
-            }
-
+            // Counting copies used to happen here, once per relic that mattered. The table does
+            // it now, so the last caller of that local went with the boots.
             var worn = WornKit.Modifiers(rival.Relics);
 
             var foe = new EnemyState
