@@ -6,19 +6,6 @@ using RelicRun.Core.Run;
 
 namespace RelicRun.Core.Presentation
 {
-    /// <summary>What one of the two mode banners says about itself.</summary>
-    public struct ModeLine
-    {
-        /// <summary>Whether this delver may play it at all.</summary>
-        public bool Open;
-
-        /// <summary>The left caption: what it is, or that it is shut.</summary>
-        public string Left;
-
-        /// <summary>The right caption: how it stands, or what would open it.</summary>
-        public string Right;
-    }
-
     /// <summary>
     /// Everything the title screen shows.
     /// </summary>
@@ -112,9 +99,6 @@ namespace RelicRun.Core.Presentation
             uint seed = DailySeed.For(now);
             string left = Countdown.Text(DailySeed.ResetsIn(now));
 
-            bool dailyOpen = level >= Career.DailyOpensAt;
-            bool versusOpen = level >= Career.VersusOpensAt;
-
             return new TitleCard
             {
                 Name = prefs != null && prefs.Name != null ? prefs.Name : string.Empty,
@@ -128,35 +112,11 @@ namespace RelicRun.Core.Presentation
                 Kicker = Kick(level, dailyDone),
                 Sub = Under(level, dailyDone, DailySeed.Label(seed), left),
 
-                Daily = new ModeLine
-                {
-                    Open = dailyOpen,
-                    Left = dailyOpen ? "TODAY · " + left : "LOCKED",
-                    // The source writes a star in front of this. Dropped, and this is the one
-                    // departure on the screen: the source is a web page and the browser reaches
-                    // for a system emoji font when its own face has no glyph. A baked bitmap
-                    // face has nothing to reach for, and neither typeface this game ships covers
-                    // U+2B50, so the star would arrive as an empty box on the FIRST screen of
-                    // the game, in every language at once.
-                    //
-                    // It is also what the source itself would do if this line went through its
-                    // translator: Locale.Clean strips exactly this range out of all twelve
-                    // hundred translated strings, for exactly this reason. The literal only
-                    // keeps its star by never being asked.
-                    Right = dailyOpen
-                        ? "BEST " + Number(save.DailyBestFor(seed)) + " · " +
-                          (dailyRunning ? "IN PROGRESS" : dailyDone ? "DONE TODAY" : "1 TRY")
-                        : "REACH DELVER LV " + Number(Career.DailyOpensAt) + " IN DUNGEONS",
-                },
-
-                Versus = new ModeLine
-                {
-                    Open = versusOpen,
-                    Left = versusOpen ? "8 DELVERS · 3 LIVES EACH" : "LOCKED",
-                    Right = versusOpen
-                        ? "LAST DELVER STANDING"
-                        : "REACH DELVER LV " + Number(Career.VersusOpensAt),
-                },
+                // Built where the mode picker builds them, so the two screens cannot
+                // disagree about what today's Daily says — a delver sees both within seconds.
+                Daily = ModeLines.Daily(level, dailyDone, dailyRunning,
+                    save.DailyBestFor(seed), left),
+                Versus = ModeLines.Versus(level),
 
                 Seed = DailySeed.Label(seed),
                 Left = left,

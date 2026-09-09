@@ -54,6 +54,7 @@ namespace RelicRun.Game.Presentation
         private const float Tick = 1f;
 
         private SaveVault _vault;
+        private ISceneService _scenes;
         private MetaPanel _showing;
         private float _due;
 
@@ -67,6 +68,7 @@ namespace RelicRun.Game.Presentation
         public Task Initialize()
         {
             _vault = Vault();
+            _scenes = Scenes();
 
             foreach (MetaPanel panel in _panels)
             {
@@ -150,6 +152,15 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         private void Asked(Page page)
         {
+            // The run is not a panel. It is its own scene, because a fight is a different thing
+            // from a menu: it owns the whole screen, it has a lifecycle of its own, and the
+            // service tears the menu down as it loads rather than drawing one over the other.
+            if (page == Page.Run)
+            {
+                Delve();
+                return;
+            }
+
             if (page == Page.Board && _showing != null) _cameFrom = _showing.Shows;
 
             if (page == Page.Title && _showing != null && _showing.Shows == Page.Board)
@@ -159,6 +170,35 @@ namespace RelicRun.Game.Presentation
             }
 
             Go(page);
+        }
+
+        /// <summary>
+        /// Hands over to the run.
+        /// </summary>
+        /// <remarks>
+        /// What loads today is the fight SCAFFOLD from Phase 9 — one fight, set up from the
+        /// Fight asset, rather than a delve into the hall the delver just chose. The hall IS
+        /// remembered and committed before this is called, so nothing is lost by the run layer
+        /// not existing yet; when it does, this line is what changes.
+        ///
+        /// Not awaited, and deliberately: the service tears this scene down as part of loading,
+        /// so awaiting here would be awaiting on an object being destroyed. The task is dropped
+        /// with its failure reported rather than left to disappear silently.
+        /// </remarks>
+        private void Delve()
+        {
+            if (_scenes == null)
+            {
+                Debug.LogWarning("nothing can load scenes, so the run cannot be reached", this);
+                return;
+            }
+
+            Task loading = _scenes.LoadScene(SceneKeys.GameScene);
+
+            loading.ContinueWith(
+                done => Debug.LogError("could not load the run: " + done.Exception, this),
+                TaskContinuationOptions.OnlyOnFaulted |
+                TaskContinuationOptions.ExecuteSynchronously);
         }
 
         private void Draw(MetaPanel panel)
@@ -215,6 +255,22 @@ namespace RelicRun.Game.Presentation
             }
 
             return vault;
+        }
+
+        /// <summary>Finds whatever loads scenes, so the menu can hand over to a run.</summary>
+        /// <remarks>
+        /// Asked for the same way the save is, and missing the same way: a menu that cannot
+        /// reach the run is still a menu, and saying so once beats a button that does nothing.
+        /// </remarks>
+        private ISceneService Scenes()
+        {
+            var scope = GetComponent<LifetimeScope>();
+
+            if (scope == null || scope.Container == null) return null;
+
+            ISceneService scenes;
+
+            return scope.Container.TryResolve(out scenes) ? scenes : null;
         }
     }
 }

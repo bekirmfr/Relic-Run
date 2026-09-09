@@ -223,6 +223,13 @@ namespace RelicRun.Tests.Editor
             Filled(Find<LevelsPanel>());
         }
 
+        /// <summary>And the mode picker's.</summary>
+        [Test]
+        public void EveryReferenceOnTheModePickerIsWired()
+        {
+            Filled(Find<ModesPanel>());
+        }
+
         /// <summary>
         /// Both panels are listed on the scene, and each is listed once.
         /// </summary>

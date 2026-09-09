@@ -101,7 +101,7 @@ namespace RelicRun.Editor.Importers
                 // an Image without a sprite ignores its own type entirely.
                 White();
 
-                HallTileView tile = Tile(face);
+                HallTileView tile = HallTile(face);
 
                 Replace(scene);
                 Fit(scene, face, tile);
@@ -197,6 +197,7 @@ namespace RelicRun.Editor.Importers
             canvas.transform.SetParent(root.transform, false);
 
             TitlePanel title = Title(canvas, face);
+            ModesPanel modes = Modes(canvas, face);
             LevelsPanel levels = Levels(canvas, face, tile);
 
             MetaScene shell = scene.GetComponent<MetaScene>();
@@ -210,9 +211,14 @@ namespace RelicRun.Editor.Importers
 
             var panels = new SerializedObject(shell).FindProperty("_panels");
 
-            panels.arraySize = 2;
-            panels.GetArrayElementAtIndex(0).objectReferenceValue = title;
-            panels.GetArrayElementAtIndex(1).objectReferenceValue = levels;
+            var built = new MetaPanel[] { title, modes, levels };
+
+            panels.arraySize = built.Length;
+
+            for (var i = 0; i < built.Length; i++)
+            {
+                panels.GetArrayElementAtIndex(i).objectReferenceValue = built[i];
+            }
 
             panels.serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -301,6 +307,66 @@ namespace RelicRun.Editor.Importers
             return banner;
         }
 
+        /* ---------- the mode picker ---------- */
+
+        private static ModesPanel Modes(GameObject canvas, TMP_FontAsset face)
+        {
+            GameObject panel = Full(canvas, "ModesPanel");
+
+            GameObject head = Strip(panel, "Head", 1f, -44f, 40f);
+            GameObject back = Press(head, "Back", face, "‹ BACK", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            GameObject daily = Tile(panel, face, "Daily", 140f, "DAILY DELVE");
+            GameObject versus = Tile(panel, face, "Versus", 20f, "VERSUS");
+            GameObject dungeons = Tile(panel, face, "Dungeons", -100f, "DUNGEONS");
+
+            var view = panel.AddComponent<ModesPanel>();
+
+            Wire(view, new[]
+            {
+                Pair("_daily", daily.GetComponent<Button>()),
+                Pair("_dailyTag", Named(daily, "Tag")),
+                Pair("_dailyLeft", Named(daily, "Left")),
+                Pair("_dailyRight", Named(daily, "Right")),
+
+                Pair("_versus", versus.GetComponent<Button>()),
+                Pair("_versusTag", Named(versus, "Tag")),
+                Pair("_versusLeft", Named(versus, "Left")),
+                Pair("_versusRight", Named(versus, "Right")),
+
+                Pair("_dungeons", dungeons.GetComponent<Button>()),
+                Pair("_dungeonsTag", Named(dungeons, "Tag")),
+
+                Pair("_back", back.GetComponent<Button>()),
+            });
+
+            return view;
+        }
+
+        /// <summary>
+        /// One mode's tile: a pressable block with a title, a state word, and two captions.
+        /// </summary>
+        /// <remarks>
+        /// The same shape as the title's banners and deliberately so — a delver moves between the
+        /// two screens in a second, and a mode that looked different in each would read as two
+        /// different modes.
+        /// </remarks>
+        private static GameObject Tile(GameObject panel, TMP_FontAsset face, string name,
+            float at, string title)
+        {
+            GameObject strip = Strip(panel, name + "Panel", 0.5f, at, 104f);
+
+            GameObject tile = Press(strip, name, face, title, Text(24),
+                new Color(0.13f, 0.12f, 0.10f), new Color(0.90f, 0.87f, 0.80f), 104f);
+
+            Line(tile, face, "", 16, TextAlignmentOptions.Right, 26f).name = "Tag";
+            Line(tile, face, "", 16, TextAlignmentOptions.Left, -30f).name = "Left";
+            Line(tile, face, "", 16, TextAlignmentOptions.Right, -30f).name = "Right";
+
+            return tile;
+        }
+
         /* ---------- the dungeon list ---------- */
 
         private static LevelsPanel Levels(GameObject canvas, TMP_FontAsset face, HallTileView tile)
@@ -371,7 +437,7 @@ namespace RelicRun.Editor.Importers
         }
 
         /// <summary>One hall's square, saved as a prefab because the panel spawns ten of them.</summary>
-        private static HallTileView Tile(TMP_FontAsset face)
+        private static HallTileView HallTile(TMP_FontAsset face)
         {
             var made = new GameObject("HallTile", typeof(RectTransform), typeof(Image),
                 typeof(Button), typeof(HallTileView));
@@ -484,6 +550,11 @@ namespace RelicRun.Editor.Importers
 
             config.SceneKey = SceneKeys.MenuScene;
             config.SceneReference = new UnityEngine.AddressableAssets.AssetReference(guid);
+
+            // On, the same as the fight's. Two screens at once is not something anybody wants to
+            // look at, and the source has no notion of it — coming back from a run should replace
+            // the run rather than draw the menu over the top of it.
+            config.RemoveAllOtherScenes = true;
 
             EditorUtility.SetDirty(config);
 
