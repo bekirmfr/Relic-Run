@@ -120,13 +120,20 @@ namespace RelicRun.Editor.Importers
         /// its scope for the save vault, and a scope instantiated under the application's root is
         /// parented to it, so what is registered up there is reachable from down here. Without
         /// one the title still opens — and shows a delver who has never played, every time.
+        ///
+        /// <see cref="TitleScene"/> requires it, so adding the component adds the scope. This
+        /// used to name the scope type here, which does not compile: RelicRun.Editor has no
+        /// VContainer reference, and giving it one to state a rule the component already owns is
+        /// the wrong way round.
         /// </remarks>
         private static void Make()
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(ScenePath) != null) return;
 
-            var made = new GameObject("TitleScene", typeof(TitleScene),
-                typeof(VContainer.Unity.LifetimeScope));
+            // The scope comes with it: TitleScene requires one, and AddComponent honours that.
+            // Named there rather than here, because RelicRun.Editor has no VContainer reference
+            // and should not grow one to state a rule that belongs to the component.
+            var made = new GameObject("TitleScene", typeof(TitleScene));
 
             PrefabUtility.SaveAsPrefabAsset(made, ScenePath);
             Object.DestroyImmediate(made);

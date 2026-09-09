@@ -20,7 +20,15 @@ namespace RelicRun.Game.Presentation
     /// <c>SceneConfig</c>, which is the GameLift package's arrangement — so this has a lifecycle
     /// rather than an Awake, and the clock it starts has to be stopped in <see cref="Clear"/>
     /// rather than left ticking into the next screen.
+    ///
+    /// The scope is REQUIRED rather than merely expected. <c>SceneService</c> instantiates inside
+    /// <c>LifetimeScope.EnqueueParent</c>, so a scope on this prefab is parented to the
+    /// application's and can resolve what was registered there — and without one the title still
+    /// opens, showing a delver who has never played, every launch, with nothing but a warning to
+    /// say why. That is the kind of failure worth making structurally impossible rather than
+    /// leaving to whichever tool happened to build the prefab.
     /// </remarks>
+    [RequireComponent(typeof(LifetimeScope))]
     public sealed class TitleScene : MonoBehaviour, ISceneObject
     {
         [SerializeField] private TitleView _view;

@@ -1301,6 +1301,32 @@ around it or it fails the OTHER way.
 Until the day the Test Runner can be driven from here, the only defence is to grep for these
 before handing a branch over. A green `dotnet test` is not evidence that Unity will compile.
 
+## Half the project has no compiler here
+
+`RelicRun.Core` and `RelicRun.Tests` are compiled by `dotnet test`, so a mistake in them is found
+in seconds. `RelicRun.Game`, `RelicRun.Editor` and `RelicRun.Tests.Editor` are compiled by Unity
+and **by nothing else**, which means a mistake in them is found by a person, later, and costs a
+round trip. Two of those have now been paid:
+
+- A `Screen` enum in `Core.Presentation` broke `PixelCanvas`, which had read `Screen.width`
+  happily for a phase and a half. Core compiled; the tests passed; the collision only exists in
+  files that import Core next to `UnityEngine`. `CoreNamesTests` now holds every public Core type
+  against a list of engine names, in the suite that CAN be run.
+- `TitleSceneBuilder` named `VContainer.Unity.LifetimeScope` from `RelicRun.Editor`, which has no
+  VContainer reference. Perfectly good C#, and unbuildable.
+
+`python Tools/check/asmrefs.py` is the second one made mechanical. It reads every asmdef, works
+out which assembly each namespace belongs to, and reports any file importing something its own
+assembly cannot see — a linker's question, asked by hand because the linker is not available
+here. It knows nothing about C#: it reads `using` directives and qualified names of the roots it
+has been told about, which is exactly enough for "somebody forgot to add a reference" and no
+more. `Newtonsoft` is written into its free list rather than left out of it, because it looks
+exactly like a package that would need listing and is auto-referenced instead.
+
+The general rule this leaves: **before handing over a branch that touches a Unity assembly, run
+`asmrefs.py`, and re-read any assertion for the NUnit dialect above.** Neither is a substitute for
+the compiler. Both are cheaper than the round trip.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
