@@ -57,7 +57,17 @@ namespace RelicRun.Game.Presentation
         public void Fit()
         {
             if (_scaler == null) _scaler = GetComponent<CanvasScaler>();
-            if (_scaler == null) return;
+
+            if (_scaler == null)
+            {
+                // Was a silent return, which is the same shape of bug as everything else this
+                // class exists to prevent: no scale, no log, nothing said. A canvas left on
+                // whatever factor was authored looks right on one screen and wrong on the rest,
+                // and looking right on the machine you are sitting at is how it survives.
+                Debug.LogError("no CanvasScaler, so nothing sets the pixel scale and the canvas " +
+                               "keeps whatever factor it was authored with", this);
+                return;
+            }
 
             _width = Screen.width;
             _height = Screen.height;

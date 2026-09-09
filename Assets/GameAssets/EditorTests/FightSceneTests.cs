@@ -136,8 +136,20 @@ namespace RelicRun.Tests.Editor
             Assert.That(scaler.scaleFactor, Is.EqualTo(Mathf.Round(scaler.scaleFactor)),
                 "the authored factor is already fractional");
 
-            Assert.That(Find<PixelCanvas>(), Is.Not.Null,
+            PixelCanvas keeper = Find<PixelCanvas>();
+
+            Assert.That(keeper, Is.Not.Null,
                 "nothing recomputes the factor, so it is frozen at whatever was authored");
+
+            // Present is not the same as running, and the difference is invisible: a disabled
+            // component never gets OnEnable, so the canvas silently keeps the authored factor
+            // and looks correct on exactly one screen.
+            Assert.That(keeper.enabled, Is.True, "the pixel scale keeper is disabled");
+            Assert.That(keeper.gameObject.activeSelf, Is.True,
+                "the pixel scale keeper is on an inactive object");
+
+            Assert.That(keeper.GetComponent<UnityEngine.UI.CanvasScaler>(), Is.Not.Null,
+                "the keeper is not on the object it scales");
         }
 
         /// <summary>
