@@ -29,29 +29,64 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Color _death = new Color(0.70f, 0.20f, 0.20f);
 
         /// <summary>
-        /// How many arrows a deeply chained line is prefixed with before it stops counting.
+        /// How far a chained line is pushed right, per level of depth.
         /// </summary>
         /// <remarks>
-        /// The source's number. A chain can reach depth forty at the cap, and forty arrows would
-        /// be a line of arrows with a sentence after it.
+        /// The source indents by 14 pixels in a 390-wide shell. Sixteen units in a canvas near
+        /// 440 wide is the same 3.6% of a line, and it is one em of the ui face, so a chained
+        /// line starts exactly two characters in rather than at a measurement nobody can see
+        /// the reasoning for.
         /// </remarks>
-        private const int DeepestShown = 3;
+        private const float Step = 16f;
+
+        /// <summary>
+        /// How many levels of chain the indent distinguishes before it stops moving.
+        /// </summary>
+        /// <remarks>
+        /// A delve caps chains at FORTY. Forty steps would be six hundred units of indent on a
+        /// line four hundred wide, and the text would simply be gone. The corpus says the
+        /// deepest chain any recorded fight actually reaches is three, so three is where the
+        /// indent stops: it costs nothing in practice, and it means a pathological chain
+        /// produces a crowded log rather than an empty one.
+        /// </remarks>
+        private const int Deepest = 3;
 
         /// <summary>Draws a line.</summary>
         public void Read(CombatLine line)
         {
             if (_text == null) return;
 
-            _text.text = Arrows(line.Depth) + line.Text;
+            _text.text = Arrow(line.Depth) + line.Text;
             _text.color = Of(line.Kind);
+
+            // The indent carries the depth; the arrow only says there is one. TMP's margin
+            // rather than the transform, because the log's layout group owns the width and
+            // overwrites anything set on the rect.
+            _text.margin = new Vector4(Indent(line.Depth), 0f, 0f, 0f);
         }
 
-        private static string Arrows(int depth)
+        /// <summary>
+        /// One arrow, marking a line as chained, however deep the chain goes.
+        /// </summary>
+        /// <remarks>
+        /// This used to repeat the arrow up to three times, which was ported from the wrong
+        /// place: the source has two log renderers, and that one is the flat text export,
+        /// where there is no indent to be had and the arrows are the only depth signal there
+        /// is. The fight screen shows a SINGLE arrow and says the depth with padding.
+        ///
+        /// Doing both would encode the same fact twice — three arrows and three steps of
+        /// indent, free to disagree the moment either cap moved.
+        /// </remarks>
+        private static string Arrow(int depth)
         {
-            if (depth <= 0) return "";
+            return depth > 0 ? "\u21b3 " : "";
+        }
 
-            int shown = depth < DeepestShown ? depth : DeepestShown;
-            return new string('\u21b3', shown) + " ";
+        private static float Indent(int depth)
+        {
+            if (depth <= 0) return 0f;
+
+            return (depth < Deepest ? depth : Deepest) * Step;
         }
 
         private Color Of(LineKind kind)
