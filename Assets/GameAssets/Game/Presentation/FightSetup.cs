@@ -71,9 +71,20 @@ namespace RelicRun.Game.Presentation
         [Tooltip("Gold dropped on death.")]
         [Min(0)] public int Drop;
 
-        [Tooltip("Only six enemy relics do anything in a delve: Thorn Vest, Berserker Charm, " +
-                 "Weighted Dice, Vampire Tooth, Battle Dash, Lucky Clover.")]
-        public RelicId[] Relics;
+        /// <summary>
+        /// What this foe wears, in the same shape a delver's shelf uses.
+        /// </summary>
+        /// <remarks>
+        /// The SAME type, deliberately. A relic does what it does for whoever is wearing it —
+        /// what differs between a delver and a foe is reach, not effect — so a foe's relic row
+        /// has the same columns, including the awakening that used to be impossible for a foe to
+        /// have and the socket that nothing currently grants to anybody.
+        ///
+        /// This was a bare list of ids with a comment claiming only six of them did anything.
+        /// That comment was wrong: every relic read as a count already worked. What genuinely did
+        /// not work was anything gated on an awakening, because a foe could not have one.
+        /// </remarks>
+        public ShelfEntry[] Wearing;
 
         public EnemyState ToFoe()
         {
@@ -100,8 +111,36 @@ namespace RelicRun.Game.Presentation
                 if (rank == EnemyRank.None) rank = EnemyRank.Guard;
             }
 
-            return EnemyPackGenerator.Authored(Species, rank, hp, Atk, Armor, spd, Lck, Drop,
-                Relics);
+            var relics = new List<RelicId>();
+            var awake = new List<RelicId>();
+            var triggers = new Dictionary<int, SocketTrigger>();
+            var emitters = new Dictionary<int, SocketEmitter>();
+
+            if (Wearing != null)
+            {
+                for (int slot = 0; slot < Wearing.Length; slot++)
+                {
+                    ShelfEntry worn = Wearing[slot];
+
+                    relics.Add(worn.Relic);
+
+                    // By relic, not by slot — the same asymmetry a delver's shelf has, because it
+                    // is a rule about awakening rather than about who is doing it.
+                    if (worn.Awakened && !awake.Contains(worn.Relic)) awake.Add(worn.Relic);
+
+                    if (worn.Trigger != SocketTrigger.None) triggers[slot] = worn.Trigger;
+                    if (worn.Emitter != SocketEmitter.None) emitters[slot] = worn.Emitter;
+                }
+            }
+
+            EnemyState made = EnemyPackGenerator.Authored(Species, rank, hp, Atk, Armor, spd, Lck,
+                Drop, relics);
+
+            made.Awakened = awake;
+            made.SocketTriggers = triggers;
+            made.SocketEmitters = emitters;
+
+            return made;
         }
 
         /// <summary>A plain guard, which is what a new row in the inspector should be.</summary>
@@ -117,7 +156,7 @@ namespace RelicRun.Game.Presentation
                 Spd = 25,
                 Lck = 10,
                 Drop = 6,
-                Relics = new RelicId[0],
+                Wearing = new ShelfEntry[0],
             };
         }
     }

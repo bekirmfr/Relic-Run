@@ -58,6 +58,35 @@ namespace RelicRun.Core.Combat
         /// </remarks>
         public IReadOnlyList<RelicId> Relics;
 
+        /// <summary>
+        /// Which of this foe's relics have been woken.
+        /// </summary>
+        /// <remarks>
+        /// A foe could not wake anything at all until now — <c>FoeActor.IsAwake</c> answered
+        /// false by construction — so every awakened-only effect was dead on a foe however it was
+        /// equipped. Iron Skin's glance and the Whetstone's sunder are both gated on an
+        /// awakening, and both were therefore inert on the very bosses whose kits contain them.
+        ///
+        /// Empty by default, and that is not a hedge: an awakened-only relic does nothing for a
+        /// DELVER who has not woken it either. The rule is the same for whoever wears it, which
+        /// is the whole point — what differs between a delver and a foe is what they can get
+        /// hold of, never what it does once they have it.
+        /// </remarks>
+        public IReadOnlyCollection<RelicId> Awakened = new List<RelicId>();
+
+        /// <summary>Sockets bolted to this foe's relics, keyed by the slot they sit in.</summary>
+        /// <remarks>
+        /// Empty in every fight the game currently produces, because nothing grants a socket any
+        /// more. Kept because the mechanism is still live for whoever has one, and a foe that
+        /// could not use a socket would be an actor-specific rule about a relic rather than about
+        /// reach.
+        /// </remarks>
+        public IReadOnlyDictionary<int, SocketTrigger> SocketTriggers =
+            new Dictionary<int, SocketTrigger>();
+
+        public IReadOnlyDictionary<int, SocketEmitter> SocketEmitters =
+            new Dictionary<int, SocketEmitter>();
+
         public int CountRelic(RelicId id)
         {
             if (Relics == null)

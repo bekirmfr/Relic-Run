@@ -173,6 +173,17 @@ namespace RelicRun.Core.Combat
         /// </summary>
         private bool[] _firedThisBeat;
 
+        /// <summary>The same per-slot record, for whoever the delver is facing.</summary>
+        private bool[] _foeFiredThisBeat = new bool[0];
+
+        /// <summary>The foe's record, grown to fit the foe now standing there.</summary>
+        private bool[] FoeFired(int slots)
+        {
+            if (_foeFiredThisBeat.Length < slots) _foeFiredThisBeat = new bool[slots];
+
+            return _foeFiredThisBeat;
+        }
+
         /// <summary>
         /// The hero as the shared relic layer sees them. In a delve the in-fight bonuses live on
         /// the engine rather than on the hero, so this adapter forwards them.
@@ -558,6 +569,7 @@ namespace RelicRun.Core.Combat
             // The foe's action is one genuine event: everything it provokes shares this chain,
             // and each socketed copy may wake at most once inside it.
             System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+            System.Array.Clear(_foeFiredThisBeat, 0, _foeFiredThisBeat.Length);
 
             int swing = _foe.StatValue(Stat.Atk) + (_foeFury ? 2 : 0);
             CombatDamage.Deal(_foe, this, _rules, swing, null, 0, RelicId.None, NewChain());
@@ -664,8 +676,30 @@ namespace RelicRun.Core.Combat
 
             public int CountRaw(RelicId id) { return _engine._cur.CountRelic(id); }
 
-            /// <summary>A foe's relics never wake.</summary>
-            public bool IsAwake(RelicId id) { return false; }
+            /// <summary>
+            /// Whether this foe has woken a relic, which it now can.
+            /// </summary>
+            /// <remarks>
+            /// This returned false unconditionally, and the comment above it said "a foe's relics
+            /// never wake" as though that were a rule about foes. It was a rule about this
+            /// method. Iron Skin's glance and the Whetstone's sunder are both gated on an
+            /// awakening, so both were dead on the very boss kits that carry them — not because a
+            /// boss should not have them, but because nothing could ever answer yes.
+            /// </remarks>
+            public bool IsAwake(RelicId id)
+            {
+                IReadOnlyCollection<RelicId> awake =
+                    _engine._cur == null ? null : _engine._cur.Awakened;
+
+                if (awake == null) return false;
+
+                foreach (RelicId each in awake)
+                {
+                    if (each == id) return true;
+                }
+
+                return false;
+            }
 
             public string Label(RelicId id) { return RelicCatalog.KeyOf(id); }
 
@@ -773,17 +807,84 @@ namespace RelicRun.Core.Combat
 
             public int MartyrCount { get; set; }
 
-            public int ItemCount { get { return 0; } }
+            /// <summary>
+            /// The foe's relics as SLOTS, rather than only as a tally.
+            /// </summary>
+            /// <remarks>
+            /// These read as an empty inventory, so a foe wore relics that nothing walking its
+            /// slots could see. Counting worked — <c>Effective</c> asks the stat block — which is
+            /// why a foe's Thorn Vest always returned damage; but everything that works per COPY
+            /// skipped it entirely, and per copy is how a socket reaches a relic.
+            ///
+            /// Backed by the relic list now. Sockets stay empty unless something puts one there
+            /// and nothing currently does, so on its own this changes no fight — which is exactly
+            /// right. It is a capability, not a balance change.
+            /// </remarks>
+            public int ItemCount
+            {
+                get
+                {
+                    return _engine._cur == null || _engine._cur.Relics == null
+                        ? 0
+                        : _engine._cur.Relics.Count;
+                }
+            }
 
-            public RelicId ItemAt(int slot) { return RelicId.None; }
+            public RelicId ItemAt(int slot)
+            {
+                if (_engine._cur == null || _engine._cur.Relics == null) return RelicId.None;
 
-            public SocketTrigger TriggerAt(int slot) { return SocketTrigger.None; }
+                return slot < 0 || slot >= _engine._cur.Relics.Count
+                    ? RelicId.None
+                    : _engine._cur.Relics[slot];
+            }
 
-            public SocketEmitter EmitterAt(int slot) { return SocketEmitter.None; }
+            public SocketTrigger TriggerAt(int slot)
+            {
+                SocketTrigger trigger;
 
-            public bool HasFiredThisBeat(int slot) { return true; }
+                return _engine._cur != null && _engine._cur.SocketTriggers != null &&
+                       _engine._cur.SocketTriggers.TryGetValue(slot, out trigger)
+                    ? trigger
+                    : SocketTrigger.None;
+            }
 
-            public void MarkFiredThisBeat(int slot) { }
+            public SocketEmitter EmitterAt(int slot)
+            {
+                SocketEmitter emitter;
+
+                return _engine._cur != null && _engine._cur.SocketEmitters != null &&
+                       _engine._cur.SocketEmitters.TryGetValue(slot, out emitter)
+                    ? emitter
+                    : SocketEmitter.None;
+            }
+
+            /// <summary>
+            /// Whether this foe's slot has already fired in this beat.
+            /// </summary>
+            /// <remarks>
+            /// This answered TRUE for every slot, which reads as caution and is the opposite: the
+            /// no-cause branch of <c>FireTrigger</c> skips anything that has already fired, so
+            /// claiming everything had was how a foe's relics were kept from firing once and for
+            /// all. The last of the four stubs, and the one that would have made the other three
+            /// pointless on its own.
+            ///
+            /// The array is grown to fit rather than allocated up front, because the foe changes
+            /// several times in a floor and each one carries a different number of relics.
+            /// </remarks>
+            public bool HasFiredThisBeat(int slot)
+            {
+                bool[] fired = _engine.FoeFired(ItemCount);
+
+                return slot < 0 || slot >= fired.Length || fired[slot];
+            }
+
+            public void MarkFiredThisBeat(int slot)
+            {
+                bool[] fired = _engine.FoeFired(ItemCount);
+
+                if (slot >= 0 && slot < fired.Length) fired[slot] = true;
+            }
         }
 
 
@@ -792,6 +893,7 @@ namespace RelicRun.Core.Combat
         void ICombatBus.BeginBeat(ICombatActor actor)
         {
             System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+            System.Array.Clear(_foeFiredThisBeat, 0, _foeFiredThisBeat.Length);
         }
 
         IChain ICombatBus.NewChain() { return NewChain(); }
@@ -935,6 +1037,8 @@ namespace RelicRun.Core.Combat
                 Snap(CombatEventType.Enter, 0, another: k > 0);
 
                 System.Array.Clear(_firedThisBeat, 0, _firedThisBeat.Length);
+                System.Array.Clear(_foeFiredThisBeat, 0, _foeFiredThisBeat.Length);
+
                 if (k == 0)
                 {
                     FireTrigger(SocketTrigger.Floor, 0, RelicId.None, RelicId.None, NewChain());
