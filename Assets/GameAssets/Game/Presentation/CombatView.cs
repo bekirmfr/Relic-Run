@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
 using RelicRun.Core.Presentation;
+using GameLift.Audio;
 using RelicRun.Game.Data;
 using TMPro;
 using UnityEngine;
@@ -69,6 +70,29 @@ namespace RelicRun.Game.Presentation
 
         [Header("Content")]
         [SerializeField] private GameContent _content;
+
+        /// <summary>
+        /// Whoever plays the noises, handed over rather than found or serialized.
+        /// </summary>
+        /// <remarks>
+        /// Not an <c>[Inject]</c> method, and that is a correction rather than a preference. This
+        /// project's scenes register their components in a <c>LifetimeScope</c> installer before
+        /// injection reaches them — the menu does exactly that — and the fight has no installer.
+        /// An attribute here would have looked like wiring and done nothing, which is the worst
+        /// of both: a screen with no sound and no error.
+        ///
+        /// Nor a serialized field. The audio service is a run-time thing, and a reference to one
+        /// in a prefab is a second way of getting one — which is how a screen ends up holding a
+        /// different service from the rest of the game and nobody notices until the mute button
+        /// only half works.
+        /// </remarks>
+        private IAudioService _audio;
+
+        /// <summary>Hands this screen the thing that makes noise.</summary>
+        public void Hear(IAudioService audio)
+        {
+            _audio = audio;
+        }
 
         private IReadOnlyList<CombatEvent> _events;
         private Pacing _pacing;
@@ -159,6 +183,8 @@ namespace RelicRun.Game.Presentation
             foreach (Flier flier in frame.Fliers) Throw(flier);
 
             if (frame.Line.Shown) Say(frame.Line);
+
+            Sound(frame.Sound);
 
             if (_tray != null) _tray.Show(shown);
 
@@ -344,6 +370,27 @@ namespace RelicRun.Game.Presentation
 
             if (fill.Ms == Gauge.KeepTheCadence) winding.Again();
             else winding.Over(fill.Ms);
+        }
+
+        /// <summary>
+        /// Makes whatever noise this event makes, if it makes one.
+        /// </summary>
+        /// <remarks>
+        /// Six of the twenty event kinds do. Which six is Core's answer and which CLIP is the
+        /// audio service's — this only carries a name between them, so the screen never holds a
+        /// filename and the service never holds an opinion about combat.
+        ///
+        /// Silence is an answer rather than a gap: most events name nothing, and asking for a
+        /// clip on all of them would be twenty lookups a fight for names that do not exist.
+        /// </remarks>
+        private void Sound(FightSound sound)
+        {
+            if (_audio == null) return;
+
+            string named = Blips.Named(sound);
+            if (named == null) return;
+
+            _audio.Play(named);
         }
 
         /// <summary>

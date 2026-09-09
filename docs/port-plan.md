@@ -374,7 +374,17 @@ is bound that the game will never ask for. The rule is `BindingAudit`, tested an
   `shatterOf`/`pileFrom` are not ported. The source reads a dying sprite's pixels and lets them
   fall as a pile — a lovely trick and a texture read per death for a fifth of a second. What
   survives is the fact of it: a killed body comes apart rather than simply stopping.
-- 8 SFX clips through `IAudioService`
+- **8 SFX clips through `IAudioService` (done)** — SYNTHESISED, not imported, because the source
+  ships no audio files: its sounds are an oscillator and a gain envelope, and the eight blips are
+  eight rows of arguments to a thirty-line function. `Blip` (Core) ports that function, so the
+  envelope maths is gated by `dotnet test` — a note that clicks or a slide that runs the wrong way
+  is one frame of sound and an obvious array. `Tools ▸ Relic Run ▸ Import Sounds` renders each to a
+  WAV and binds a `SoundData` beside it.
+  Both ramps are EXPONENTIAL, and the gain ends at 0.0001 rather than at nothing, which is the
+  source's workaround for a ramp that cannot reach zero — kept, because a linear fade sounds like
+  a note being turned down and an exponential one sounds like a note stopping.
+  Six of the twenty event kinds make a noise; the other two blips are the interface's, and the tap
+  is `SoundType.UI` so muting the fight leaves a delver their own buttons.
 
 - **`FightSceneBuilder` + `FightScene` + `FightHarness` (done)** —
   `Tools ▸ Relic Run ▸ Build Fight Scene` wires the fight into `GameScene.prefab`. **A scene here

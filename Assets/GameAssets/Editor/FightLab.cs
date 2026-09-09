@@ -95,6 +95,14 @@ namespace RelicRun.Editor
                 "Build Fight Scene assembles the screen and wires it up.",
                 "Build Fight Scene", FightSceneBuilder.Build);
 
+            bool sounds = AssetDatabase.LoadAssetAtPath<AudioClip>(
+                SoundImporter.Folder + "/hit.wav") != null;
+
+            Step(sounds, "The sounds are rendered",
+                "Eight blips, synthesised from the source's own numbers. Without them the fight " +
+                "plays silently — which is not an error anywhere, just quiet.",
+                "Import Sounds", SoundImporter.Import);
+
             bool opens = FightSceneBuilder.OpensOnTheFight();
 
             Step(opens, "Play opens on the fight",

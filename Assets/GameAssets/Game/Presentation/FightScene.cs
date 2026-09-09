@@ -1,6 +1,9 @@
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using GameLift.Audio;
 using GameLift.Scene;
+using VContainer;
+using VContainer.Unity;
 using UnityEngine;
 
 namespace RelicRun.Game.Presentation
@@ -34,6 +37,8 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
+            Hear();
+
             await _harness.Fight().AsTask();
         }
 
@@ -50,6 +55,46 @@ namespace RelicRun.Game.Presentation
             if (_harness != null) _harness.Abandon();
 
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Finds whoever makes the noises and hands them to the screen.
+        /// </summary>
+        /// <remarks>
+        /// Resolved here because this is the object the service instantiates, and its
+        /// <c>LifetimeScope</c> is parented to the application's — so the audio service
+        /// registered up there is reachable from down here without the fight needing an installer
+        /// of its own.
+        ///
+        /// Asked for rather than injected. Injection into a plain component only happens once a
+        /// scope has been told to register it, and the fight has no installer doing that, so an
+        /// attribute would have looked like wiring and done nothing at all.
+        ///
+        /// A fight with no sound is still a fight, so a missing service is said once and stepped
+        /// over. It is the sort of thing that goes missing in a build and should not take the
+        /// screen with it.
+        /// </remarks>
+        private void Hear()
+        {
+            if (_view == null) return;
+
+            var scope = GetComponent<LifetimeScope>();
+
+            if (scope == null || scope.Container == null)
+            {
+                Debug.LogWarning("no lifetime scope on the fight, so it plays silently", this);
+                return;
+            }
+
+            IAudioService audio;
+
+            if (!scope.Container.TryResolve(out audio))
+            {
+                Debug.LogWarning("nothing registered to play sounds; the fight will be silent", this);
+                return;
+            }
+
+            _view.Hear(audio);
         }
 
         /// <summary>The view this scene draws with, for whatever assembles a run around it.</summary>
