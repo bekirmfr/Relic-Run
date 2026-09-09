@@ -15,4 +15,4 @@ MonoBehaviour:
   SceneConfigs:
   - {fileID: 11400000, guid: b293f8062b5d827489f922ff13b18fe5, type: 2}
   - {fileID: 11400000, guid: 545fbbdfbea568444a87460fa852e615, type: 2}
-  DefaultSceneConfig: {fileID: 11400000, guid: 545fbbdfbea568444a87460fa852e615, type: 2}
+  DefaultSceneConfig: {fileID: 11400000, guid: b293f8062b5d827489f922ff13b18fe5, type: 2}
