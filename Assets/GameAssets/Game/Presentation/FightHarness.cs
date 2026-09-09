@@ -28,28 +28,17 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private CombatView _view;
         [SerializeField] private GameContent _content;
 
-        [Header("The fight")]
-        [Tooltip("Fixed, so the same fight can be watched twice and talked about.")]
-        [SerializeField] private uint _seed = 0x5E1F00D;
-
-        [Tooltip("Which floor of the first hall. Seven is the bazaar and has no fight.")]
-        [Range(1, 13)] [SerializeField] private int _floor = 1;
-
-        [Header("The delver")]
-        [SerializeField] private DelverSetup _delverSetup = new DelverSetup();
-
-        [Header("The opposition")]
-        [SerializeField] private FoeSetup _foeSetup = new FoeSetup();
-
-        [Header("Watching")]
-        [Tooltip("Skips the walk down the hall, which is three and a half seconds of scenery.")]
-        [SerializeField] private bool _skipIntro;
-
-        [Tooltip("How fast the fight is read out. The pacing decides the beat; this multiplies it.")]
-        [Range(1, 4)] [SerializeField] private int _speed = 1;
-
-        [Tooltip("What a delver who asked their system for less motion would see.")]
-        [SerializeField] private bool _reducedMotion;
+        /// <summary>
+        /// Which fight to show. An asset, so that editing it survives a rebuild.
+        /// </summary>
+        /// <remarks>
+        /// These used to be fields right here, which lasted until somebody edited them: this
+        /// component lives inside a generated hierarchy, and <c>Build Fight Scene</c> deletes the
+        /// whole thing and adds it back from scratch. Every setting typed into the inspector was
+        /// thrown away by the next rebuild, silently, with the harness then showing a fight
+        /// nobody had asked for.
+        /// </remarks>
+        [SerializeField] private FightSettings _fight;
 
         private CombatPlaybackController _showing;
         private bool _fighting;
@@ -83,6 +72,13 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
+            if (_fight == null)
+            {
+                Debug.LogError("no fight is set up — run Tools > Relic Run > Build Fight Scene, " +
+                               "which makes one and wires it", this);
+                return;
+            }
+
             if (_content.Presentation == null)
             {
                 // Everything else here has a sensible nothing to fall back on. The pacing does
@@ -97,18 +93,18 @@ namespace RelicRun.Game.Presentation
             try
             {
                 IReadOnlyList<CombatEvent> events = Resolve();
-                Debug.Log("seed " + _seed + ", floor " + _floor + ", " +
-                          _delverSetup.Shelf.Length + " relics vs " +
-                          (_foeSetup.Override ? "an authored pack" : "the floor's own pack") +
-                          ": " + events.Count + " events", this);
+                // The settings live in an asset now, so the log names the asset as well as the
+                // fight. Otherwise the first question about a strange fight — what was it? — has
+                // no answer visible on the object being watched.
+                Debug.Log(_fight.Describe() + ": " + events.Count + " events", _fight);
 
-                Pacing pacing = Pacing.For(events.Count, _reducedMotion, _speed,
+                Pacing pacing = Pacing.For(events.Count, _fight.ReducedMotion, _fight.Speed,
                     _content.Presentation.ToPacing());
 
                 _view.Begin(events, pacing, Reading(), Shelf.Of(_delver), false);
                 _showing = new CombatPlaybackController(_content.Presentation);
 
-                await _showing.Show(events, _view, _skipIntro);
+                await _showing.Show(events, _view, _fight.SkipIntro);
             }
             finally
             {
@@ -138,7 +134,7 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         private IReadOnlyList<CombatEvent> Resolve()
         {
-            HeroState hero = _delverSetup.Build(_floor);
+            HeroState hero = _fight.Delver.Build(_fight.Floor);
             _delver = hero;
 
             // One stream for both, which is why an authored pack changes the whole fight and not
@@ -146,10 +142,10 @@ namespace RelicRun.Game.Presentation
             // leaves every later roll reading a different part of the sequence. The same seed
             // then describes a different fight, which is fine until somebody compares the two and
             // concludes the engine moved.
-            var rng = new Mulberry32(_seed);
+            var rng = new Mulberry32(_fight.Seed);
 
-            List<EnemyState> pack = _foeSetup.Build(_floor, rng,
-                RunSetup.ForLevel(_delverSetup.Level).Dungeon);
+            List<EnemyState> pack = _fight.Foes.Build(_fight.Floor, rng,
+                RunSetup.ForLevel(_fight.Delver.Level).Dungeon);
 
             return new CombatEngine(CombatRules.Delve()).ResolveFloor(hero, pack, rng).Events;
         }

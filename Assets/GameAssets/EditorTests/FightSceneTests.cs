@@ -264,6 +264,47 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
+        /// What a person edits is not inside what the generator rebuilds.
+        /// </summary>
+        /// <remarks>
+        /// This is a regression, and the failure was silent in the worst way. The fight's settings
+        /// — seed, stats, shelf, opposition — began as fields on <see cref="FightHarness"/>, which
+        /// lives inside the <c>Fight</c> child that <c>Build Fight Scene</c> DELETES and adds back
+        /// from scratch. So everything typed into the inspector survived until the next rebuild
+        /// and then quietly reverted, and the harness went on showing a fight nobody had asked
+        /// for, with nothing anywhere to say a setting had been thrown away.
+        ///
+        /// The rule this asserts is the general one: a generator may wire a reference to authored
+        /// data and must never own it. Asked structurally rather than by running the builder,
+        /// because a test that rebuilt the scene to prove the point would be a test that rewrites
+        /// the project to check it is not rewritten.
+        /// </remarks>
+        [Test]
+        public void WhatAPersonEditsSurvivesARebuild()
+        {
+            var harness = Find<FightHarness>();
+
+            Assert.That(harness, Is.Not.Null);
+
+            var found = new SerializedObject(harness).FindProperty("_fight");
+
+            Assert.That(found, Is.Not.Null, "the harness holds no fight settings");
+            Assert.That(found.objectReferenceValue, Is.Not.Null,
+                "no fight is wired — rebuild with Tools > Relic Run > Build Fight Scene");
+
+            string path = AssetDatabase.GetAssetPath(found.objectReferenceValue);
+
+            Assert.That(path, Is.Not.Empty,
+                "the fight settings are not an asset at all, so they live and die with the scene");
+
+            Assert.That(path, Is.Not.EqualTo(FightSceneBuilder.ScenePath),
+                "the settings are inside the very prefab the builder rebuilds, so every edit to " +
+                "them is thrown away by the next rebuild");
+
+            Assert.That(path, Is.EqualTo(FightSceneBuilder.FightAsset));
+        }
+
+        /// <summary>
         /// Rebuilding replaces the fight and leaves the rest of the scene alone.
         /// </summary>
         /// <remarks>

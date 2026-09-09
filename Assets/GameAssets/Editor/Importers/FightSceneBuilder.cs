@@ -47,6 +47,20 @@ namespace RelicRun.Editor.Importers
         public const string SlotPrefab = "Assets/GameAssets/Game/Presentation/RelicSlot.prefab";
 
         /// <summary>
+        /// The fight the harness shows, which is AUTHORED and therefore never regenerated.
+        /// </summary>
+        /// <remarks>
+        /// Made once if it is missing and left alone forever after. It exists because these
+        /// settings used to be fields on the harness, and the harness lives inside the hierarchy
+        /// this builder deletes and rebuilds — so every value somebody typed was thrown away by
+        /// the next rebuild, quietly, leaving a fight nobody had asked for.
+        ///
+        /// The rule is the same one the scene config lives under: a generator may wire a
+        /// reference to authored data and must never write through it.
+        /// </remarks>
+        public const string FightAsset = "Assets/GameAssets/Content/Fight.asset";
+
+        /// <summary>
         /// A relic slot is a square, and this is its side in authored pixels.
         /// </summary>
         /// <remarks>
@@ -126,6 +140,30 @@ namespace RelicRun.Editor.Importers
             Debug.Log("wired the fight into " + ScenePath + " and registered it as " +
                       SceneKeys.GameScene + ". It is a scaffold: legible, and nothing more.",
                       AssetDatabase.LoadAssetAtPath<GameObject>(ScenePath));
+        }
+
+        /// <summary>
+        /// The fight settings, made if they are not there and left alone if they are.
+        /// </summary>
+        /// <remarks>
+        /// Never overwritten. That is the whole point of the asset, and it is the sort of rule a
+        /// generator breaks by being helpful — "refresh it to the defaults" would throw away the
+        /// interesting fight somebody had built to reproduce something.
+        /// </remarks>
+        private static FightSettings Fight()
+        {
+            var made = AssetDatabase.LoadAssetAtPath<FightSettings>(FightAsset);
+            if (made != null) return made;
+
+            ContentPaths.EnsureFolder(ContentPaths.Content);
+
+            made = ScriptableObject.CreateInstance<FightSettings>();
+            AssetDatabase.CreateAsset(made, FightAsset);
+
+            Debug.Log("made " + FightAsset + " — the fight the harness shows. Edit it there: it " +
+                      "is authored, so rebuilding the scene will not touch it.", made);
+
+            return made;
         }
 
         /// <summary>Where the toggle that decides what the app opens on lives.</summary>
@@ -408,7 +446,13 @@ namespace RelicRun.Editor.Importers
             });
 
             var harness = root.AddComponent<FightHarness>();
-            Wire(harness, new[] { Pair("_view", view), Pair("_content", content) });
+
+            Wire(harness, new[]
+            {
+                Pair("_view", view),
+                Pair("_content", content),
+                Pair("_fight", Fight()),
+            });
 
             // On the SCENE's root, not on the fight's. SceneService looks for one of these on the
             // object it instantiates, and it will not go hunting through the children for it.
