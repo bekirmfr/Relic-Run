@@ -48,6 +48,27 @@ namespace RelicRun.Core.Determinism
             return For(DateTimeOffset.UtcNow);
         }
 
+        /// <summary>
+        /// How long until the day rolls over and a new Daily exists.
+        /// </summary>
+        /// <remarks>
+        /// The next UTC midnight, which is the same instant for everybody — the whole point of
+        /// the Daily being a UTC date. A delver in Istanbul and one in Chicago watch the same
+        /// clock reach zero, and both get the new run at once.
+        ///
+        /// It lives here rather than beside the screen that shows it because it is the same
+        /// boundary <see cref="For(DateTimeOffset)"/> uses. Two places computing when the day
+        /// ends is two answers, and the wrong one is a countdown that reaches zero while the
+        /// seed is still yesterday's.
+        /// </remarks>
+        public static TimeSpan ResetsIn(DateTimeOffset instant)
+        {
+            DateTime utc = instant.UtcDateTime;
+            DateTime midnight = utc.Date.AddDays(1);
+
+            return midnight - utc;
+        }
+
         /// <summary>The label the run screen shows: the day inside the month's number.</summary>
         public static string Label(uint seed)
         {

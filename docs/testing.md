@@ -1227,6 +1227,40 @@ and a mutant that asked for "at least four" rather than "exactly six" survived �
 enough that any check catches it. The fixture now also feeds five, which is one field short of
 whole and is the only length that tells the two checks apart.
 
+## A check that removes the thing it was called to find
+
+The title screen's captions are string literals in the source's markup. They never pass through
+`t()`, so they are English in all eight locales — and, less obviously, they never pass through
+`Locale.Clean` either. The emoji stripping that takes the arrow off "← Back" does not reach them.
+Every character in them is really drawn.
+
+That makes them worth holding against what the pixel face can draw, and the first version of that
+gate looked right:
+
+```csharp
+Legibility read = Legibility.Of("en", "silkscreen", lines, pixel);
+Assert.That(read.Readable, Is.True, read.Report());
+```
+
+It passed. It also could not have failed, and a second assertion written beside it — that the
+star in `⭐ BEST 1420` was drawable — passed while being false. `Legibility.Needed` runs every
+line through `Locale.Clean` before counting code points, which is exactly right for translated
+strings and exactly wrong here: **the cleaner strips the characters a bitmap face cannot draw**,
+so the check removed the problem and then reported there was none.
+
+Neither shipped face covers U+2B50. `silkscreen` stops at U+2122 and `space-grotesk` at U+FB04.
+The source gets away with the star because a browser silently borrows a system emoji font; a
+baked bitmap face has nothing to borrow, so it would have arrived as an empty box above the PLAY
+button, on the first screen, in every language at once.
+
+Two changes came out of it. `Legibility.Of` and `Needed` take a `cleaned` flag, so a literal can
+be asked about as a literal. And the star is dropped — which is also what the source's own
+cleaner would have done to that line, had the line ever been asked.
+
+The test that keeps this honest is `TheRawGateWouldCatchAStar`: it asserts that the cleaned check
+passes on a starred string and the raw one fails. A gate that cannot fail is not a gate, and the
+only way to know which kind you have is to make it fail on purpose once.
+
 ## Two runners, two NUnits
 
 The same test file is compiled by `dotnet test` and by Unity's Test Runner, and they do not
@@ -1308,3 +1342,5 @@ node Tools/extract/validate.mjs
 | Phase 10b — the save, written and read | none — invariants | passing, every field reflected · 17 mutants |
 | Phase 10c — the save on disk | none — invariants | Test Runner only; the package's seam |
 | Phase 10d — where the buttons go | none — ported by hand | passing, 3 routing rules · 13 mutants |
+| Phase 10e — what a delver chose | `strings.json` | passing, 2 codecs · 21 mutants · 8 languages |
+| Phase 10f — the title screen | `fonts.json` | passing, 4 inputs · **captions English-only** · no star |

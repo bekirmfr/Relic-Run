@@ -61,6 +61,28 @@ namespace RelicRun.Core.Content
         /// </remarks>
         public static IReadOnlyList<int> Needed(IEnumerable<string> lines)
         {
+            return Needed(lines, true);
+        }
+
+        /// <summary>
+        /// Every code point a set of strings needs, ascending.
+        /// </summary>
+        /// <remarks>
+        /// The cleaning is not optional for translated strings and must not be applied to lines
+        /// that never go through the translator. The source writes some of its screens as string
+        /// literals — the whole of the title's captions among them — and a literal never passes
+        /// through <c>t()</c>, so it never gets cleaned and every character in it is really drawn.
+        ///
+        /// Asking about those with the cleaning on is worse than not asking: the cleaner strips
+        /// exactly the characters a bitmap face cannot draw, so the check removes the problem it
+        /// was called to find and then reports that there is none.
+        /// </remarks>
+        /// <param name="cleaned">
+        /// Whether these lines reach the screen through <see cref="Locale.Clean"/>. True for
+        /// anything the translator hands back; false for a literal.
+        /// </param>
+        public static IReadOnlyList<int> Needed(IEnumerable<string> lines, bool cleaned)
+        {
             var points = new List<int>();
             var seen = new HashSet<int>();
 
@@ -68,7 +90,7 @@ namespace RelicRun.Core.Content
 
             foreach (string line in lines)
             {
-                string shown = Locale.Clean(line);
+                string shown = cleaned ? Locale.Clean(line) : line ?? string.Empty;
 
                 for (int i = 0; i < shown.Length; i++)
                 {
@@ -90,13 +112,20 @@ namespace RelicRun.Core.Content
         public static Legibility Of(string language, string face, IEnumerable<string> lines,
             IEnumerable<int> covers)
         {
+            return Of(language, face, lines, covers, true);
+        }
+
+        /// <summary>What one face makes of one set of lines, cleaned or literal.</summary>
+        public static Legibility Of(string language, string face, IEnumerable<string> lines,
+            IEnumerable<int> covers, bool cleaned)
+        {
             var glyphs = new HashSet<int>();
             if (covers != null)
             {
                 foreach (int point in covers) glyphs.Add(point);
             }
 
-            IReadOnlyList<int> needed = Needed(lines);
+            IReadOnlyList<int> needed = Needed(lines, cleaned);
             var missing = new List<int>();
 
             for (int i = 0; i < needed.Count; i++)

@@ -1,0 +1,125 @@
+{
+  "name": "the first screen a delver sees",
+  "mutants": [
+    {
+      "name": "the clock counts to the delver's own midnight, not the world's",
+      "file": "Assets/GameAssets/Core/Determinism/DailySeed.cs",
+      "find": "            DateTime utc = instant.UtcDateTime;\n            DateTime midnight = utc.Date.AddDays(1);",
+      "replace": "            DateTime utc = instant.DateTime;\n            DateTime midnight = utc.Date.AddDays(1);"
+    },
+    {
+      "name": "the clock counts to the midnight that has already gone",
+      "file": "Assets/GameAssets/Core/Determinism/DailySeed.cs",
+      "find": "            DateTime midnight = utc.Date.AddDays(1);",
+      "replace": "            DateTime midnight = utc.Date;"
+    },
+    {
+      "name": "a run-out clock shows how far past the end it is",
+      "file": "Assets/GameAssets/Core/Presentation/Countdown.cs",
+      "find": "            if (left <= TimeSpan.Zero) return \"00:00:00\";",
+      "replace": "            if (left < TimeSpan.FromDays(-999)) return \"00:00:00\";"
+    },
+    {
+      "name": "minutes are the whole count rather than the part inside an hour",
+      "file": "Assets/GameAssets/Core/Presentation/Countdown.cs",
+      "find": "            long minutes = total / 60 % 60;",
+      "replace": "            long minutes = total / 60;"
+    },
+    {
+      "name": "seconds are the whole count rather than the part inside a minute",
+      "file": "Assets/GameAssets/Core/Presentation/Countdown.cs",
+      "find": "            long seconds = total % 60;",
+      "replace": "            long seconds = total;"
+    },
+    {
+      "name": "hours wrap at a day rather than running past it",
+      "file": "Assets/GameAssets/Core/Presentation/Countdown.cs",
+      "find": "            long hours = total / 3600;",
+      "replace": "            long hours = total / 3600 % 24;"
+    },
+    {
+      "name": "a single digit is not padded",
+      "file": "Assets/GameAssets/Core/Presentation/Countdown.cs",
+      "find": "            return digits.Length >= 2 ? digits : \"0\" + digits;",
+      "replace": "            return digits;"
+    },
+    {
+      "name": "not knowing yet looks the same as having run out",
+      "file": "Assets/GameAssets/Core/Presentation/Countdown.cs",
+      "find": "        public const string Unknown = \"--:--:--\";",
+      "replace": "        public const string Unknown = \"00:00:00\";"
+    },
+    {
+      "name": "the daily banner shows the best of every day at once",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                        ? \"BEST \" + Number(save.DailyBestFor(seed)) + \" · \" +",
+      "replace": "                        ? \"BEST \" + Number(save.Best) + \" · \" +"
+    },
+    {
+      "name": "a daily being played reads as one never started",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                          (dailyRunning ? \"IN PROGRESS\" : dailyDone ? \"DONE TODAY\" : \"1 TRY\")",
+      "replace": "                          (dailyDone ? \"DONE TODAY\" : \"1 TRY\")"
+    },
+    {
+      "name": "the daily banner opens at the level versus does",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "            bool dailyOpen = level >= Career.DailyOpensAt;",
+      "replace": "            bool dailyOpen = level >= Career.VersusOpensAt;"
+    },
+    {
+      "name": "the versus banner opens at the level the daily does",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "            bool versusOpen = level >= Career.VersusOpensAt;",
+      "replace": "            bool versusOpen = level >= Career.DailyOpensAt;"
+    },
+    {
+      "name": "the caption promises a level that opens nothing",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                        : \"REACH DELVER LV \" + Number(Career.DailyOpensAt) + \" IN DUNGEONS\",",
+      "replace": "                        : \"REACH DELVER LV 4 IN DUNGEONS\","
+    },
+    {
+      "name": "the versus caption promises a level that opens nothing",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                        : \"REACH DELVER LV \" + Number(Career.VersusOpensAt),",
+      "replace": "                        : \"REACH DELVER LV 6\","
+    },
+    {
+      "name": "the kicker offers the arena before the daily that expires",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "            if (!dailyDone) return \"TODAY'S DELVE · ONE TRY\";",
+      "replace": "            if (level >= Career.VersusOpensAt) return \"VERSUS · 8 DELVERS · 3 LIVES\";"
+    },
+    {
+      "name": "the subtitle counts down a clock it is not showing",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "            if (!dailyDone) return \"Seed \" + seed + \" · resets in \" + left;",
+      "replace": "            if (!dailyDone) return \"Seed \" + seed + \" · resets in \" + Countdown.Unknown;"
+    },
+    {
+      "name": "an unnamed delver is shown a null",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                Name = prefs != null && prefs.Name != null ? prefs.Name : string.Empty,",
+      "replace": "                Name = prefs != null ? prefs.Name : string.Empty,"
+    },
+    {
+      "name": "nobody is ever at the top level",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                Capped = level >= Progression.MaxLevel,",
+      "replace": "                Capped = false,"
+    },
+    {
+      "name": "the star comes back, and with it an empty box",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                        ? \"BEST \" + Number(save.DailyBestFor(seed)) + \" · \" +",
+      "replace": "                        ? \"\\u2B50 BEST \" + Number(save.DailyBestFor(seed)) + \" · \" +"
+    },
+    {
+      "name": "the daily banner counts a clock of its own",
+      "file": "Assets/GameAssets/Core/Presentation/TitleCard.cs",
+      "find": "                    Left = dailyOpen ? \"TODAY · \" + left : \"LOCKED\",",
+      "replace": "                    Left = dailyOpen ? \"TODAY · \" + Countdown.Unknown : \"LOCKED\","
+    }
+  ]
+}
