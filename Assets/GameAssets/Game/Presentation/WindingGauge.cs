@@ -52,6 +52,19 @@ namespace RelicRun.Game.Presentation
             _started = Time.unscaledTime;
         }
 
+        /// <summary>
+        /// Forgets whatever it was winding, so the bar can be emptied and stay empty.
+        /// </summary>
+        /// <remarks>
+        /// Without this, setting fillAmount from outside lasts exactly one frame: Update is still
+        /// holding a duration and draws straight over it. Which is the correct behaviour during a
+        /// fight and the wrong one between two.
+        /// </remarks>
+        public void Stop()
+        {
+            _over = 0f;
+        }
+
         private void Awake() { _bar = GetComponent<Image>(); }
 
         private void Update()

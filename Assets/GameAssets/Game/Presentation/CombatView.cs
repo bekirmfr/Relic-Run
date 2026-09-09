@@ -35,6 +35,12 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Image _enemyHealth;
         [SerializeField] private Image _enemyGauge;
         [SerializeField] private TMP_Text _enemyName;
+
+        [Tooltip("HP, ATK, DEF, SPD, LCK. The delver's are on their own panel; these were nowhere.")]
+        [SerializeField] private TMP_Text _enemyStats;
+
+        [Tooltip("What the foe is carrying. Icons only — the gauges would be the delver's.")]
+        [SerializeField] private RelicTray _enemyRelics;
         [SerializeField] private Image _enemyArt;
         [SerializeField] private RectTransform _enemyFliers;
 
@@ -50,7 +56,8 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private LogLine _line;
 
         [Tooltip("How many lines the log keeps. The source keeps 240.")]
-        [SerializeField] private int _logLength = 240;
+        [Tooltip("The source keeps sixty. Older lines are gone rather than merely clipped.")]
+        [SerializeField] private int _logLength = 60;
 
         [Header("Content")]
         [SerializeField] private GameContent _content;
@@ -60,6 +67,14 @@ namespace RelicRun.Game.Presentation
         private CombatLog _reading;
         private int _heroMax;
         private readonly List<LogLine> _lines = new List<LogLine>();
+
+        /// <summary>Which foe is currently drawn, so a redraw only happens when one arrives.</summary>
+        /// <remarks>
+        /// Minus one rather than zero: zero is a real species, and a first foe of species zero
+        /// would otherwise never be drawn at all.
+        /// </remarks>
+        private int _foeDrawn = -1;
+        private int _foeVariant = -1;
 
         /// <summary>Whether the delver has stopped to look at something.</summary>
         public bool Paused { get; set; }
@@ -94,6 +109,26 @@ namespace RelicRun.Game.Presentation
 
             foreach (LogLine line in _lines) Destroy(line.gameObject);
             _lines.Clear();
+
+            _foeDrawn = -1;
+            _foeVariant = -1;
+
+            // Emptied, because a Filled image has to be authored full or there is nothing to see
+            // while building the prefab. Left alone, both gauges would sit at full until the
+            // first event moved them — and a full attack gauge means "about to strike", so the
+            // fight would open by claiming both sides were mid-swing.
+            Empty(_heroGauge);
+            Empty(_enemyGauge);
+        }
+
+        private static void Empty(Image gauge)
+        {
+            if (gauge == null) return;
+
+            var winding = gauge.GetComponent<WindingGauge>();
+            if (winding != null) winding.Stop();
+
+            gauge.fillAmount = 0f;
         }
 
         /// <summary>Draws one event.</summary>
@@ -138,12 +173,59 @@ namespace RelicRun.Game.Presentation
             if (_heroHealthText != null) _heroHealthText.text = state.HeroHp.ToString();
             if (_gold != null) _gold.text = state.Gold.ToString();
 
+            Stats(state);
             Foe(state);
         }
 
+        /// <summary>
+        /// What the foe is, in numbers.
+        /// </summary>
+        /// <remarks>
+        /// The delver's stats are on their own panel and the foe's were nowhere at all, so the
+        /// only thing on screen about the thing hitting you was a red bar and a name. Armour is
+        /// labelled DEF because that is what the source calls it where a delver reads it, and a
+        /// screen that used the engine's word for it would be the only place in the game that
+        /// did.
+        ///
+        /// One text rather than ten, coloured with rich text. The colours are the source's and
+        /// they live here, like every other colour in this layer — a view-model handing out hex
+        /// values would be choosing the palette from inside Core.
+        /// </remarks>
+        private void Stats(CombatSnapshot state)
+        {
+            if (_enemyStats == null) return;
+
+            _enemyStats.text =
+                Stat("HP", state.EnemyHp + "/" + state.EnemyMaxHp, "C4593C") +
+                Stat("ATK", state.EnemyAtk.ToString(), "E7E0D2") +
+                Stat("DEF", state.EnemyArmor.ToString(), "AEB6C0") +
+                Stat("SPD", state.EnemySpd.ToString(), "7C9A6A") +
+                Stat("LCK", state.EnemyLck.ToString(), "E3B341");
+        }
+
+        private static string Stat(string name, string value, string colour)
+        {
+            return "<color=#8B8172>" + name + "</color> <color=#" + colour + ">" + value +
+                   "</color>  ";
+        }
+
+        /// <summary>
+        /// Draws whoever is standing there, and only when it changes.
+        /// </summary>
+        /// <remarks>
+        /// Guarded because this used to run on every event: a sprite lookup and, now, a relic row
+        /// that would be torn down and rebuilt two hundred times a fight — losing any flash it
+        /// was in the middle of and doing it to draw the same thing again.
+        /// </remarks>
         private void Foe(CombatSnapshot state)
         {
             if (_content == null) return;
+            if (state.EnemyIndex == _foeDrawn && state.EnemyVariant == _foeVariant) return;
+
+            _foeDrawn = state.EnemyIndex;
+            _foeVariant = state.EnemyVariant;
+
+            Carrying(state);
 
             if (_enemyArt != null && _content.Enemies != null)
             {
@@ -153,6 +235,34 @@ namespace RelicRun.Game.Presentation
             }
 
             if (_enemyName != null) _enemyName.text = Named(state.EnemyIndex);
+        }
+
+        /// <summary>
+        /// The foe's relics, as icons and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// No gauges, deliberately. A relic meter is built from the counters in the snapshot, and
+        /// those counters are the DELVER's — how many times they have struck, been hit, taken
+        /// gold. Drawing them under a foe's relic would be showing the delver's progress on
+        /// somebody else's equipment, which is worse than showing nothing: it would look like
+        /// information.
+        ///
+        /// A foe carries relics, not copies with sockets: nothing bolts a trigger to a bat. So
+        /// the shelf is built plainly, and because the tray blanks every gauge when it binds, a
+        /// tray that is begun and never shown is exactly the row of icons this wants.
+        /// </remarks>
+        private void Carrying(CombatSnapshot state)
+        {
+            if (_enemyRelics == null) return;
+
+            var copies = new List<RelicCopy>();
+
+            if (state.EnemyRelics != null)
+            {
+                foreach (RelicId relic in state.EnemyRelics) copies.Add(new RelicCopy(relic));
+            }
+
+            _enemyRelics.Begin(new Shelf(copies), false);
         }
 
         private string Named(int species)

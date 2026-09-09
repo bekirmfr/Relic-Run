@@ -422,6 +422,11 @@ namespace RelicRun.Editor.Importers
                 new Vector2(0f, 60f));
             GameObject foeGauge = Bar(foe, "Gauge", new Color(0.75f, 0.60f, 0.25f),
                 new Vector2(0f, 42f), 8f);
+            // Right of the art and under the bars it describes. The sprite sits on the left of
+            // this panel, so a left-aligned stat line would be printed straight through it.
+            GameObject foeStats = Say(foe, face, "", Text(8), TextAlignmentOptions.Right,
+                new Vector2(0f, 22f), new Vector2(0f, 16f), true);
+            RelicTray foeRelics = Carried(foe, content, slot);
             GameObject foeFliers = Anchor(foe, "Fliers", new Vector2(70f, 70f));
 
             GameObject delver = Panel(canvas, "Delver", new Vector2(0f, 0f), new Vector2(1f, 0f),
@@ -452,6 +457,8 @@ namespace RelicRun.Editor.Importers
                 Pair("_enemyHealth", foeHealth.GetComponent<Image>()),
                 Pair("_enemyGauge", foeGauge.GetComponent<Image>()),
                 Pair("_enemyName", foeName.GetComponent<TMP_Text>()),
+                Pair("_enemyStats", foeStats.GetComponent<TMP_Text>()),
+                Pair("_enemyRelics", foeRelics),
                 Pair("_enemyArt", art.GetComponent<Image>()),
                 Pair("_enemyFliers", (RectTransform)foeFliers.transform),
                 Pair("_gold", gold.GetComponent<TMP_Text>()),
@@ -626,18 +633,24 @@ namespace RelicRun.Editor.Importers
             return bar;
         }
 
+        /// <param name="stretch">
+        /// Whether the box takes its width from the panel rather than from <paramref name="box"/>.
+        /// Right-aligned text needs it: a fixed width right-aligns against an edge that is not
+        /// the panel's, so the text drifts as the canvas changes size — and the canvas changes
+        /// size on every device.
+        /// </param>
         private static GameObject Say(GameObject parent, TMP_FontAsset face, string what,
-            int size, TextAlignmentOptions how, Vector2 at, Vector2 box)
+            int size, TextAlignmentOptions how, Vector2 at, Vector2 box, bool stretch = false)
         {
             var said = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             var rect = (RectTransform)said.transform;
 
             rect.SetParent(parent.transform, false);
-            rect.anchorMin = new Vector2(0f, 0.5f);
-            rect.anchorMax = new Vector2(0f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.sizeDelta = box;
-            rect.anchoredPosition = at;
+            rect.anchorMin = new Vector2(stretch ? 0f : 0f, 0.5f);
+            rect.anchorMax = new Vector2(stretch ? 1f : 0f, 0.5f);
+            rect.pivot = new Vector2(stretch ? 0.5f : 0f, 0.5f);
+            rect.sizeDelta = stretch ? new Vector2(0f, box.y) : box;
+            rect.anchoredPosition = stretch ? new Vector2(0f, at.y) : at;
 
             var text = said.GetComponent<TextMeshProUGUI>();
             text.text = what;
@@ -685,7 +698,27 @@ namespace RelicRun.Editor.Importers
             GameObject panel = Panel(parent, "Log", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
                 new Vector2(0f, -40f), new Vector2(-40f, 310f));
 
-            var group = panel.AddComponent<VerticalLayoutGroup>();
+            // The panel CLIPS and a child inside it grows. This is the whole fix for a log that
+            // squashed: a VerticalLayoutGroup given more children than fit does not overflow, it
+            // divides the space it has — so at sixty lines in three hundred units every line was
+            // allotted five, and they drew through one another.
+            //
+            // So the group moves to a child that sizes itself to its content and is pinned to the
+            // BOTTOM. New lines push the whole column up past the top edge, where the mask cuts
+            // them off, which is what a combat log is meant to look like.
+            panel.AddComponent<RectMask2D>();
+
+            var lines = new GameObject("Lines", typeof(RectTransform));
+            var rect = (RectTransform)lines.transform;
+
+            rect.SetParent(panel.transform, false);
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = Vector2.zero;
+
+            var group = lines.AddComponent<VerticalLayoutGroup>();
             group.childAlignment = TextAnchor.LowerLeft;
             group.childForceExpandHeight = false;
             group.childForceExpandWidth = true;
@@ -693,7 +726,11 @@ namespace RelicRun.Editor.Importers
             group.childControlWidth = true;
             group.spacing = 2f;
 
-            return panel;
+            var fitter = lines.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            return lines;
         }
 
         /// <summary>
@@ -717,6 +754,47 @@ namespace RelicRun.Editor.Importers
 
             var row = panel.AddComponent<HorizontalLayoutGroup>();
             row.childAlignment = TextAnchor.LowerLeft;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childControlWidth = false;
+            row.childControlHeight = false;
+            row.spacing = 4f;
+
+            var tray = panel.AddComponent<RelicTray>();
+
+            Wire(tray, new[]
+            {
+                Pair("_row", (RectTransform)panel.transform),
+                Pair("_slot", slot),
+                Pair("_content", content),
+            });
+
+            return tray;
+        }
+
+        /// <summary>
+        /// What the foe is carrying, along the bottom of its panel.
+        /// </summary>
+        /// <remarks>
+        /// The same slot prefab the delver's shelf uses, and no meters — a foe's relic has no
+        /// cadence to show, because every counter in the snapshot belongs to the delver. The tray
+        /// blanks its gauges when it binds, so one that is begun and never shown is a row of
+        /// icons, which is exactly what this wants.
+        ///
+        /// Right-aligned, unlike the delver's. It is the source's arrangement and it reads: the
+        /// two shelves grow away from each other rather than both creeping rightward from the
+        /// same edge, so at a glance it is obvious which belongs to whom.
+        /// </remarks>
+        private static RelicTray Carried(GameObject parent, GameContent content, RelicSlot slot)
+        {
+            // Inside the panel near its foot, not below it: the foe's panel ends where the empty
+            // middle of the screen begins, and a row hung off its bottom edge would be floating
+            // in that gap rather than belonging to the foe.
+            GameObject panel = Panel(parent, "Carried", new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 25f), new Vector2(0f, SlotSide));
+
+            var row = panel.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.LowerRight;
             row.childForceExpandWidth = false;
             row.childForceExpandHeight = false;
             row.childControlWidth = false;

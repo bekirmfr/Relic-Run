@@ -227,6 +227,87 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
+        /// The log clips rather than squashing what it cannot fit.
+        /// </summary>
+        /// <remarks>
+        /// A <c>VerticalLayoutGroup</c> handed more children than fit does not overflow — it
+        /// divides the space it has. So sixty lines in three hundred units were allotted five
+        /// each and drew through one another, and the log became an unreadable smear exactly when
+        /// there was most to read.
+        ///
+        /// The fix has three parts and all three are needed, which is why all three are asked
+        /// for. The panel masks, so anything past its edge is cut off. The lines live in a child
+        /// that sizes ITSELF to its content, so the column is as tall as it needs to be rather
+        /// than as tall as it is allowed. And that child is pinned to the BOTTOM, so it grows
+        /// upward out of view and the newest line stays where the eye is.
+        /// </remarks>
+        [Test]
+        public void TheLogClipsRatherThanSquashing()
+        {
+            RectTransform panel = Named("Log");
+
+            Assert.That(panel, Is.Not.Null, "no log panel");
+            Assert.That(panel.GetComponent<UnityEngine.UI.RectMask2D>(), Is.Not.Null,
+                "the log does not clip, so long fights overflow it instead of scrolling");
+
+            Assert.That(panel.GetComponent<UnityEngine.UI.VerticalLayoutGroup>(), Is.Null,
+                "the layout group is on the clipping panel, so it will squash to fit rather " +
+                "than overflow and be cut off");
+
+            RectTransform lines = Named("Lines");
+
+            Assert.That(lines, Is.Not.Null, "nothing inside the log holds the lines");
+            Assert.That(lines.parent, Is.EqualTo(panel), "the lines are not inside the mask");
+
+            var group = lines.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+            Assert.That(group, Is.Not.Null);
+
+            var fitter = lines.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+            Assert.That(fitter, Is.Not.Null, "the column cannot grow, so it will squash");
+            Assert.That(fitter.verticalFit,
+                Is.EqualTo(UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize));
+
+            Assert.That(lines.pivot.y, Is.EqualTo(0f),
+                "the column grows from the wrong end, so old lines stay and new ones are cut off");
+            Assert.That(lines.anchorMin.y, Is.EqualTo(0f));
+            Assert.That(lines.anchorMax.y, Is.EqualTo(0f));
+        }
+
+        /// <summary>The foe says what it is, and what it is carrying.</summary>
+        /// <remarks>
+        /// A red bar and a name were all there was. How hard it hits, how fast it moves and what
+        /// it is wearing were all invisible — and the relics are the half that changes what the
+        /// fight MEANS, since a foe with Thorn Vest punishes a delver for the thing they are
+        /// otherwise supposed to do.
+        /// </remarks>
+        [Test]
+        public void TheFoeShowsItsNumbersAndItsRelics()
+        {
+            var view = Find<CombatView>();
+            var found = new SerializedObject(view);
+
+            Assert.That(found.FindProperty("_enemyStats").objectReferenceValue, Is.Not.Null,
+                "nothing shows the foe's stats");
+            Assert.That(found.FindProperty("_enemyRelics").objectReferenceValue, Is.Not.Null,
+                "nothing shows what the foe is carrying");
+
+            var trays = _scene.GetComponentsInChildren<RelicTray>(true);
+
+            Assert.That(trays.Length, Is.EqualTo(2),
+                "one shelf for the delver and one for the foe, and found " + trays.Length);
+        }
+
+        private RectTransform Named(string name)
+        {
+            foreach (RectTransform each in _scene.GetComponentsInChildren<RectTransform>(true))
+            {
+                if (each.name == name) return each;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// The three stacked panels share one margin, so they share one left edge.
         /// </summary>
         /// <remarks>
@@ -247,12 +328,7 @@ namespace RelicRun.Tests.Editor
         {
             foreach (string name in new[] { "Foe", "Delver", "Log" })
             {
-                RectTransform panel = null;
-
-                foreach (RectTransform each in _scene.GetComponentsInChildren<RectTransform>(true))
-                {
-                    if (each.name == name) panel = each;
-                }
+                RectTransform panel = Named(name);
 
                 Assert.That(panel, Is.Not.Null, "no " + name + " panel in the built fight");
 
