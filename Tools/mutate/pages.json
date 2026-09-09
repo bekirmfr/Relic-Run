@@ -1,0 +1,83 @@
+{
+  "name": "where the buttons go",
+  "mutants": [
+    {
+      "name": "the daily is offered before the level that opens it",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (level < Career.DailyOpensAt) return dungeons;",
+      "replace": "            if (level < 1) return dungeons;"
+    },
+    {
+      "name": "the daily opens one level late",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (level < Career.DailyOpensAt) return dungeons;",
+      "replace": "            if (level <= Career.DailyOpensAt) return dungeons;"
+    },
+    {
+      "name": "today's daily can be started again once it is done",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (!dailyDone) return new Play { Goes = Page.Run, StartsTheDaily = true };",
+      "replace": "            return new Play { Goes = Page.Run, StartsTheDaily = true };"
+    },
+    {
+      "name": "the arena comes ahead of the daily that expires today",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (!dailyDone) return new Play { Goes = Page.Run, StartsTheDaily = true };\n\n            return level >= Career.VersusOpensAt",
+      "replace": "            if (level >= Career.VersusOpensAt) return new Play { Goes = Page.Staging };\n\n            return !dailyDone"
+    },
+    {
+      "name": "the arena is offered to a delver who has not unlocked it",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            return level >= Career.VersusOpensAt",
+      "replace": "            return level >= Career.DailyOpensAt"
+    },
+    {
+      "name": "the run screen is routed to without saying which run",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (!dailyDone) return new Play { Goes = Page.Run, StartsTheDaily = true };",
+      "replace": "            if (!dailyDone) return new Play { Goes = Page.Run, StartsTheDaily = false };"
+    },
+    {
+      "name": "a delver with no save is sent to the arena",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (save == null) return dungeons;",
+      "replace": "            if (save == null) return new Play { Goes = Page.Staging };"
+    },
+    {
+      "name": "experience is never shown on the way home",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (from == Page.Over && xpGained > 0 && !xpAlreadyShown) return Page.Xp;",
+      "replace": "            return Page.Title;"
+    },
+    {
+      "name": "experience is shown again every time home is pressed",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (from == Page.Over && xpGained > 0 && !xpAlreadyShown) return Page.Xp;",
+      "replace": "            if (from == Page.Over && xpGained > 0) return Page.Xp;"
+    },
+    {
+      "name": "a run that earned nothing still stops at the experience screen",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (from == Page.Over && xpGained > 0 && !xpAlreadyShown) return Page.Xp;",
+      "replace": "            if (from == Page.Over && !xpAlreadyShown) return Page.Xp;"
+    },
+    {
+      "name": "home from any screen detours through the experience screen",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            if (from == Page.Over && xpGained > 0 && !xpAlreadyShown) return Page.Xp;",
+      "replace": "            if (xpGained > 0 && !xpAlreadyShown) return Page.Xp;"
+    },
+    {
+      "name": "the board always closes to the title",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            return openedFrom == Page.Over ? Page.Over : Page.Title;",
+      "replace": "            return Page.Title;"
+    },
+    {
+      "name": "the board closes back to wherever it was opened from",
+      "file": "Assets/GameAssets/Core/Presentation/Pages.cs",
+      "find": "            return openedFrom == Page.Over ? Page.Over : Page.Title;",
+      "replace": "            return openedFrom;"
+    }
+  ]
+}

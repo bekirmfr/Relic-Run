@@ -62,12 +62,6 @@
       "replace": "            if (prefs.VersusHall < 0) prefs.VersusHall = 1;"
     },
     {
-      "name": "an unreadable hall number becomes a zero rather than the default",
-      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
-      "find": "                out number) ? number : fallback;",
-      "replace": "                out number) ? number : 0;"
-    },
-    {
       "name": "a delver who never chose is treated as having chosen nothing",
       "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
       "find": "            get { return Name == null; }",
@@ -126,6 +120,12 @@
       "file": "Assets/GameAssets/Core/Content/Languages.cs",
       "find": "            if (shipped == null || shipped.Count == 0) return Fallback;",
       "replace": "            if (shipped == null || shipped.Count == 0) return null;"
+    },
+    {
+      "name": "an unreadable hall number is left as whatever parsed into it",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "                out number) ? number : 0;",
+      "replace": "                out number) ? number : 1;"
     }
   ]
 }

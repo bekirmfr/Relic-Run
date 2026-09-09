@@ -118,8 +118,8 @@ namespace RelicRun.Core.Meta
                     case "lang": prefs.Language = Lines.Plain(record.Value); break;
                     case "mute": prefs.Muted = record.Value == "1"; break;
                     case "supporter": prefs.Supporter = record.Value == "1"; break;
-                    case "tier": prefs.Tier = Whole(record.Value, prefs.Tier); break;
-                    case "vsHall": prefs.VersusHall = Whole(record.Value, prefs.VersusHall); break;
+                    case "tier": prefs.Tier = Whole(record.Value); break;
+                    case "vsHall": prefs.VersusHall = Whole(record.Value); break;
                 }
             }
 
@@ -135,18 +135,25 @@ namespace RelicRun.Core.Meta
             return prefs;
         }
 
-        /// <summary>A number, or what was already there.</summary>
+        /// <summary>A number, or nothing.</summary>
         /// <remarks>
         /// Unlike the save, a torn setting is not counted. Nothing here is earned, so the honest
         /// answer to an unreadable one is the default and no fuss — reporting damage over a
         /// remembered hall number would train a delver to ignore the message that matters.
+        ///
+        /// It used to take a fallback to return instead of zero, and that fallback was
+        /// unobservable: every number this reads is clamped below, and the clamp already lands on
+        /// the same value. Mutation testing found it — the mutant that returned zero survived
+        /// everything, because it could not be told apart. Two mechanisms guaranteeing one rule
+        /// is one mechanism and one decoration, and the decoration is the one that gets trusted
+        /// by mistake.
         /// </remarks>
-        private static int Whole(string value, int fallback)
+        private static int Whole(string value)
         {
             int number;
 
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture,
-                out number) ? number : fallback;
+                out number) ? number : 0;
         }
     }
 }

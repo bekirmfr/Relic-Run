@@ -144,17 +144,80 @@ namespace RelicRun.Tests
             }
         }
 
-        /// <summary>Neither remembered hall can be below the first.</summary>
+        /// <summary>
+        /// Neither remembered hall can be below the first.
+        /// </summary>
+        /// <remarks>
+        /// Both fields asked at BOTH bad values, which is not padding: a fixture that fed one of
+        /// them a negative and the other a zero let a mutant weaken the arena's floor from "below
+        /// one" to "below zero" and live, because the negative it was fed was caught either way.
+        /// Zero is the value that tells the two guards apart, and zero is also the one an
+        /// unreadable line actually leaves behind.
+        /// </remarks>
         [Test]
         public void ARememberedHallIsNeverBelowTheFirst()
         {
-            Preferences prefs = PreferenceCodec.Read("tier 0\nvsHall -2\n");
+            foreach (string torn in new[] { "0", "-2", "notanumber", "" })
+            {
+                Preferences prefs = PreferenceCodec.Read(
+                    "tier " + torn + "\nvsHall " + torn + "\n");
 
-            Assert.That(prefs.Tier, Is.EqualTo(1));
-            Assert.That(prefs.VersusHall, Is.EqualTo(1));
+                Assert.That(prefs.Tier, Is.EqualTo(1), "tier from [" + torn + "]");
+                Assert.That(prefs.VersusHall, Is.EqualTo(1), "arena hall from [" + torn + "]");
+            }
 
-            Assert.That(PreferenceCodec.Read("tier notanumber\n").Tier, Is.EqualTo(1),
-                "an unreadable one is the default, not a zero");
+            Preferences kept = PreferenceCodec.Read("tier 6\nvsHall 4\n");
+
+            Assert.That(kept.Tier, Is.EqualTo(6), "and a hall somebody earned is kept");
+            Assert.That(kept.VersusHall, Is.EqualTo(4));
+        }
+
+        /// <summary>
+        /// A language nobody chose comes back as nobody having chosen.
+        /// </summary>
+        /// <remarks>
+        /// The same distinction the name makes, and it survives the trip for the same reason: an
+        /// unset value is ABSENT from the file rather than written empty. A written empty line
+        /// turns "never chose" into "chose nothing", and the two are different questions even
+        /// when they happen to lead to the same answer today.
+        /// </remarks>
+        [Test]
+        public void ALanguageNobodyChoseStaysUnchosen()
+        {
+            Preferences never = PreferenceCodec.Read(PreferenceCodec.Write(new Preferences()));
+
+            Assert.That(never.Language, Is.Null);
+
+            Assert.That(PreferenceCodec.Write(new Preferences()), Does.Not.Contain("lang"),
+                "an unset language should not be in the file at all");
+
+            Preferences chose = PreferenceCodec.Read(
+                PreferenceCodec.Write(new Preferences { Language = "ja" }));
+
+            Assert.That(chose.Language, Is.EqualTo("ja"));
+        }
+
+        /// <summary>
+        /// A setting that is not a plain yes reads as no.
+        /// </summary>
+        /// <remarks>
+        /// Only "1" is true. Anything else — a hand-edited file, a half-written line, a value
+        /// from a version that spelled it differently — leaves the game AUDIBLE, which is the
+        /// safe way round: a delver who finds the game unexpectedly loud reaches for the settings,
+        /// and one who finds it unexpectedly silent assumes the sound is broken.
+        /// </remarks>
+        [Test]
+        public void OnlyAPlainYesMutesTheGame()
+        {
+            Assert.That(PreferenceCodec.Read("mute 1\n").Muted, Is.True);
+
+            foreach (string not in new[] { "0", "yes", "true", "2", " 1", "" })
+            {
+                Assert.That(PreferenceCodec.Read("mute " + not + "\n").Muted, Is.False,
+                    "[" + not + "] muted the game");
+                Assert.That(PreferenceCodec.Read("supporter " + not + "\n").Supporter, Is.False,
+                    "[" + not + "] granted the supporter pack");
+            }
         }
 
         /// <summary>What the delver chose wins, if the game still has it.</summary>
@@ -201,6 +264,14 @@ namespace RelicRun.Tests
             Assert.That(Languages.Base(null), Is.Empty);
 
             Assert.That(Languages.Pick(null, new[] { "TR-tr" }, Shipped), Is.EqualTo("tr"));
+
+            // The tag that carries the whole argument for invariant casing, and the one this
+            // fixture did not have: under Turkish rules a capital I lowers to a DOTLESS ı, so
+            // "IT" would become "ıt" and match nothing. Italian would be unreachable on precisely
+            // the devices most likely to be set to Turkish — and every other tag here would keep
+            // working, so nothing else would ever report it.
+            Assert.That(Languages.Base("IT"), Is.EqualTo("it"));
+            Assert.That(Languages.Base("ID-id"), Is.EqualTo("id"));
         }
 
         /// <summary>English when nothing else fits, and never nothing.</summary>

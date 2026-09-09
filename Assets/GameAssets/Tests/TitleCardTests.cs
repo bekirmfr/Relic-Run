@@ -31,7 +31,7 @@ namespace RelicRun.Tests
         {
             TitleCard card = TitleCards.Of(At(1), null, false, false, Noon);
 
-            Assert.That(card.Play.Goes, Is.EqualTo(Screen.Levels));
+            Assert.That(card.Play.Goes, Is.EqualTo(Page.Levels));
             Assert.That(card.Kicker, Does.Contain("DUNGEONS"));
             Assert.That(card.Sub, Does.Contain("Clear dungeons"));
 
@@ -109,8 +109,10 @@ namespace RelicRun.Tests
             save.DailyBest[DailySeed.For(Noon)] = 1420;
             save.DailyBest[DailySeed.For(Noon.AddDays(-1))] = 9999;
 
-            Assert.That(TitleCards.Of(save, null, true, false, Noon).Daily.Right,
-                Does.Contain("1420").And.Not.Contains("9999"));
+            string right = TitleCards.Of(save, null, true, false, Noon).Daily.Right;
+
+            Assert.That(right, Does.Contain("1420"));
+            Assert.That(right, Does.Not.Contain("9999"), "that is yesterday's best");
         }
 
         /// <summary>With today's done, the title moves on to whatever is deepest.</summary>
@@ -119,13 +121,13 @@ namespace RelicRun.Tests
         {
             TitleCard arena = TitleCards.Of(At(Career.VersusOpensAt), null, true, false, Noon);
 
-            Assert.That(arena.Play.Goes, Is.EqualTo(Screen.Staging));
+            Assert.That(arena.Play.Goes, Is.EqualTo(Page.Staging));
             Assert.That(arena.Kicker, Does.Contain("VERSUS"));
             Assert.That(arena.Sub, Does.Contain("the arena is open"));
 
             TitleCard halls = TitleCards.Of(At(Career.VersusOpensAt - 1), null, true, false, Noon);
 
-            Assert.That(halls.Play.Goes, Is.EqualTo(Screen.Levels));
+            Assert.That(halls.Play.Goes, Is.EqualTo(Page.Levels));
             Assert.That(halls.Sub, Does.Contain("back to the dungeons"));
         }
 
@@ -232,7 +234,9 @@ namespace RelicRun.Tests
 
             foreach (string face in new[] { "silkscreen", "space-grotesk" })
             {
-                Assert.That(Face(face), Does.Not.Contain(Star),
+                // Asked of the list itself rather than through Does.Not.Contain, whose only
+                // overload in Unity's NUnit takes a string. Two runners, two NUnits.
+                Assert.That(Face(face).Contains(Star), Is.False,
                     face + " covers the star after all, so this departure is no longer needed");
             }
 
@@ -258,7 +262,7 @@ namespace RelicRun.Tests
                 Is.True, "with cleaning on, the star is removed before it can be missed");
 
             Assert.That(raw.Readable, Is.False, "the raw gate cannot see a character it should be missing");
-            Assert.That(raw.Missing, Does.Contain(0x2B50));
+            Assert.That(new List<int>(raw.Missing).Contains(0x2B50), Is.True);
         }
 
         private static List<int> Face(string id)

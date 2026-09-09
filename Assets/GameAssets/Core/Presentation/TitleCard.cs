@@ -124,7 +124,7 @@ namespace RelicRun.Core.Presentation
                 Best = save.Best,
                 Crowns = save.VsCrowns,
 
-                Play = Screens.Featured(save, dailyDone),
+                Play = Pages.Featured(save, dailyDone),
                 Kicker = Kick(level, dailyDone),
                 Sub = Under(level, dailyDone, DailySeed.Label(seed), left),
 

@@ -259,7 +259,7 @@ namespace RelicRun.Tests
 
             Assert.That(loaded.Damaged, Is.Zero);
             Assert.That(loaded.Save.DailyBestFor(4294967295u), Is.EqualTo(1200));
-            Assert.That(loaded.Save.DailyDone, Does.Contain(3000000000u));
+            Assert.That(loaded.Save.DailyDone.Contains(3000000000u), Is.True);
         }
 
         private static SaveState Full()

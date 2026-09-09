@@ -13,19 +13,19 @@ namespace RelicRun.Tests
     /// screen, or walks them past the only announcement of something they earned.
     /// </remarks>
     [TestFixture]
-    public class ScreensTests
+    public class PagesTests
     {
         /// <summary>A new delver's PLAY goes to the dungeons, because nothing else exists yet.</summary>
         [Test]
         public void BeforeTheDailyOpensPlayIsTheDungeons()
         {
-            Play play = Screens.Featured(At(1), false);
+            Play play = Pages.Featured(At(1), false);
 
-            Assert.That(play.Goes, Is.EqualTo(Screen.Levels));
+            Assert.That(play.Goes, Is.EqualTo(Page.Levels));
             Assert.That(play.StartsTheDaily, Is.False);
 
-            Assert.That(Screens.Featured(At(Career.DailyOpensAt - 1), false).Goes,
-                Is.EqualTo(Screen.Levels), "one level short is still short");
+            Assert.That(Pages.Featured(At(Career.DailyOpensAt - 1), false).Goes,
+                Is.EqualTo(Page.Levels), "one level short is still short");
         }
 
         /// <summary>
@@ -40,9 +40,9 @@ namespace RelicRun.Tests
         {
             foreach (int level in new[] { Career.DailyOpensAt, 4, Career.VersusOpensAt, 12, 20 })
             {
-                Play play = Screens.Featured(At(level), false);
+                Play play = Pages.Featured(At(level), false);
 
-                Assert.That(play.Goes, Is.EqualTo(Screen.Run), "at level " + level);
+                Assert.That(play.Goes, Is.EqualTo(Page.Run), "at level " + level);
                 Assert.That(play.StartsTheDaily, Is.True, "at level " + level);
             }
         }
@@ -58,13 +58,13 @@ namespace RelicRun.Tests
         [Test]
         public void OnceTheDailyIsDonePlayIsTheDeepestThingOpen()
         {
-            Assert.That(Screens.Featured(At(Career.VersusOpensAt), true).Goes,
-                Is.EqualTo(Screen.Staging));
+            Assert.That(Pages.Featured(At(Career.VersusOpensAt), true).Goes,
+                Is.EqualTo(Page.Staging));
 
-            Assert.That(Screens.Featured(At(Career.VersusOpensAt - 1), true).Goes,
-                Is.EqualTo(Screen.Levels), "versus is not open yet, so it is the dungeons");
+            Assert.That(Pages.Featured(At(Career.VersusOpensAt - 1), true).Goes,
+                Is.EqualTo(Page.Levels), "versus is not open yet, so it is the dungeons");
 
-            Assert.That(Screens.Featured(At(20), true).StartsTheDaily, Is.False,
+            Assert.That(Pages.Featured(At(20), true).StartsTheDaily, Is.False,
                 "today's is done and cannot be started twice");
         }
 
@@ -80,12 +80,15 @@ namespace RelicRun.Tests
             {
                 foreach (bool done in new[] { true, false })
                 {
-                    Play play = Screens.Featured(At(level), done);
+                    Play play = Pages.Featured(At(level), done);
 
-                    Assert.That(play.Goes, Is.AnyOf(Screen.Levels, Screen.Run, Screen.Staging),
+                    // Spelled as a chain of Or rather than with Is.AnyOf, which Unity's older
+                    // NUnit does not have. Two runners, two NUnits — see docs/testing.md.
+                    Assert.That(play.Goes,
+                        Is.EqualTo(Page.Levels).Or.EqualTo(Page.Run).Or.EqualTo(Page.Staging),
                         "level " + level + ", daily done " + done);
 
-                    Assert.That(play.StartsTheDaily, Is.EqualTo(play.Goes == Screen.Run),
+                    Assert.That(play.StartsTheDaily, Is.EqualTo(play.Goes == Page.Run),
                         "only the Daily lands on the run screen from the title");
                 }
             }
@@ -102,11 +105,11 @@ namespace RelicRun.Tests
         [Test]
         public void ExperienceIsShownOnTheWayHome()
         {
-            Assert.That(Screens.Home(Screen.Over, 240, false), Is.EqualTo(Screen.Xp));
+            Assert.That(Pages.Home(Page.Over, 240, false), Is.EqualTo(Page.Xp));
 
-            Assert.That(Screens.Home(Screen.Over, 240, true), Is.EqualTo(Screen.Title),
+            Assert.That(Pages.Home(Page.Over, 240, true), Is.EqualTo(Page.Title),
                 "it has been shown once, and once is the promise");
-            Assert.That(Screens.Home(Screen.Over, 0, false), Is.EqualTo(Screen.Title),
+            Assert.That(Pages.Home(Page.Over, 0, false), Is.EqualTo(Page.Title),
                 "a run that earned nothing has nothing to announce");
         }
 
@@ -118,14 +121,14 @@ namespace RelicRun.Tests
         [Test]
         public void HomeFromAnywhereElseIsTheTitle()
         {
-            foreach (Screen from in new[]
+            foreach (Page from in new[]
             {
-                Screen.Title, Screen.Modes, Screen.Levels, Screen.Run, Screen.Staging,
-                Screen.Xp, Screen.Board, Screen.Profile, Screen.Bestiary, Screen.RelicBook,
-                Screen.How,
+                Page.Title, Page.Modes, Page.Levels, Page.Run, Page.Staging,
+                Page.Xp, Page.Board, Page.Profile, Page.Bestiary, Page.RelicBook,
+                Page.How,
             })
             {
-                Assert.That(Screens.Home(from, 240, false), Is.EqualTo(Screen.Title),
+                Assert.That(Pages.Home(from, 240, false), Is.EqualTo(Page.Title),
                     "home from " + from);
             }
         }
@@ -134,10 +137,10 @@ namespace RelicRun.Tests
         [Test]
         public void TheBoardClosesBackToWhereItWasOpened()
         {
-            Assert.That(Screens.CloseBoard(Screen.Over), Is.EqualTo(Screen.Over));
-            Assert.That(Screens.CloseBoard(Screen.Title), Is.EqualTo(Screen.Title));
+            Assert.That(Pages.CloseBoard(Page.Over), Is.EqualTo(Page.Over));
+            Assert.That(Pages.CloseBoard(Page.Title), Is.EqualTo(Page.Title));
 
-            Assert.That(Screens.CloseBoard(Screen.Profile), Is.EqualTo(Screen.Title),
+            Assert.That(Pages.CloseBoard(Page.Profile), Is.EqualTo(Page.Title),
                 "anywhere that is not the end of a run goes to the title");
         }
 
@@ -145,9 +148,9 @@ namespace RelicRun.Tests
         [Test]
         public void NoSaveRoutesToTheDungeons()
         {
-            Play play = Screens.Featured(null, false);
+            Play play = Pages.Featured(null, false);
 
-            Assert.That(play.Goes, Is.EqualTo(Screen.Levels));
+            Assert.That(play.Goes, Is.EqualTo(Page.Levels));
             Assert.That(play.StartsTheDaily, Is.False);
         }
 

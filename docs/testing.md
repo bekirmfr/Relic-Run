@@ -1278,6 +1278,29 @@ Count through the interface instead — `Assert.That(list.Count, Is.EqualTo(2))`
 `Has.Member` and anything else that names a member in a string: a string is not checked by
 either compiler, so it is checked by whichever runner is fussier.
 
+### The other half: constraints one runner does not have at all
+
+Reflection is not the only way the two disagree, and the rest of the disagreement is worse in one
+respect — it is a COMPILE error, so `dotnet test` can be green while the Unity assembly will not
+build at all. Three found so far, all in Phase 10, all written after the section above was
+already in this file:
+
+- **`Is.AnyOf(a, b, c)`** does not exist in Unity's NUnit. Spell it
+  `Is.EqualTo(a).Or.EqualTo(b).Or.EqualTo(c)`.
+- **`Does.Not.Contain(x)`** has only a `string` overload there, so a collection and a non-string
+  member gives `cannot convert from 'int' to 'string'`. `Does.Contain(x)` does have the object
+  overload, which is why one compiles and its negation does not.
+- **`.And.Not.Contains(...)`** chained off a constraint expression is the same trap one level in.
+
+The rule that avoids all three: when the question is "is this member in this collection", ask the
+collection — `Assert.That(set.Contains(x), Is.True)` — rather than asking NUnit to. It needs no
+overload resolution, no reflection, and no runner's opinion. Watch the receiver's static type
+while doing it: `IReadOnlyList<T>` has no `Contains` at all, so that one needs a `new List<T>(…)`
+around it or it fails the OTHER way.
+
+Until the day the Test Runner can be driven from here, the only defence is to grep for these
+before handing a branch over. A green `dotnet test` is not evidence that Unity will compile.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:

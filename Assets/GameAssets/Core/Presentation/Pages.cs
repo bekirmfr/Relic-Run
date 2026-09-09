@@ -14,7 +14,7 @@ namespace RelicRun.Core.Presentation
     /// stages — draft, combat, travel, merchant — and those are the run layer's business rather
     /// than this one's. Every other screen has no inside.
     /// </remarks>
-    public enum Screen
+    public enum Page
     {
         Title = 0,
         Modes = 1,
@@ -41,7 +41,7 @@ namespace RelicRun.Core.Presentation
     /// </remarks>
     public struct Play
     {
-        public Screen Goes;
+        public Page Goes;
 
         /// <summary>Whether arriving there means starting today's Daily.</summary>
         public bool StartsTheDaily;
@@ -58,7 +58,7 @@ namespace RelicRun.Core.Presentation
     /// What a screen DRAWS is not here — not its layout, not its animation, not which of the
     /// three widths it uses. Only which screen comes next.
     /// </remarks>
-    public static class Screens
+    public static class Pages
     {
         /// <summary>
         /// Where the title's PLAY goes.
@@ -78,7 +78,7 @@ namespace RelicRun.Core.Presentation
         /// </remarks>
         public static Play Featured(SaveState save, bool dailyDone)
         {
-            var dungeons = new Play { Goes = Screen.Levels, StartsTheDaily = false };
+            var dungeons = new Play { Goes = Page.Levels, StartsTheDaily = false };
 
             if (save == null) return dungeons;
 
@@ -86,10 +86,10 @@ namespace RelicRun.Core.Presentation
 
             if (level < Career.DailyOpensAt) return dungeons;
 
-            if (!dailyDone) return new Play { Goes = Screen.Run, StartsTheDaily = true };
+            if (!dailyDone) return new Play { Goes = Page.Run, StartsTheDaily = true };
 
             return level >= Career.VersusOpensAt
-                ? new Play { Goes = Screen.Staging, StartsTheDaily = false }
+                ? new Play { Goes = Page.Staging, StartsTheDaily = false }
                 : dungeons;
         }
 
@@ -105,11 +105,11 @@ namespace RelicRun.Core.Presentation
         /// ever announced. Skipping it does not lose the level — that is banked already — it
         /// loses the only telling of it, and the delver finds out by noticing a number changed.
         /// </remarks>
-        public static Screen Home(Screen from, int xpGained, bool xpAlreadyShown)
+        public static Page Home(Page from, int xpGained, bool xpAlreadyShown)
         {
-            if (from == Screen.Over && xpGained > 0 && !xpAlreadyShown) return Screen.Xp;
+            if (from == Page.Over && xpGained > 0 && !xpAlreadyShown) return Page.Xp;
 
-            return Screen.Title;
+            return Page.Title;
         }
 
         /// <summary>
@@ -121,9 +121,9 @@ namespace RelicRun.Core.Presentation
         /// parameter, because a screen that has to remember where it was opened from is a screen
         /// with one more thing to get wrong.
         /// </remarks>
-        public static Screen CloseBoard(Screen openedFrom)
+        public static Page CloseBoard(Page openedFrom)
         {
-            return openedFrom == Screen.Over ? Screen.Over : Screen.Title;
+            return openedFrom == Page.Over ? Page.Over : Page.Title;
         }
     }
 }
