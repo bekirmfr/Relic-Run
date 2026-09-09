@@ -26,8 +26,29 @@ namespace RelicRun.Core.Content
         /// </remarks>
         public readonly string NameKey;
 
-        public RelicTextDef(RelicId id, string name, string nameKey)
+        /// <summary>
+        /// What it does, in English, for a relic the source never translated.
+        /// </summary>
+        /// <remarks>
+        /// Exactly one of this and <see cref="WhatKey"/> is set, and which one is the source's
+        /// own split rather than the port's. Nineteen relics have their name and description in
+        /// the locale tables under <c>it_&lt;id&gt;_n</c> and <c>it_&lt;id&gt;_d</c>. The rest
+        /// live in an object called NEWR, in English, and the source reads NEWR FIRST — so a
+        /// relic that appears in both is described by NEWR and its translation is never shown.
+        ///
+        /// Read from the source by <c>Tools/capture/relics.mjs</c>. Thirty-one descriptions
+        /// typed by hand is thirty-one chances to change what a relic claims to do, which is the
+        /// one kind of prose in this game a delver makes decisions on.
+        /// </remarks>
+        public readonly string What;
+
+        /// <summary>The key its description is translated under, or null when it is not.</summary>
+        public readonly string WhatKey;
+
+        public RelicTextDef(RelicId id, string name, string nameKey, string what, string whatKey)
         {
+            What = what;
+            WhatKey = whatKey;
             Id = id;
             Name = name;
             NameKey = nameKey;
@@ -48,56 +69,56 @@ namespace RelicRun.Core.Content
     {
         public static readonly IReadOnlyList<RelicTextDef> All = new[]
         {
-            new RelicTextDef(RelicId.Whetstone, "Whetstone", "it_whetstone_n"),
-            new RelicTextDef(RelicId.OxHeart, "Ox Heart", "it_heart_n"),
-            new RelicTextDef(RelicId.DebtOfFlesh, "Debt of Flesh", null),
-            new RelicTextDef(RelicId.CoinMagnet, "Coin Magnet", "it_magnet_n"),
-            new RelicTextDef(RelicId.AlchemistsVial, "Alchemist's Vial", "it_alchemist_n"),
-            new RelicTextDef(RelicId.BloodAltar, "Blood Altar", "it_altar_n"),
-            new RelicTextDef(RelicId.ThornVest, "Thorn Vest", "it_thorns_n"),
-            new RelicTextDef(RelicId.VampireTooth, "Vampire Tooth", "it_tooth_n"),
-            new RelicTextDef(RelicId.MidasBlade, "Midas Blade", "it_midas_n"),
-            new RelicTextDef(RelicId.GreedyCurse, "Greedy Curse", "it_greed_n"),
-            new RelicTextDef(RelicId.SwiftBoots, "Swift Boots", "it_boots_n"),
-            new RelicTextDef(RelicId.BattleDash, "Battle Dash", "it_dash_n"),
-            new RelicTextDef(RelicId.LuckyClover, "Lucky Clover", "it_clover_n"),
-            new RelicTextDef(RelicId.IronSkin, "Iron Skin", "it_iron_n"),
-            new RelicTextDef(RelicId.AdrenalineGland, "Adrenaline Gland", "it_adrenaline_n"),
-            new RelicTextDef(RelicId.PiggyBank, "Piggy Bank", "it_piggy_n"),
-            new RelicTextDef(RelicId.BerserkerCharm, "Berserker Charm", "it_berserk_n"),
-            new RelicTextDef(RelicId.RabbitsFoot, "Rabbit’s Foot", "it_rabbit_n"),
-            new RelicTextDef(RelicId.CutpurseHook, "Cutpurse Hook", "it_cutpurse_n"),
-            new RelicTextDef(RelicId.WeightedDice, "Weighted Dice", "it_dice_n"),
-            new RelicTextDef(RelicId.TrollMarrow, "Troll Marrow", null),
-            new RelicTextDef(RelicId.SecondStomach, "Second Stomach", null),
-            new RelicTextDef(RelicId.MartyrsKnot, "Martyr's Knot", null),
-            new RelicTextDef(RelicId.BloodPact, "Blood Pact", null),
-            new RelicTextDef(RelicId.GravekeepersSoil, "Gravekeeper's Soil", null),
-            new RelicTextDef(RelicId.PaddedHide, "Padded Hide", null),
-            new RelicTextDef(RelicId.MirrorScale, "Mirror Scale", null),
-            new RelicTextDef(RelicId.AnvilHeart, "Anvil Heart", null),
-            new RelicTextDef(RelicId.SentinelBell, "Sentinel Bell", null),
-            new RelicTextDef(RelicId.FortunesEdge, "Fortune's Edge", null),
-            new RelicTextDef(RelicId.QuickenedPulse, "Quickened Pulse", null),
-            new RelicTextDef(RelicId.DuelistsOath, "Duelist's Oath", null),
-            new RelicTextDef(RelicId.QuenchedBlade, "Quenched Blade", null),
-            new RelicTextDef(RelicId.ExecutionersCoin, "Executioner's Coin", null),
-            new RelicTextDef(RelicId.WindAnklet, "Wind Anklet", null),
-            new RelicTextDef(RelicId.Stutterstep, "Stutterstep", null),
-            new RelicTextDef(RelicId.MomentumBead, "Momentum Bead", null),
-            new RelicTextDef(RelicId.HaresDrum, "Hare's Drum", null),
-            new RelicTextDef(RelicId.LoadedHorseshoe, "Loaded Horseshoe", null),
-            new RelicTextDef(RelicId.CatsWhisker, "Cat's Whisker", null),
-            new RelicTextDef(RelicId.FortunesDebt, "Fortune's Debt", null),
-            new RelicTextDef(RelicId.TollkeepersRing, "Tollkeeper's Ring", null),
-            new RelicTextDef(RelicId.MerchantsThumb, "Merchant's Thumb", null),
-            new RelicTextDef(RelicId.GildedPlate, "Gilded Plate", null),
-            new RelicTextDef(RelicId.EmberCask, "Ember Cask", null),
-            new RelicTextDef(RelicId.CoinSinger, "Coin Singer", null),
-            new RelicTextDef(RelicId.HexThread, "Hex Thread", null),
-            new RelicTextDef(RelicId.HollowIdol, "Hollow Idol", null),
-            new RelicTextDef(RelicId.FamineBell, "Famine Bell", null),
-            new RelicTextDef(RelicId.MillstonePendant, "Millstone Pendant", null),
+            new RelicTextDef(RelicId.Whetstone, "Whetstone", "it_whetstone_n", null, "it_whetstone_d"),
+            new RelicTextDef(RelicId.OxHeart, "Ox Heart", "it_heart_n", null, "it_heart_d"),
+            new RelicTextDef(RelicId.DebtOfFlesh, "Debt of Flesh", null, "Every time you spend gold, heal 10. Any spend — rerolls, the bazaar, tolls.", null),
+            new RelicTextDef(RelicId.CoinMagnet, "Coin Magnet", "it_magnet_n", null, "it_magnet_d"),
+            new RelicTextDef(RelicId.AlchemistsVial, "Alchemist's Vial", "it_alchemist_n", null, "it_alchemist_d"),
+            new RelicTextDef(RelicId.BloodAltar, "Blood Altar", "it_altar_n", null, "it_altar_d"),
+            new RelicTextDef(RelicId.ThornVest, "Thorn Vest", "it_thorns_n", null, "it_thorns_d"),
+            new RelicTextDef(RelicId.VampireTooth, "Vampire Tooth", "it_tooth_n", null, "it_tooth_d"),
+            new RelicTextDef(RelicId.MidasBlade, "Midas Blade", "it_midas_n", null, "it_midas_d"),
+            new RelicTextDef(RelicId.GreedyCurse, "Greedy Curse", "it_greed_n", null, "it_greed_d"),
+            new RelicTextDef(RelicId.SwiftBoots, "Swift Boots", "it_boots_n", null, "it_boots_d"),
+            new RelicTextDef(RelicId.BattleDash, "Battle Dash", "it_dash_n", null, "it_dash_d"),
+            new RelicTextDef(RelicId.LuckyClover, "Lucky Clover", "it_clover_n", null, "it_clover_d"),
+            new RelicTextDef(RelicId.IronSkin, "Iron Skin", "it_iron_n", null, "it_iron_d"),
+            new RelicTextDef(RelicId.AdrenalineGland, "Adrenaline Gland", "it_adrenaline_n", null, "it_adrenaline_d"),
+            new RelicTextDef(RelicId.PiggyBank, "Piggy Bank", "it_piggy_n", null, "it_piggy_d"),
+            new RelicTextDef(RelicId.BerserkerCharm, "Berserker Charm", "it_berserk_n", null, "it_berserk_d"),
+            new RelicTextDef(RelicId.RabbitsFoot, "Rabbit’s Foot", "it_rabbit_n", null, "it_rabbit_d"),
+            new RelicTextDef(RelicId.CutpurseHook, "Cutpurse Hook", "it_cutpurse_n", null, "it_cutpurse_d"),
+            new RelicTextDef(RelicId.WeightedDice, "Weighted Dice", "it_dice_n", null, "it_dice_d"),
+            new RelicTextDef(RelicId.TrollMarrow, "Troll Marrow", null, "While below half HP, every hit you take knits back 2 per copy.", null),
+            new RelicTextDef(RelicId.SecondStomach, "Second Stomach", null, "Between-floor breathers heal double.", null),
+            new RelicTextDef(RelicId.MartyrsKnot, "Martyr's Knot", null, "Heals from relics restore +1 more per copy.", null),
+            new RelicTextDef(RelicId.BloodPact, "Blood Pact", null, "Signing costs 20 HP — and 20% of it again every round in versus; +5 ATK, permanent.", null),
+            new RelicTextDef(RelicId.GravekeepersSoil, "Gravekeeper's Soil", null, "Once per run: refuse death, rise at 25% HP.", null),
+            new RelicTextDef(RelicId.PaddedHide, "Padded Hide", null, "+1 DEF; the first hit each fight lands 2 lighter per copy.", null),
+            new RelicTextDef(RelicId.MirrorScale, "Mirror Scale", null, "Critical hits against you are reflected in full.", null),
+            new RelicTextDef(RelicId.AnvilHeart, "Anvil Heart", null, "+1 DEF every 10 strikes you land (max +10).", null),
+            new RelicTextDef(RelicId.SentinelBell, "Sentinel Bell", null, "Each dodge rings +1 DEF for the rest of the floor.", null),
+            new RelicTextDef(RelicId.FortunesEdge, "Fortune's Edge", null, "Luck signals charge the blade: your next strike hits +50%.", null),
+            new RelicTextDef(RelicId.QuickenedPulse, "Quickened Pulse", null, "Luck signals quicken you: +1 SPD per copy for the rest of the floor (round in versus).", null),
+            new RelicTextDef(RelicId.DuelistsOath, "Duelist's Oath", null, "+4 ATK per copy against bosses, elites and rivals — the oath shatters after 4 floors.", null),
+            new RelicTextDef(RelicId.QuenchedBlade, "Quenched Blade", null, "Every 3rd heal tempers +1 ATK for the rest of the floor.", null),
+            new RelicTextDef(RelicId.ExecutionersCoin, "Executioner's Coin", null, "Once per floor: a strike on an enemy below 20% HP finishes it. In versus: 10% per copy, max 20%.", null),
+            new RelicTextDef(RelicId.WindAnklet, "Wind Anklet", null, "+2 SPD per copy.", null),
+            new RelicTextDef(RelicId.Stutterstep, "Stutterstep", null, "Each dodge staggers the enemy: -1 SPD per copy, for the fight.", null),
+            new RelicTextDef(RelicId.MomentumBead, "Momentum Bead", null, "Every 3rd strike builds +1 SPD this floor per copy.", null),
+            new RelicTextDef(RelicId.HaresDrum, "Hare's Drum", null, "After a dodge, your next attack comes instantly.", null),
+            new RelicTextDef(RelicId.LoadedHorseshoe, "Loaded Horseshoe", null, "+5 [[LCK]] per copy; your dodges release luck signals.", null),
+            new RelicTextDef(RelicId.CatsWhisker, "Cat's Whisker", null, "First dodge each fight: counter for half your ATK.", null),
+            new RelicTextDef(RelicId.FortunesDebt, "Fortune's Debt", null, "+10 [[LCK]], but gold gains -10%.", null),
+            new RelicTextDef(RelicId.TollkeepersRing, "Tollkeeper's Ring", null, "Every kill pays a +5 gold toll per copy.", null),
+            new RelicTextDef(RelicId.MerchantsThumb, "Merchant's Thumb", null, "Shop wares and draft rerolls cost 20% less.", null),
+            new RelicTextDef(RelicId.GildedPlate, "Gilded Plate", null, "+1 DEF per 50 gold in the purse. No limit.", null),
+            new RelicTextDef(RelicId.EmberCask, "Ember Cask", null, "Relic damage shakes 1 gold loose per copy.", null),
+            new RelicTextDef(RelicId.CoinSinger, "Coin Singer", null, "Gold gained by relics rings out a lucky note.", null),
+            new RelicTextDef(RelicId.HexThread, "Hex Thread", null, "Luck signals lash the foe for 1 per copy.", null),
+            new RelicTextDef(RelicId.HollowIdol, "Hollow Idol", null, "All relic set counts +1; -15 max HP.", null),
+            new RelicTextDef(RelicId.FamineBell, "Famine Bell", null, "Enemies cannot heal; your heals restore 1 less.", null),
+            new RelicTextDef(RelicId.MillstonePendant, "Millstone Pendant", null, "+5 ATK; -5 SPD. The weight swings with you.", null),
         };
 
         public static RelicTextDef Get(RelicId id)

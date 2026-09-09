@@ -22,8 +22,22 @@ namespace RelicRun.Core.Content
         /// </summary>
         public readonly int SheetRow;
 
-        public EnemyDef(int index, string key, int sheetRow)
+        /// <summary>The line the bestiary shows once a delver has met this species.</summary>
+        /// <remarks>
+        /// English in every locale, and the source says so itself: its comment over the array
+        /// reads "EN, like the components". The species NAME is translated — key <c>en0</c>
+        /// upward — and its card is not, which is a distinction worth keeping rather than
+        /// tidying, because tidying it means inventing eight translations nobody wrote.
+        ///
+        /// Read from the source by <c>Tools/capture/foes.mjs</c>. Thirteen lines typed by hand
+        /// is thirteen chances to drop a word, and a bestiary entry with a word missing still
+        /// reads as a bestiary entry.
+        /// </remarks>
+        public readonly string Lore;
+
+        public EnemyDef(int index, string key, int sheetRow, string lore)
         {
+            Lore = lore;
             Index = index;
             Key = key;
             SheetRow = sheetRow;
@@ -43,19 +57,32 @@ namespace RelicRun.Core.Content
     {
         public static readonly IReadOnlyList<EnemyDef> All = new[]
         {
-            new EnemyDef(0, "rat", 1),
-            new EnemyDef(1, "bat", 0),
-            new EnemyDef(2, "skull", 3),
-            new EnemyDef(3, "slime", 2),
-            new EnemyDef(4, "wraith", 6),
-            new EnemyDef(5, "coin", 4),
-            new EnemyDef(6, "spider", 5),
-            new EnemyDef(7, "ogre", 11),
-            new EnemyDef(8, "serpent", 10),
-            new EnemyDef(9, "crown", 12),
-            new EnemyDef(10, "ghoolem", 9),
-            new EnemyDef(11, "eye", 7),
-            new EnemyDef(12, "husk", 8),
+            new EnemyDef(0, "rat", 1,
+                "It has survived a thousand delves by eating the evidence."),
+            new EnemyDef(1, "bat", 0,
+                "Echolocation, tuned exclusively to coin purses."),
+            new EnemyDef(2, "skull", 3,
+                "Someone's bad decision, still grinning about it."),
+            new EnemyDef(3, "slime", 2,
+                "The dungeon's janitor. It does not distinguish trash from adventurer."),
+            new EnemyDef(4, "wraith", 6,
+                "What is left of a miner who counted his gold once too often."),
+            new EnemyDef(5, "coin", 4,
+                "It practiced being a coin for decades. The teeth still give it away."),
+            new EnemyDef(6, "spider", 5,
+                "Eight eyes, and every one of them on your purse."),
+            new EnemyDef(7, "ogre", 11,
+                "It guards the stair because the stair lost a bet."),
+            new EnemyDef(8, "serpent", 10,
+                "It swallowed a hoard once. Now the hoard does the thinking."),
+            new EnemyDef(9, "crown", 12,
+                "The Hoard-King does not spend. The Hoard-King only keeps."),
+            new EnemyDef(10, "ghoolem", 9,
+                "Ghoul packed into stone by something that wanted a door held. The stone won; the hunger stayed."),
+            new EnemyDef(11, "eye", 7,
+                "It does not guard the hoard. It audits it — and it already knows what you are carrying."),
+            new EnemyDef(12, "husk", 8,
+                "Delvers who never cashed out, walking home the long way. It carries nothing: the hoard has it all."),
         };
 
         /// <summary>What each sheet column shows: bare, armed, armed and shielded.</summary>

@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using GameLift.Scene;
 using RelicRun.Core.Presentation;
+using RelicRun.Game.Data;
 using RelicRun.Game.Services;
 using UnityEngine;
 using VContainer;
@@ -44,6 +45,16 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private MetaPanel[] _panels = new MetaPanel[0];
 
         /// <summary>
+        /// The book of languages, wired by the builder from the game's content.
+        /// </summary>
+        /// <remarks>
+        /// Serialised rather than looked up at run time, because it IS content: the builder wires
+        /// it from the same GameContent every other book comes out of, and a screen that went
+        /// hunting for it would be a screen that fails differently in a build than in the editor.
+        /// </remarks>
+        [SerializeField] private LocaleBook _locales;
+
+        /// <summary>
         /// How often a ticking panel is redrawn.
         /// </summary>
         /// <remarks>
@@ -55,6 +66,7 @@ namespace RelicRun.Game.Presentation
 
         private SaveVault _vault;
         private ISceneService _scenes;
+        private Speech _speech;
         private MetaPanel _showing;
         private float _due;
 
@@ -65,10 +77,19 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         private Page _cameFrom = Page.Title;
 
-        public Task Initialize()
+        /// <summary>
+        /// Built. Fetches the delver's language, then opens on the title.
+        /// </summary>
+        /// <remarks>
+        /// The strings are awaited rather than fetched in the background, and it is the one thing
+        /// this screen waits for. A menu drawn before its words arrive shows a frame of raw keys
+        /// — and the first frame of the game is the one screenshot everybody takes.
+        /// </remarks>
+        public async Task Initialize()
         {
             _vault = Vault();
             _scenes = Scenes();
+            _speech = new Speech();
 
             foreach (MetaPanel panel in _panels)
             {
@@ -78,9 +99,34 @@ namespace RelicRun.Game.Presentation
                 panel.Showing = false;
             }
 
-            Go(Page.Title);
+            await Learn();
 
-            return Task.CompletedTask;
+            Go(Page.Title);
+        }
+
+        /// <summary>Fetches the language and hands it to every panel.</summary>
+        /// <remarks>
+        /// A failure here is a warning and a game in keys rather than a game that will not open.
+        /// Every screen still draws, every button still works, and what is wrong is legible on
+        /// the screen itself.
+        /// </remarks>
+        private async Task Learn()
+        {
+            try
+            {
+                await _speech.Learn(_locales, _vault != null ? _vault.Chosen : null,
+                    Speech.Asked());
+            }
+            catch (System.Exception broken)
+            {
+                Debug.LogWarning("could not fetch the strings, so the game speaks in keys: " +
+                                 broken.Message, this);
+            }
+
+            foreach (MetaPanel panel in _panels)
+            {
+                if (panel != null) panel.Words = _speech.Locale;
+            }
         }
 
         /// <summary>Taken down. Stops the clock and lets go of the panels.</summary>

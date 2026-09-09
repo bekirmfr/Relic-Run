@@ -73,7 +73,18 @@ namespace RelicRun.Core.Meta
         /// bug — the source clears it and asks again, and so does this. Kept as the source spells
         /// it, prefix and all, since the point is to recognise what an older build wrote.
         /// </remarks>
-        public const string AutoNamed = "autoNameWord#";
+        public const string AutoNamed = AutoNamedPrefix + "#";
+
+        /// <summary>
+        /// The prefix alone, which is what a score row is checked against.
+        /// </summary>
+        /// <remarks>
+        /// The source tests the two places differently — the delver's own name against the whole
+        /// marker, a board row against the prefix — and both are here rather than spelled twice,
+        /// because a board keeps whatever name was current when a run was banked and the two
+        /// checks have to agree about what an auto-name looks like.
+        /// </remarks>
+        public const string AutoNamedPrefix = "autoNameWord";
 
         /// <summary>Every field of <see cref="Preferences"/> this codec carries, by name.</summary>
         /// <remarks>

@@ -1,4 +1,5 @@
 using System;
+using RelicRun.Core.Content;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Services;
 using UnityEngine;
@@ -64,6 +65,20 @@ namespace RelicRun.Game.Presentation
         /// has been, and what keeps the back button's answer in one piece of code.
         /// </remarks>
         public event Action<Page> Wants;
+
+        /// <summary>
+        /// What the game says, in the delver's language.
+        /// </summary>
+        /// <remarks>
+        /// Handed down by the scene rather than fetched, because fetching it is asynchronous and
+        /// a panel drawing itself is not. Never null: an unfetched one answers every key with the
+        /// key, which is ugly on screen and immediately diagnosable — unlike a blank.
+        ///
+        /// Not every screen needs it. The title and the mode picker are written in literals the
+        /// source never translated, and saying so is the point: a screen that used this WOULD be
+        /// translated, and one that does not is making a claim about the source.
+        /// </remarks>
+        public Locale Words { get; set; }
 
         /// <summary>Puts the delver's current state on the screen.</summary>
         /// <param name="vault">Never null: the scene substitutes an empty save if it has none.</param>

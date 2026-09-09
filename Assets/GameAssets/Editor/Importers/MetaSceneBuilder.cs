@@ -105,6 +105,11 @@ namespace RelicRun.Editor.Importers
 
             Make();
 
+            if (content.Locales == null)
+            {
+                Debug.LogWarning("no locale book in the content, so the menu will speak in keys");
+            }
+
             GameObject scene = PrefabUtility.LoadPrefabContents(ScenePath);
 
             if (scene == null)
@@ -122,7 +127,7 @@ namespace RelicRun.Editor.Importers
                 HallTileView tile = HallTile(face);
 
                 Replace(scene);
-                Fit(scene, face, tile);
+                Fit(scene, content, face, tile);
 
                 PrefabUtility.SaveAsPrefabAsset(scene, ScenePath);
             }
@@ -206,7 +211,8 @@ namespace RelicRun.Editor.Importers
         }
 
         /// <summary>Builds every panel under one child of the scene.</summary>
-        private static void Fit(GameObject scene, TMP_FontAsset face, HallTileView tile)
+        private static void Fit(GameObject scene, GameContent content,
+            TMP_FontAsset face, HallTileView tile)
         {
             var root = new GameObject(RootName);
             root.transform.SetParent(scene.transform, false);
@@ -226,6 +232,8 @@ namespace RelicRun.Editor.Importers
                                "between the panels that were just built");
                 return;
             }
+
+            Wire(shell, new[] { Pair("_locales", content.Locales) });
 
             var panels = new SerializedObject(shell).FindProperty("_panels");
 
