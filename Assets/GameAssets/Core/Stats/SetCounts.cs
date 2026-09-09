@@ -23,6 +23,17 @@ namespace RelicRun.Core.Stats
     /// </remarks>
     public static class SetCounts
     {
+        /// <summary>
+        /// How many families there are, which is how long a count of them is.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than as an 8 typed at each place that needs an array, which is what it was
+        /// — and now that a foe counts its own sets there are two such places, which is one more
+        /// than a magic number survives. Pinned to <c>RelicKind</c> by a test, since the whole
+        /// point is that the two cannot drift.
+        /// </remarks>
+        public const int Kinds = 8;
+
         /// <summary>What an awakened Hollow Idol adds to the family it backs.</summary>
         public const int IdolBacksTheDominant = 3;
 

@@ -672,9 +672,23 @@ namespace RelicRun.Core.Combat
 
             public int Pmax { get { return _engine.EnemyMax; } }
 
-            public int Effective(RelicId id) { return _engine._cur.CountRelic(id); }
+            /// <summary>
+            /// Copies held, plus one for an awakened copy — the delver's rule exactly.
+            /// </summary>
+            /// <remarks>
+            /// This returned the raw count, which was correct while a foe could not wake
+            /// anything and became wrong the moment it could: an awakening would have shown in
+            /// the gauges and done nothing to the numbers.
+            /// </remarks>
+            public int Effective(RelicId id)
+            {
+                return CountRaw(id) + (IsAwake(id) ? 1 : 0);
+            }
 
-            public int CountRaw(RelicId id) { return _engine._cur.CountRelic(id); }
+            public int CountRaw(RelicId id)
+            {
+                return _engine._cur == null ? 0 : _engine._cur.CountRelic(id);
+            }
 
             /// <summary>
             /// Whether this foe has woken a relic, which it now can.
@@ -703,18 +717,68 @@ namespace RelicRun.Core.Combat
 
             public string Label(RelicId id) { return RelicCatalog.KeyOf(id); }
 
+            /// <summary>
+            /// Relics of a kind, with the Hollow Idol counted toward every one of them.
+            /// </summary>
+            /// <remarks>
+            /// This counted kinds and stopped, so a foe's Hollow Idol was the one relic that
+            /// contributed nothing to anything — the whole point of it is that it counts toward
+            /// EVERY set, and here it counted toward its own and no more.
+            ///
+            /// The rule is the hero's, read from the same place: an idol joins every family, and
+            /// an awakened one throws three more behind the family its wearer leans on. Which
+            /// family that is depends on the wearer, so it has to be worked out from this foe's
+            /// own relics rather than borrowed from the delver's.
+            /// </remarks>
             public int SetCount(RelicKind kind)
             {
-                IReadOnlyList<RelicId> relics = _engine._cur.Relics;
-                if (relics == null) return 0;
+                int[] counts = Kinds();
+                int idols = Idols();
 
-                int n = 0;
+                int backed = idols > 0 && (int)kind == Backed(counts)
+                    ? SetCounts.IdolBacksTheDominant
+                    : 0;
+
+                return counts[(int)kind] + idols + backed;
+            }
+
+            /// <summary>How many of each family this foe is wearing.</summary>
+            private int[] Kinds()
+            {
+                var counts = new int[SetCounts.Kinds];
+
+                IReadOnlyList<RelicId> relics = _engine._cur == null ? null : _engine._cur.Relics;
+                if (relics == null) return counts;
+
                 for (int i = 0; i < relics.Count; i++)
                 {
-                    if (RelicCatalog.KindOf(relics[i]) == kind) n++;
+                    int kind = (int)RelicCatalog.KindOf(relics[i]);
+                    if (kind >= 0 && kind < counts.Length) counts[kind]++;
                 }
 
-                return n;
+                return counts;
+            }
+
+            /// <summary>Idols that count toward every set, by the mode's rule and the wearer's.</summary>
+            private int Idols()
+            {
+                if (!RelicTuning.For(RelicId.HollowIdol, _engine._rules.Mode).CountsTowardEverySet)
+                {
+                    return 0;
+                }
+
+                return _engine._rules.IdolBacksTheDominantKind
+                    ? CountRaw(RelicId.HollowIdol)
+                    : Effective(RelicId.HollowIdol);
+            }
+
+            /// <summary>The family an awakened idol backs, or none.</summary>
+            private int Backed(int[] counts)
+            {
+                if (!_engine._rules.IdolBacksTheDominantKind) return SetCounts.NoKind;
+                if (!IsAwake(RelicId.HollowIdol)) return SetCounts.NoKind;
+
+                return SetCounts.Dominant(counts);
             }
 
             public int StatValue(Stat stat)
@@ -1180,7 +1244,7 @@ namespace RelicRun.Core.Combat
         /// <summary>Counts relics by kind once per floor; set bonuses read these.</summary>
         private void CacheLoadout()
         {
-            _kindCounts = new int[8];
+            _kindCounts = new int[SetCounts.Kinds];
 
             for (int i = 0; i < _hero.Items.Count; i++)
             {

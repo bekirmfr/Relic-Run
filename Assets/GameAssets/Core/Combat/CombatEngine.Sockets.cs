@@ -57,30 +57,11 @@ namespace RelicRun.Core.Combat
         /// relic gain verbs it never had.
         /// </remarks>
 
-        /// <summary>
-        /// Rabbit's Foot answers every luck signal with luck of its own — but never its own,
-        /// which would make a single relic a perpetual motion machine.
-        /// </summary>
-        private void RabbitReact(int depth, RelicId cause, ChainContext chain)
-        {
-            int rabbits = CountItem(RelicId.RabbitsFoot);
-            if (rabbits <= 0 || cause == RelicId.RabbitsFoot)
-            {
-                return;
-            }
-
-            chain = chain ?? NewChain();
-            double scale = chain.Scale(RelicId.RabbitsFoot);
-            int bonus = JsMath.RoundToInt(rabbits * scale);
-            if (bonus > 0)
-            {
-                _luckBonus += bonus;
-                Snap(CombatEventType.First, depth + 1, relic: RelicId.RabbitsFoot,
-                    source: RelicCatalog.KeyOf(RelicId.RabbitsFoot) + " +" + bonus + " LUCK");
-            }
-
-            FireEmitter(RelicId.RabbitsFoot, depth, chain, scale);
-        }
+        // Rabbit's Foot used to have a second, hero-only reaction here. It was never called:
+        // the live one is CombatPrimitives.RabbitReact, which takes an ICombatActor and has
+        // always answered for whoever emitted the luck. So the relic already worked on a foe,
+        // and the only thing this copy contributed was the appearance that it did not — a
+        // hero-only count sitting in the engine, next to two that were real.
 
         // ---------- socket lookup ----------
 
