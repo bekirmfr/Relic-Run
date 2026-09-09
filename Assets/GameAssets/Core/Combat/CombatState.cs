@@ -87,6 +87,20 @@ namespace RelicRun.Core.Combat
         public IReadOnlyDictionary<int, SocketEmitter> SocketEmitters =
             new Dictionary<int, SocketEmitter>();
 
+        /// <summary>
+        /// What this foe's kit is worth to its stats, each row naming the relic that gave it.
+        /// </summary>
+        /// <remarks>
+        /// Rows rather than arithmetic, so a stat can be explained. "Armour 3" tells a delver
+        /// nothing about why the thing in front of them is hard to hurt; "Iron Skin +1" beside it
+        /// does — and it is the same list the stat card already reads for the delver.
+        ///
+        /// Only the stats. The POOL is not one of these: a stat is computed from its rows every
+        /// time it is read, while a pool is a resource with a starting value that is then spent,
+        /// and folding the two together would heal a wound the moment anything recalculated.
+        /// </remarks>
+        public IReadOnlyList<Stats.StatModifier> Mods = new List<Stats.StatModifier>();
+
         public int CountRelic(RelicId id)
         {
             if (Relics == null)

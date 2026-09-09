@@ -309,22 +309,28 @@ namespace RelicRun.Core.Run
                 return n;
             }
 
+            var worn = WornKit.Modifiers(rival.Relics);
+
             var foe = new EnemyState
             {
                 SpeciesIndex = (int)Math.Floor(rng.Next() * 9),
+                // Through the same table a typed foe reads. These four were written out here by
+                // hand, and a second copy of them was going into the pack generator when the
+                // duplication became obvious — two lists of what a kit is worth, free to
+                // disagree the moment either was edited.
                 Hp = JsMath.RoundToInt(
-                    (rival.Base.Hp + 13 * Held(RelicId.OxHeart)) * Math.Pow(PoolGrowth, round - 1)),
-                Atk = rival.Base.Atk + Held(RelicId.Whetstone),
-                Armor = rival.Base.Def + Held(RelicId.IronSkin),
-                Spd = rival.Base.Spd,
-                Lck = rival.Base.Lck + 15 * Math.Min(1, Held(RelicId.LuckyClover)),
+                    (rival.Base.Hp + WornKit.Pool(rival.Relics)) * Math.Pow(PoolGrowth, round - 1)),
+                Atk = rival.Base.Atk + WornKit.Of(worn, Stat.Atk),
+                Armor = rival.Base.Def + WornKit.Of(worn, Stat.Def),
+                Spd = rival.Base.Spd + WornKit.Of(worn, Stat.Spd),
+                Lck = rival.Base.Lck + WornKit.Of(worn, Stat.Lck),
                 Rank = alive.Count == 1 ? EnemyRank.King : EnemyRank.Boss,
                 Variant = (int)Math.Floor(rng.Next() * 3),
                 Relics = new List<RelicId>(rival.Relics),
                 Drop = WinBonus + RoundStipend * round,
             };
 
-            if (Held(RelicId.SwiftBoots) > 0) foe.Spd = JsMath.RoundToInt(foe.Spd * 1.25);
+            foe.Spd = JsMath.RoundToInt(foe.Spd * WornKit.Scale(rival.Relics, Stat.Spd));
             foe.MaxHp = foe.Hp;
             return foe;
         }

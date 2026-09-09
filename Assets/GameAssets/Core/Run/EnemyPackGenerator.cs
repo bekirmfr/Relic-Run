@@ -83,9 +83,19 @@ namespace RelicRun.Core.Run
         /// A foe somebody typed in rather than one a floor produced.
         /// </summary>
         /// <remarks>
-        /// For the harness, and it exists so that a hand-authored foe is the same KIND of thing a
-        /// generated one is. Three details separate a foe that behaves like a real one from a
-        /// foe that merely has the same numbers, and all three are easy to miss:
+        /// Its stat block is built FROM its relics, which is the versus rival's rule applied
+        /// here: an Ox Heart is worth thirteen to the pool, a Whetstone a point of attack, an
+        /// Iron Skin a point of armour, and a Lucky Clover fifteen luck however many are worn.
+        /// The source builds a rival exactly that way and a delve foe not at all, because a
+        /// generated delve foe's numbers come from tables written with its kit already in mind —
+        /// adding the bonuses there would count the same relic twice.
+        ///
+        /// A typed foe has no such tuning behind it. Fifty hit points and an Ox Heart is fifty
+        /// hit points and a relic doing nothing, which is the one thing a relic should never be:
+        /// what differs between wearers is reach, not effect.
+        ///
+        /// Three more details separate a foe that behaves like a real one from a foe that merely
+        /// has the same numbers, and all three are easy to miss:
         ///
         /// The sheet column comes from the rank, never from a field — a variant somebody could
         /// type is a boss that gets drawn as a guard.
@@ -101,19 +111,30 @@ namespace RelicRun.Core.Run
         public static EnemyState Authored(int species, EnemyRank rank, int hp, int atk, int armor,
             int spd, int lck, int drop, IReadOnlyList<RelicId> relics)
         {
+            // The pool is baked and the stats are not, and the asymmetry is the point. A pool
+            // is a resource with a starting value that is then spent; a stat is computed from
+            // its rows every time it is read. Baking a stat would throw away which relic gave
+            // it, and the tray has nothing to say afterwards about why this thing is hard to
+            // hurt.
+            int thickened = hp + WornKit.Pool(relics);
+
             return new EnemyState
             {
                 SpeciesIndex = species,
                 Rank = rank,
                 Variant = VariantOf(rank),
-                Hp = hp,
-                MaxHp = hp,
+                Hp = thickened,
+                MaxHp = thickened,
                 Atk = atk,
                 Armor = armor,
-                Spd = spd,
+                // Scaled here rather than carried as a row, because a multiplier is not one:
+                // rows add and can be listed in any order, while a scale applies to the total
+                // once the rows are in.
+                Spd = JsMath.RoundToInt(spd * WornKit.Scale(relics, Stat.Spd)),
                 Lck = lck,
                 Drop = drop,
                 Relics = relics == null || relics.Count == 0 ? null : relics,
+                Mods = WornKit.Modifiers(relics),
             };
         }
 

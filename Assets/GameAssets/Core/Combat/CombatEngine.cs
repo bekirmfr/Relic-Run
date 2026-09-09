@@ -781,16 +781,27 @@ namespace RelicRun.Core.Combat
                 return SetCounts.Dominant(counts);
             }
 
+            /// <summary>
+            /// A stat, which is its base plus whatever this foe's kit contributes.
+            /// </summary>
+            /// <remarks>
+            /// Summed rather than baked, so the rows keep the relic that gave them. A generated
+            /// foe carries no rows at all — its numbers come from the floor's tables, which were
+            /// written with its kit in mind — so this changes nothing for the fights the corpus
+            /// recorded and everything for a foe somebody described.
+            /// </remarks>
             public int StatValue(Stat stat)
             {
+                int worn = WornKit.Of(_engine._cur.Mods, stat);
+
                 switch (stat)
                 {
                     // Bare attack. A Berserker Charm's rage swells the blow the foe throws,
                     // not its attack — a Martyr's Knot returns the unenraged number.
-                    case Stat.Atk: return _engine._cur.Atk;
-                    case Stat.Def: return _engine._cur.Armor;
-                    case Stat.Spd: return Math.Max(10, _engine._cur.Spd);
-                    case Stat.Lck: return _engine._cur.Lck;
+                    case Stat.Atk: return _engine._cur.Atk + worn;
+                    case Stat.Def: return _engine._cur.Armor + worn;
+                    case Stat.Spd: return Math.Max(10, _engine._cur.Spd + worn);
+                    case Stat.Lck: return _engine._cur.Lck + worn;
                     default: return 0;
                 }
             }
@@ -985,7 +996,20 @@ namespace RelicRun.Core.Combat
 
         int ICombatBus.TargetHealth(ICombatActor attacker) { return _enemyHp; }
 
-        int ICombatBus.TargetDefence(ICombatActor attacker) { return _cur != null ? _cur.Armor : 0; }
+        /// <summary>
+        /// The defence of whatever the delver is swinging at, kit included.
+        /// </summary>
+        /// <remarks>
+        /// Through the actor rather than off the stat block, because a foe's armour is now its
+        /// base plus whatever its relics contribute. Read raw, an Iron Skin would count in the
+        /// blow the delver lands — which asks defender.StatValue — and not in the one an
+        /// Executioner measures, and the same foe would have two different armours depending on
+        /// which relic was asking.
+        /// </remarks>
+        int ICombatBus.TargetDefence(ICombatActor attacker)
+        {
+            return _cur != null ? _foe.StatValue(Stat.Def) : 0;
+        }
 
         int ICombatBus.TargetMaxHealth(ICombatActor attacker) { return EnemyMax; }
 
@@ -1413,11 +1437,14 @@ namespace RelicRun.Core.Combat
                 enemyHp: Math.Max(0, _enemyHp),
                 gold: _hero.Gold,
                 enemyMaxHp: _cur != null ? EnemyMax : 1,
-                enemyAtk: _cur != null ? _cur.Atk : 0,
+                // Through the actor, so what the screen SHOWS is what the fight used. Read raw,
+                // a foe wearing an Iron Skin would be drawn with the armour it does not have
+                // while being hit with the armour it does.
+                enemyAtk: _cur != null ? _foe.StatValue(Stat.Atk) : 0,
                 enemyRank: _cur != null ? _cur.Rank : EnemyRank.Guard,
-                enemyArmor: _cur != null ? _cur.Armor : 0,
-                enemySpd: _cur != null ? _cur.Spd : 25,
-                enemyLck: _cur != null ? _cur.Lck : 10,
+                enemyArmor: _cur != null ? _foe.StatValue(Stat.Def) : 0,
+                enemySpd: _cur != null ? _foe.StatValue(Stat.Spd) : 25,
+                enemyLck: _cur != null ? _foe.StatValue(Stat.Lck) : 10,
                 enemyVariant: _cur != null ? _cur.Variant : 0,
                 enemyIndex: _cur != null ? _cur.SpeciesIndex : 0,
                 heroAdrenaline: _hero.Adrenaline,

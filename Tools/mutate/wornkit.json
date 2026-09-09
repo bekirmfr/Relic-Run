@@ -1,0 +1,95 @@
+{
+  "name": "what a worn relic is worth",
+  "mutants": [
+    {
+      "name": "an Ox Heart is worth nothing to the pool",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "            WornEffect.Thickens(RelicId.OxHeart, 13),",
+      "replace": "            WornEffect.Thickens(RelicId.OxHeart, 0),"
+    },
+    {
+      "name": "an Ox Heart is worth a clover's fifteen",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "            WornEffect.Thickens(RelicId.OxHeart, 13),",
+      "replace": "            WornEffect.Thickens(RelicId.OxHeart, 15),"
+    },
+    {
+      "name": "an Iron Skin raises attack rather than defence",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "            WornEffect.Raises(RelicId.IronSkin, Stat.Def, 1),",
+      "replace": "            WornEffect.Raises(RelicId.IronSkin, Stat.Atk, 1),"
+    },
+    {
+      "name": "a Lucky Clover stacks",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "            WornEffect.Raises(RelicId.LuckyClover, Stat.Lck, 15, stacks: false),",
+      "replace": "            WornEffect.Raises(RelicId.LuckyClover, Stat.Lck, 15, stacks: true),"
+    },
+    {
+      "name": "a Whetstone does not stack",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "            WornEffect.Raises(RelicId.Whetstone, Stat.Atk, 1),",
+      "replace": "            WornEffect.Raises(RelicId.Whetstone, Stat.Atk, 1, stacks: false),"
+    },
+    {
+      "name": "the boots do not quicken anybody",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "            WornEffect.Scales(RelicId.SwiftBoots, Stat.Spd, 1.25d),",
+      "replace": "            WornEffect.Scales(RelicId.SwiftBoots, Stat.Spd, 1d),"
+    },
+    {
+      "name": "the pool counts copies as one",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                total += worn.Pool * Held(relics, worn.Relic);",
+      "replace": "                total += worn.Pool;"
+    },
+    {
+      "name": "a row is worth one copy however many are worn",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                int amount = worn.Stacks ? worn.Each * copies : worn.Each;",
+      "replace": "                int amount = worn.Each;"
+    },
+    {
+      "name": "every row stacks, including the ones that do not",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                int amount = worn.Stacks ? worn.Each * copies : worn.Each;",
+      "replace": "                int amount = worn.Each * copies;"
+    },
+    {
+      "name": "a row is written without the relic that gave it",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                rows.Add(new StatModifier(worn.Stat, RelicCatalog.KeyOf(worn.Relic), amount));",
+      "replace": "                rows.Add(new StatModifier(worn.Stat, \"\", amount));"
+    },
+    {
+      "name": "the fold ignores which stat a row belongs to",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                if (mods[i].Stat == stat) total += mods[i].Amount;",
+      "replace": "                total += mods[i].Amount;"
+    },
+    {
+      "name": "a scale compounds with every copy",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                if (Held(relics, worn.Relic) == 0) continue;\n\n                times *= worn.Times;",
+      "replace": "                int copies = Held(relics, worn.Relic);\n\n                for (int i = 0; i < copies; i++) times *= worn.Times;"
+    },
+    {
+      "name": "a scale applies to every stat",
+      "file": "Assets/GameAssets/Core/Stats/WornKit.cs",
+      "find": "                if (worn.Times == 1d || worn.Stat != stat) continue;",
+      "replace": "                if (worn.Times == 1d) continue;"
+    },
+    {
+      "name": "the foe's kit never reaches its stats",
+      "file": "Assets/GameAssets/Core/Combat/CombatEngine.cs",
+      "find": "                int worn = WornKit.Of(_engine._cur.Mods, stat);",
+      "replace": "                int worn = 0;"
+    },
+    {
+      "name": "an authored foe is not thickened by its kit",
+      "file": "Assets/GameAssets/Core/Run/EnemyPackGenerator.cs",
+      "find": "            int thickened = hp + WornKit.Pool(relics);",
+      "replace": "            int thickened = hp;"
+    }
+  ]
+}

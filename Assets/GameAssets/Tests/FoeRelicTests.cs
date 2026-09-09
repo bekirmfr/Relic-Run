@@ -57,6 +57,18 @@ namespace RelicRun.Tests
                 .Events;
         }
 
+        private static int Count(IReadOnlyList<RelicId> relics, RelicId id)
+        {
+            var many = 0;
+
+            foreach (RelicId each in relics)
+            {
+                if (each == id) many++;
+            }
+
+            return many;
+        }
+
         private static bool Mentions(IReadOnlyList<CombatEvent> events, RelicId relic)
         {
             foreach (CombatEvent shown in events)
@@ -122,6 +134,200 @@ namespace RelicRun.Tests
             Assert.That(bare.Relics, Is.Null, "an empty list is still no list");
             Assert.That(bare.Awakened, Is.Not.Null);
             Assert.That(bare.SocketTriggers, Is.Not.Null);
+        }
+
+        /// <summary>
+        /// A typed foe is thickened by its own Ox Heart.
+        /// </summary>
+        /// <remarks>
+        /// This is the case that kept looking like a bug and kept having a different explanation.
+        /// Ox Heart is not a combat relic — it thickens the pool at the moment it is TAKEN — so a
+        /// foe whose hit points were typed in had nothing anywhere to apply it, and the relic sat
+        /// on the shelf doing nothing while every gauge said it was there.
+        ///
+        /// The pool is BAKED where the stats are not, and the asymmetry is deliberate: a pool is
+        /// a resource with a starting value that is then spent, while a stat is computed from its
+        /// rows every time it is read. Fold them together and a wound heals itself the moment
+        /// anything recalculates.
+        /// </remarks>
+        [Test]
+        public void ATypedFoeIsThickenedByItsOwnOxHeart()
+        {
+            Assert.That(WornKit.Pool(new[] { RelicId.OxHeart }), Is.EqualTo(13),
+                "the source gives a delver thirteen for one on pickup; a wearer gets the same");
+
+            Assert.That(Foe(50).Hp, Is.EqualTo(50));
+            Assert.That(Foe(50, RelicId.OxHeart).Hp, Is.EqualTo(63));
+            Assert.That(Foe(50, RelicId.OxHeart).MaxHp, Is.EqualTo(63),
+                "the ceiling rises with the pool, or the foe starts wounded");
+
+            Assert.That(Foe(50, RelicId.OxHeart, RelicId.OxHeart).Hp, Is.EqualTo(76),
+                "and it stacks, as a second one does for a delver");
+        }
+
+        /// <summary>
+        /// The rest of the kit arrives as labelled rows, not as arithmetic.
+        /// </summary>
+        /// <remarks>
+        /// A row carries the relic that gave it, so a number can be explained: "Armour 3" says
+        /// nothing about why the thing in front of you is hard to hurt, and "Iron Skin +1"
+        /// beside it does.
+        ///
+        /// The amounts are asserted as literals rather than read back out of the table. A test
+        /// that took its expectations from the thing it is checking would agree with any number
+        /// the table happened to hold — which is the trap this project has already fallen into
+        /// twice, over the set thresholds and the design area.
+        /// </remarks>
+        [Test]
+        public void ATypedFoesKitArrivesAsLabelledRows()
+        {
+            EnemyState kitted = Foe(50, RelicId.Whetstone, RelicId.IronSkin, RelicId.LuckyClover);
+
+            Assert.That(WornKit.Of(kitted.Mods, Stat.Atk), Is.EqualTo(1), "a Whetstone");
+            Assert.That(WornKit.Of(kitted.Mods, Stat.Def), Is.EqualTo(1), "an Iron Skin");
+            Assert.That(WornKit.Of(kitted.Mods, Stat.Lck), Is.EqualTo(15), "a Lucky Clover");
+            Assert.That(WornKit.Of(kitted.Mods, Stat.Spd), Is.Zero, "and nothing touches speed");
+
+            foreach (StatModifier row in kitted.Mods)
+            {
+                Assert.That(row.Source, Is.Not.Null.And.Not.Empty,
+                    "a row with no source is arithmetic wearing a costume");
+            }
+
+            Assert.That(WornKit.Of(Foe(50, RelicId.LuckyClover, RelicId.LuckyClover).Mods, Stat.Lck),
+                Is.EqualTo(15),
+                "a second clover is not more luck, which is the source's rule and not an oversight");
+
+            Assert.That(WornKit.Of(Foe(50, RelicId.Whetstone, RelicId.Whetstone).Mods, Stat.Atk),
+                Is.EqualTo(2), "but a second whetstone is more attack");
+        }
+
+        /// <summary>
+        /// Swift Boots multiply rather than add, and only their own stat.
+        /// </summary>
+        /// <remarks>
+        /// The one relic in the table that scales. It is worth its own case because a multiplier
+        /// behaves differently from a row in three ways that all look the same from outside: it
+        /// applies to the total rather than joining a list, it does NOT compound with a second
+        /// pair — nothing else in the game rewards duplicates that way — and it touches one stat,
+        /// not whichever stat happens to be asked for.
+        /// </remarks>
+        [Test]
+        public void SwiftBootsQuickenTheirWearerOnce()
+        {
+            var one = new[] { RelicId.SwiftBoots };
+            var two = new[] { RelicId.SwiftBoots, RelicId.SwiftBoots };
+
+            Assert.That(WornKit.Scale(one, Stat.Spd), Is.EqualTo(1.25d).Within(1e-9));
+            Assert.That(WornKit.Scale(two, Stat.Spd), Is.EqualTo(1.25d).Within(1e-9),
+                "a second pair of boots is not more boots");
+
+            Assert.That(WornKit.Scale(one, Stat.Atk), Is.EqualTo(1d),
+                "the boots quicken; they do not sharpen");
+            Assert.That(WornKit.Scale(new RelicId[0], Stat.Spd), Is.EqualTo(1d));
+
+            Assert.That(Foe(50, RelicId.SwiftBoots).Spd, Is.GreaterThan(Foe(50).Spd),
+                "and a foe wearing them should actually be quicker");
+        }
+
+        /// <summary>
+        /// The rows reach the fight, not just the stat block.
+        /// </summary>
+        /// <remarks>
+        /// A modifier nothing reads is a comment. This asks the engine, which is the only thing
+        /// whose opinion of a stat matters — a foe wearing an Iron Skin must actually be harder
+        /// to hurt than the same foe without one.
+        /// </remarks>
+        [Test]
+        public void AWornRowChangesWhatTheFightDoes()
+        {
+            // Eight of them, not one. Defence is a percentage — damage * K / (K + def) — so a
+            // single point off a five-point blow rounds back to five and the test would pass
+            // against a modifier that reached nothing at all. A weak observable is worse than
+            // none: it reports success either way.
+            int bare = Hurt(Foe(400));
+            int armoured = Hurt(Foe(400, Many(RelicId.IronSkin, 8)));
+
+            Assert.That(bare, Is.GreaterThan(0), "the delver should be landing blows at all");
+            Assert.That(armoured, Is.LessThan(bare),
+                "Iron Skin should blunt the blow, whoever is wearing it");
+        }
+
+        /// <summary>The most this delver ever took off this foe in one blow.</summary>
+        private static int Hurt(EnemyState foe)
+        {
+            int most = 0;
+
+            foreach (CombatEvent shown in Fight(Delver(), foe))
+            {
+                if (shown.Type == CombatEventType.EnemyDamage && shown.Amount.HasValue &&
+                    shown.Amount.Value > most)
+                {
+                    most = shown.Amount.Value;
+                }
+            }
+
+            return most;
+        }
+
+        /// <summary>
+        /// A floor's own pack is untouched, so the corpus still means what it meant.
+        /// </summary>
+        /// <remarks>
+        /// The bonuses apply where a foe was DESCRIBED, not where one was generated. Three
+        /// hundred and twenty-nine recorded fights put relics on foes — Iron Skin and Whetstone
+        /// among them — and every one of those stat blocks came from a table that already assumed
+        /// the kit. Applying the kit again there would not be a fix; it would be counting twice,
+        /// and every recorded fight would disagree.
+        /// </remarks>
+        [Test]
+        public void AGeneratedPackIsBuiltByItsFloorAndNotByItsKit()
+        {
+            // Tier four, because tier one's boss carries nothing at all — a floor whose foes
+            // wear no relics could not tell a kit being applied from a kit being ignored.
+            DungeonConfig hall = DungeonConfig.ForTier(4);
+
+            var first = EnemyPackGenerator.Build(13, new Mulberry32(0x5E1F00D), hall);
+            var again = EnemyPackGenerator.Build(13, new Mulberry32(0x5E1F00D), hall);
+
+            Assert.That(first, Is.Not.Empty);
+
+            for (int i = 0; i < first.Count; i++)
+            {
+                Assert.That(again[i].Hp, Is.EqualTo(first[i].Hp), "foe " + i);
+                Assert.That(again[i].Armor, Is.EqualTo(first[i].Armor), "foe " + i);
+            }
+
+            // A floor deep enough to carry a boss kit, so this is not asserting about foes that
+            // happen to wear nothing.
+            var armed = 0;
+
+            foreach (EnemyState foe in first)
+            {
+                if (foe.Relics != null && foe.Relics.Count > 0) armed++;
+            }
+
+            Assert.That(armed, Is.GreaterThan(0),
+                "this floor should field somebody wearing something, or the test proves nothing");
+
+            // The kit is on the foe AND absent from its numbers, which is the whole claim.
+            foreach (EnemyState foe in first)
+            {
+                if (foe.Relics == null) continue;
+
+                EnemyState typed = EnemyPackGenerator.Authored(foe.SpeciesIndex, foe.Rank, foe.Hp,
+                    foe.Atk, foe.Armor, foe.Spd, foe.Lck, foe.Drop, foe.Relics);
+
+                if (Count(foe.Relics, RelicId.IronSkin) > 0)
+                {
+                    Assert.That(WornKit.Of(typed.Mods, Stat.Def), Is.GreaterThan(0),
+                        "a typed foe wearing this kit WOULD carry a row for it");
+
+                    Assert.That(WornKit.Of(foe.Mods, Stat.Def), Is.Zero,
+                        "and the generated one carries none, because its table already " +
+                        "accounted for the kit");
+                }
+            }
         }
 
         /// <summary>
