@@ -38,10 +38,23 @@ namespace RelicRun.Core.Combat
         /// <remarks>
         /// Null and empty are different: the source game only reports a foe's relics when the
         /// list exists, so an empty list still appears in events while a missing one does not.
-        /// In this engine only six enemy relics do anything — Thorn Vest, Berserker Charm,
-        /// Weighted Dice, Vampire Tooth, Battle Dash and Lucky Clover. A boss kit may include
-        /// others (Iron Skin, Whetstone); those are inert here and only matter in a duel, where
-        /// both sides are full players.
+        ///
+        /// What a foe's relics DO is not a short list, and an earlier version of this comment
+        /// said it was. The combat code is written against <c>ICombatActor</c> throughout, and
+        /// <c>FoeActor</c> answers <c>Effective</c> and <c>CountRaw</c> with the real counts —
+        /// so every relic whose effect is read as a count already works for whoever wears it.
+        /// Thorn Vest returns damage for a foe exactly as it does for a delver.
+        ///
+        /// Three things a foe cannot do, and each for its own reason. It cannot WAKE a relic:
+        /// <c>FoeActor.IsAwake</c> is false by construction, so anything gated on an awakening —
+        /// Iron Skin's glance, the Whetstone's sunder — never fires. It has no inventory SLOTS,
+        /// so nothing that walks them reaches it, which in practice means sockets: a foe wears
+        /// relics but nothing is bolted to them. And a handful of reads still go through the
+        /// hero's own count rather than an actor's.
+        ///
+        /// Separately, some relics are not combat relics at all. Ox Heart raises the pool when it
+        /// is PICKED UP, so a delve foe whose hit points were typed in has nothing for it to
+        /// change; a versus rival, built through the run layer, does get its thirteen a copy.
         /// </remarks>
         public IReadOnlyList<RelicId> Relics;
 
