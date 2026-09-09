@@ -51,8 +51,13 @@ namespace RelicRun.Editor.Importers
         /// <remarks>
         /// The canvas is <c>ConstantPixelSize</c> at a whole factor, so one unit here is one, two
         /// or three screen pixels and never one and a half. The layout was first written against
-        /// a 1080-wide reference and is halved: on the commonest phone the factor is two, so the
-        /// canvas is 540 units across and everything lands where it did — but sharp.
+        /// a 1080-wide reference and is halved.
+        ///
+        /// How many units wide that leaves is NOT fixed, and it is worth not forgetting: a
+        /// 1080x2400 phone gets 2x and 540 units, a 1440x3088 one gets 3x and 480 — the bigger
+        /// screen has the SMALLER canvas, because a whole factor that fits 390x844 three times
+        /// divides the screen more finely. Anything anchored or stretched handles that; anything
+        /// given a fixed width in units takes a different share of the screen on each device.
         ///
         /// Text sizes go through <see cref="PixelScale.Snap"/> rather than being typed, because
         /// the ui face is a bitmap baked at eight pixels and a size of twenty draws it at two and
