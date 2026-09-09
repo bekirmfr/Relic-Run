@@ -183,7 +183,7 @@ namespace RelicRun.Tests
             Assert.That(card.Met, Is.Zero);
             Assert.That(card.Count, Is.EqualTo("0 / " + EnemyCatalog.All.Count + BestiaryCards.Found));
 
-            foreach (FoeEntry foe in card.Foes)
+            foreach (BestiaryEntry foe in card.Foes)
             {
                 Assert.That(foe.Met, Is.False);
                 Assert.That(foe.NameKey, Is.Null, "species " + foe.Species + " named itself");
@@ -203,7 +203,7 @@ namespace RelicRun.Tests
             Assert.That(card.Met, Is.EqualTo(1));
             Assert.That(card.Count, Does.StartWith("1 / "));
 
-            foreach (FoeEntry foe in card.Foes)
+            foreach (BestiaryEntry foe in card.Foes)
             {
                 bool expected = foe.Species == 3;
 

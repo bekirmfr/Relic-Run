@@ -224,6 +224,11 @@ namespace RelicRun.Editor.Importers
             ModesPanel modes = Modes(canvas, face);
             LevelsPanel levels = Levels(canvas, face, tile);
 
+            BoardPanel board = Sheet<BoardPanel>(canvas, face, "BoardPanel");
+            ProfilePanel profile = Sheet<ProfilePanel>(canvas, face, "ProfilePanel");
+            BestiaryPanel bestiary = Sheet<BestiaryPanel>(canvas, face, "BestiaryPanel");
+            RelicBookPanel relics = Sheet<RelicBookPanel>(canvas, face, "RelicBookPanel");
+
             MetaScene shell = scene.GetComponent<MetaScene>();
 
             if (shell == null)
@@ -237,7 +242,10 @@ namespace RelicRun.Editor.Importers
 
             var panels = new SerializedObject(shell).FindProperty("_panels");
 
-            var built = new MetaPanel[] { title, modes, levels };
+            var built = new MetaPanel[]
+            {
+                title, modes, levels, board, profile, bestiary, relics,
+            };
 
             panels.arraySize = built.Length;
 
@@ -283,6 +291,25 @@ namespace RelicRun.Editor.Importers
             GameObject daily = Banner(panel, face, "Daily", -120f, "TODAY");
             GameObject versus = Banner(panel, face, "Versus", -224f, "VERSUS");
 
+            // The four screens a delver reads rather than plays. The source puts them behind a
+            // row of icons; this is the same row with words on it, because an icon nobody has
+            // drawn yet is a button that says nothing at all.
+            GameObject nav = Strip(panel, "Nav", 0f, 104f, 36f);
+            var navRow = nav.AddComponent<HorizontalLayoutGroup>();
+
+            navRow.childForceExpandWidth = true;
+            navRow.childForceExpandHeight = true;
+            navRow.spacing = 6f;
+
+            GameObject board = Press(nav, "Board", face, "RUNS", Small,
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
+            GameObject relics = Press(nav, "Relics", face, "RELICS", Small,
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
+            GameObject bestiary = Press(nav, "Bestiary", face, "FOES", Small,
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
+            GameObject profile = Press(nav, "Profile", face, "DELVER", Small,
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
+
             GameObject howPanel = Strip(panel, "HowPanel", 0f, 56f, 40f);
             GameObject how = Press(howPanel, "How", face, "HOW TO PLAY", Text(16),
                 new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
@@ -306,6 +333,10 @@ namespace RelicRun.Editor.Importers
                 Pair("_versusLeft", Named(versus, "Left")),
                 Pair("_versusRight", Named(versus, "Right")),
                 Pair("_how", how.GetComponent<Button>()),
+                Pair("_board", board.GetComponent<Button>()),
+                Pair("_relics", relics.GetComponent<Button>()),
+                Pair("_bestiary", bestiary.GetComponent<Button>()),
+                Pair("_profile", profile.GetComponent<Button>()),
             });
 
             return view;
@@ -331,6 +362,92 @@ namespace RelicRun.Editor.Importers
             Line(banner, face, "", Small, TextAlignmentOptions.Right, -26f).name = "Right";
 
             return banner;
+        }
+
+        /* ---------- the screens that are a heading and a list ---------- */
+
+        /// <summary>
+        /// A screen that is a heading and a list of lines.
+        /// </summary>
+        /// <remarks>
+        /// Four of them are exactly this, so they are built by one method rather than four that
+        /// drift. What differs between them is what the lines SAY, and that is each panel's own
+        /// business in <c>ReadingPanels</c>.
+        ///
+        /// It scrolls, which is not optional: the relic book is fifty rows and the bestiary is
+        /// thirteen with a paragraph each. A list that ran off the bottom of the screen would be
+        /// a list whose last entries nobody could read.
+        /// </remarks>
+        private static T Sheet<T>(GameObject canvas, TMP_FontAsset face, string name)
+            where T : SheetPanel
+        {
+            GameObject panel = Full(canvas, name);
+
+            GameObject head = Strip(panel, "Head", 1f, -44f, 40f);
+            GameObject back = Press(head, "Back", face, "‹ BACK", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            GameObject note = Line(panel, face, "", Small, TextAlignmentOptions.Left, 0f);
+            Place(note, 1f, -84f, 16f);
+
+            GameObject title = Line(panel, face, "", 24, TextAlignmentOptions.Left, 0f);
+            Place(title, 1f, -108f, 32f);
+
+            // The window the list is seen through. A mask rather than a shorter list, so a row
+            // that scrolls past the top is clipped instead of vanishing a frame early.
+            GameObject window = Panel(panel, "Window", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                new Vector2(0f, -70f), new Vector2(-Margin * 2f, -140f));
+
+            window.AddComponent<RectMask2D>();
+
+            var scroll = panel.AddComponent<ScrollRect>();
+
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 24f;
+            scroll.viewport = (RectTransform)window.transform;
+
+            // Pinned to the TOP and grown downward by a fitter, so a list of any length starts
+            // where the heading left off rather than being centred in whatever room it has.
+            GameObject list = Panel(window, "List", new Vector2(0f, 1f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var rect = (RectTransform)list.transform;
+            rect.pivot = new Vector2(0.5f, 1f);
+
+            var rows = list.AddComponent<VerticalLayoutGroup>();
+
+            rows.childForceExpandWidth = true;
+            rows.childForceExpandHeight = false;
+            rows.childControlHeight = true;
+            rows.childControlWidth = true;
+            rows.spacing = 4f;
+
+            var fitter = list.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scroll.content = rect;
+
+            // The row template, kept inactive: the panel spawns from it, and a live copy sitting
+            // in the layout would be a row nobody put there.
+            GameObject row = Line(list, face, "", Small, TextAlignmentOptions.TopLeft, 0f);
+            row.name = "Row";
+            row.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
+            row.SetActive(false);
+
+            var view = panel.AddComponent<T>();
+
+            Wire(view, new[]
+            {
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_note", note.GetComponent<TMP_Text>()),
+                Pair("_list", (RectTransform)list.transform),
+                Pair("_row", row.GetComponent<TMP_Text>()),
+                Pair("_back", back.GetComponent<Button>()),
+            });
+
+            return view;
         }
 
         /* ---------- the mode picker ---------- */

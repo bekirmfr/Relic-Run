@@ -5,8 +5,15 @@ using RelicRun.Core.Meta;
 
 namespace RelicRun.Core.Presentation
 {
-    /// <summary>One species, as much of it as the delver has earned.</summary>
-    public struct FoeEntry
+    /// <summary>
+    /// One species, as much of it as the delver has earned.
+    /// </summary>
+    /// <remarks>
+    /// Not called FoeEntry, because the fight's own setup already has one of those and a
+    /// widget importing both namespaces could not tell them apart. Core is the newcomer
+    /// here, so Core is what moved.
+    /// </remarks>
+    public struct BestiaryEntry
     {
         public int Species;
 
@@ -36,7 +43,7 @@ namespace RelicRun.Core.Presentation
     /// <summary>Everything the bestiary shows.</summary>
     public struct BestiaryCard
     {
-        public IReadOnlyList<FoeEntry> Foes;
+        public IReadOnlyList<BestiaryEntry> Foes;
 
         public int Met;
 
@@ -70,6 +77,16 @@ namespace RelicRun.Core.Presentation
         /// <summary>The word after the tally. English, like the rest of the source's chrome.</summary>
         public const string Found = " FOUND";
 
+        /// <summary>
+        /// The heading. English in every locale, because the source writes it into its markup.
+        /// </summary>
+        /// <remarks>
+        /// Worth checking rather than assuming, and it was: the board's heading DOES come from
+        /// the translator, under <c>lbTitle</c>. Two screens next to each other, one translated
+        /// and one not, and the only way to know which is which is to read the markup.
+        /// </remarks>
+        public const string Title = "Bestiary";
+
         /// <summary>The key its NAME is translated under, by species index.</summary>
         /// <remarks>
         /// The source's scheme: <c>en0</c> through <c>en12</c>, positional. Built here rather
@@ -98,7 +115,7 @@ namespace RelicRun.Core.Presentation
         {
             if (save == null) save = new SaveState();
 
-            var foes = new List<FoeEntry>(EnemyCatalog.All.Count);
+            var foes = new List<BestiaryEntry>(EnemyCatalog.All.Count);
             var met = 0;
 
             for (var i = 0; i < EnemyCatalog.All.Count; i++)
@@ -106,7 +123,7 @@ namespace RelicRun.Core.Presentation
                 bool seen = save.Seen.Contains(i);
                 if (seen) met++;
 
-                foes.Add(new FoeEntry
+                foes.Add(new BestiaryEntry
                 {
                     Species = i,
                     Met = seen,

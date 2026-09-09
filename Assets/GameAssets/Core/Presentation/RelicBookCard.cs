@@ -68,6 +68,12 @@ namespace RelicRun.Core.Presentation
     /// </remarks>
     public static class RelicBookCards
     {
+        /// <summary>The heading. English in every locale, from the source's own markup.</summary>
+        public const string Title = "Relics";
+
+        /// <summary>And the line over it.</summary>
+        public const string Note = "THE COMPENDIUM";
+
         public static RelicBookCard Of()
         {
             var entries = new List<BookEntry>(RelicCatalog.All.Count);

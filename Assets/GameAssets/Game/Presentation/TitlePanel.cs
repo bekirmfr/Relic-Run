@@ -44,6 +44,15 @@ namespace RelicRun.Game.Presentation
 
         [SerializeField] private Button _how;
 
+        /// <summary>The four screens a delver reads rather than plays.</summary>
+        [SerializeField] private Button _board;
+
+        [SerializeField] private Button _relics;
+
+        [SerializeField] private Button _bestiary;
+
+        [SerializeField] private Button _profile;
+
         /// <summary>
         /// What an open mode's captions look like, and what a shut one's do.
         /// </summary>
@@ -87,6 +96,11 @@ namespace RelicRun.Game.Presentation
             Press(_daily, () => Go(Page.Modes));
             Press(_versus, () => Go(Page.Staging));
             Press(_how, () => Go(Page.How));
+
+            Press(_board, () => Go(Page.Board));
+            Press(_relics, () => Go(Page.RelicBook));
+            Press(_bestiary, () => Go(Page.Bestiary));
+            Press(_profile, () => Go(Page.Profile));
         }
 
         private static void Press(Button button, Action what)

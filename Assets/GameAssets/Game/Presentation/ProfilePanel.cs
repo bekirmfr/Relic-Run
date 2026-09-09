@@ -1,0 +1,50 @@
+using System;
+using System.Collections.Generic;
+using RelicRun.Core.Content;
+using RelicRun.Core.Presentation;
+using RelicRun.Game.Services;
+
+namespace RelicRun.Game.Presentation
+{
+public sealed class ProfilePanel : SheetPanel
+    {
+        public override Page Shows
+        {
+            get { return Page.Profile; }
+        }
+
+        public override void Draw(SaveVault vault, DateTimeOffset now)
+        {
+            ProfileCard card = ProfileCards.Of(vault.Earned, vault.Chosen);
+
+            var rows = new List<Row>
+            {
+                new Row("LEVEL  " + card.Level, Plain),
+                new Row("XP  " + card.Xp, Plain),
+
+                // No next level at the ceiling, so nothing about one is said. A screen reading
+                // "100% to level 21" would be promising something that does not exist.
+                new Row(card.Capped ? "MAX LEVEL" : card.ToNext + "% TO LEVEL " + (card.Level + 1),
+                    card.Capped ? Lit : Plain),
+
+                new Row("RUNS  " + card.Runs, Plain),
+                new Row("CLEARS  " + card.Clears, Plain),
+                new Row("BEST  " + card.Best, Plain),
+                new Row("CROWNS  " + card.Crowns, Plain),
+                new Row("GOLD BANKED  " + card.GoldLife, Plain),
+                new Row(card.Supporter ? "SUPPORTER PACK" : "BASIC", card.Supporter ? Lit : Faint),
+                new Row(string.Empty, Plain),
+            };
+
+            foreach (Badge badge in card.Badges)
+            {
+                rows.Add(new Row(badge.Name + " — " + badge.What,
+                    badge.Earned ? Plain : Faint));
+            }
+
+            string who = string.IsNullOrEmpty(card.Name) ? Say("lbAnon") : card.Name;
+
+            Sheet(who, card.Won + " / " + card.Badges.Count, rows);
+        }
+    }
+}
