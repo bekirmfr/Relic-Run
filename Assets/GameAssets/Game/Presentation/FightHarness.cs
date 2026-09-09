@@ -101,7 +101,7 @@ namespace RelicRun.Game.Presentation
                 Pacing pacing = Pacing.For(events.Count, _fight.ReducedMotion, _fight.Speed,
                     _content.Presentation.ToPacing());
 
-                _view.Begin(events, pacing, Reading(), Shelf.Of(_delver), false);
+                _view.Begin(events, pacing, Reading(), Shelf.Of(_delver), false, _fight.Hall);
                 _showing = new CombatPlaybackController(_content.Presentation);
 
                 await _showing.Show(events, _view, _fight.SkipIntro);

@@ -42,6 +42,7 @@ namespace RelicRun.Editor
         {
             EditorGUILayout.LabelField("The fight", EditorStyles.boldLabel);
             Field("Seed");
+            Field("Hall");
             Field("Floor");
         }
 

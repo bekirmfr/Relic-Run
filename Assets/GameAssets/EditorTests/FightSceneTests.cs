@@ -272,6 +272,37 @@ namespace RelicRun.Tests.Editor
             Assert.That(lines.anchorMax.y, Is.EqualTo(0f));
         }
 
+        /// <summary>
+        /// The hall is behind everything, which is a position rather than a setting.
+        /// </summary>
+        /// <remarks>
+        /// A canvas paints its children in hierarchy order, so "behind" is first — and first is
+        /// exactly what any later insertion takes without meaning to. Nothing warns about it: the
+        /// hall would simply cover the fight, and the fight would look like it had stopped
+        /// drawing.
+        ///
+        /// It also masks, because the art is deliberately WIDER than the screen — that is how a
+        /// hall has anywhere to slide to — so without a mask a floor would be drawn across
+        /// whatever else the canvas holds.
+        /// </remarks>
+        [Test]
+        public void TheHallIsBehindEverything()
+        {
+            var hall = Find<HallView>();
+
+            Assert.That(hall, Is.Not.Null, "nothing draws the hall");
+            Assert.That(hall.GetComponent<UnityEngine.UI.RectMask2D>(), Is.Not.Null,
+                "the hall does not clip, and its art is wider than the screen on purpose");
+
+            Assert.That(hall.transform.GetSiblingIndex(), Is.Zero,
+                "the hall is not the first child, so it is painted over the fight");
+
+            Assert.That(Find<CombatView>().transform, Is.EqualTo(hall.transform.parent),
+                "the hall is not on the canvas the fight is drawn on");
+
+            Filled(hall);
+        }
+
         /// <summary>The foe says what it is, and what it is carrying.</summary>
         /// <remarks>
         /// A red bar and a name were all there was. How hard it hits, how fast it moves and what

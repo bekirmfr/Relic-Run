@@ -31,8 +31,11 @@ namespace RelicRun.Game.Data
         [Tooltip("Fixed, so the same fight can be watched twice and talked about.")]
         public uint Seed = 0x5E1F00D;
 
-        [Tooltip("Which floor of the first hall. Seven is the bazaar and has no fight.")]
+        [Tooltip("Which floor of the hall. Seven is the bazaar and has no fight.")]
         [Range(1, 13)] public int Floor = 1;
+
+        [Tooltip("Which hall, counting from one. Decides the backdrop the delver walks down.")]
+        [Range(1, 10)] public int Hall = 1;
 
         [Header("The delver")]
         public DelverSetup Delver = new DelverSetup();
@@ -41,7 +44,8 @@ namespace RelicRun.Game.Data
         public FoeSetup Foes = new FoeSetup();
 
         [Header("Watching")]
-        [Tooltip("Skips the walk down the hall, which is three and a half seconds of scenery.")]
+        [Tooltip("Skips the walk down the hall. It is the only thing that shows how far into " +
+                 "a floor the delver is, so this hides information as well as time.")]
         public bool SkipIntro;
 
         [Tooltip("How fast the fight is read out. The pacing decides the beat; this multiplies it.")]

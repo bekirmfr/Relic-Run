@@ -435,6 +435,11 @@ namespace RelicRun.Editor.Importers
 
             var view = canvas.AddComponent<CombatView>();
 
+            // FIRST, so everything else draws in front of it. A canvas paints its children in
+            // hierarchy order, so the backdrop is not a layer setting — it is a position, and one
+            // that any later insertion could quietly take.
+            HallView hall = Hall(canvas, content);
+
             GameObject foe = Panel(canvas, "Foe", new Vector2(0f, 1f), new Vector2(1f, 1f),
                 new Vector2(0f, -260f), new Vector2(-40f, 230f));
             GameObject art = Box(foe, "Art", new Vector2(0f, 0.5f), new Vector2(96f, 96f),
@@ -489,6 +494,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_log", (RectTransform)log.transform),
                 Pair("_flier", flier),
                 Pair("_line", line),
+                Pair("_hall", hall),
                 Pair("_tray", tray),
                 Pair("_content", content),
             });
@@ -794,6 +800,55 @@ namespace RelicRun.Editor.Importers
             });
 
             return tray;
+        }
+
+        /// <summary>
+        /// The hall behind the fight: a window, and a wider picture sliding inside it.
+        /// </summary>
+        /// <remarks>
+        /// Two objects rather than one, because they do different jobs. The window is the size of
+        /// the screen and MASKS; the art inside it is as wide as its own shape makes it at that
+        /// height, which is almost always wider than the screen, and it is the art that moves.
+        ///
+        /// The picture is left disabled and empty. The halls are addressable — they are the
+        /// reason Addressables is in this project, at four and a half megabytes for a set a floor
+        /// uses one of — so what fills this arrives after the fight has already started, and a
+        /// white rectangle waiting for it would be worse than a dark one.
+        /// </remarks>
+        private static HallView Hall(GameObject parent, GameContent content)
+        {
+            GameObject window = Panel(parent, "Hall", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            window.AddComponent<RectMask2D>();
+
+            var art = new GameObject("Art", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)art.transform;
+
+            rect.SetParent(window.transform, false);
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+
+            Image picture = art.GetComponent<Image>();
+            picture.color = Color.white;
+            picture.enabled = false;
+
+            // Nothing behind the hall reads a click, and the hall itself is scenery. Left on,
+            // the full-screen window would swallow every press meant for what is drawn over it.
+            picture.raycastTarget = false;
+
+            var view = window.AddComponent<HallView>();
+
+            Wire(view, new[]
+            {
+                Pair("_window", (RectTransform)window.transform),
+                Pair("_art", rect),
+                Pair("_picture", picture),
+                Pair("_content", content),
+            });
+
+            return view;
         }
 
         /// <summary>

@@ -49,6 +49,9 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private RectTransform _goldFliers;
 
         [Header("The log")]
+        [Tooltip("The hall behind everything, which slides one stride per foe.")]
+        [SerializeField] private HallView _hall;
+
         [SerializeField] private RelicTray _tray;
 
         [SerializeField] private RectTransform _log;
@@ -87,7 +90,7 @@ namespace RelicRun.Game.Presentation
         /// event at a time would make the bars guess.
         /// </remarks>
         public void Begin(IReadOnlyList<CombatEvent> events, Pacing pacing, CombatLog reading,
-            Shelf shelf = null, bool versus = false)
+            Shelf shelf = null, bool versus = false, int hall = 1)
         {
             _events = events;
             _pacing = pacing;
@@ -96,6 +99,11 @@ namespace RelicRun.Game.Presentation
             // Once, because the shelf does not change during a floor. Everything that DOES change
             // reaches the tray through the snapshot on each event.
             if (_tray != null) _tray.Begin(shelf, versus);
+
+            // Counted from the events rather than passed in, because the number of foes IS the
+            // number of arrivals — and a pack that gains a foe mid-floor gains an Enter with it,
+            // so the strides stay even without anybody remembering to say so.
+            if (_hall != null) _hall.Begin(Arrivals(events), hall);
 
             _heroMax = 0;
             if (events != null)
@@ -149,15 +157,32 @@ namespace RelicRun.Game.Presentation
             if (_tray != null) _tray.Show(shown);
         }
 
+        /// <summary>How many foes turn up on this floor, which is how many arrivals it has.</summary>
+        private static int Arrivals(IReadOnlyList<CombatEvent> events)
+        {
+            if (events == null) return 0;
+
+            var many = 0;
+
+            foreach (CombatEvent shown in events)
+            {
+                if (shown.Type == CombatEventType.Enter) many++;
+            }
+
+            return many;
+        }
+
         /// <summary>Sets off down the hall to meet whoever is entering.</summary>
         /// <remarks>
-        /// Not implemented as motion yet — the hall pan is its own piece of work. What matters
-        /// now is that the foe on screen becomes the one being walked to, so a delver watching
-        /// sees the right creature when the fight starts.
+        /// Two things at once, and the order matters: the hall sets off, and the foe waiting at
+        /// the end of it becomes the one on screen. Drawing the foe first would have it standing
+        /// in the old room for a frame.
         /// </remarks>
         public void Walk(int index)
         {
             if (_events == null || index < 0 || index >= _events.Count) return;
+
+            if (_hall != null) _hall.Walk();
 
             Foe(_events[index].State);
         }
