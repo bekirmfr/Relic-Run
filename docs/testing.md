@@ -1168,6 +1168,65 @@ Three of the gates here are the kind that only exist because the failure was inv
 - `FightSceneTests` also asserts that something recomputes the factor. `ConstantPixelSize` alone
   is a canvas frozen at whatever the last person typed: right on one screen, wrong on the rest.
 
+## A field that is never saved round-trips perfectly
+
+`SaveCodec` turns a delver's progression into text and back. The obvious gate is a round trip:
+write a full save, read it, compare. That gate is real and it cannot find the bug this class
+actually has.
+
+The bug is a field added to `SaveState` and not added to the codec. Nothing throws. Nothing logs.
+The save is written, the save is read, and the round trip passes — because a field that neither
+side writes is default on both ends, and default equals default. The delver's gold goes back to
+zero and every test is green.
+
+So the codec publishes `SaveCodec.Fields`, and `EveryFieldOfTheSaveIsCarried` reflects over
+`SaveState` and holds the two against each other in both directions: a field the codec does not
+name fails, and a name the type does not have fails too. It is the reason the codec is in Core at
+all rather than being a Unity DTO next to the save service — reflection over a type is not
+something a test can do from outside the assembly it wants to check, and `dotnet test` cannot
+reach a Unity assembly.
+
+Two more things the round trip does not see:
+
+- **An empty value is a value.** The first version read `key value` and treated a line with
+  nothing after the space as torn. A delver who never set a name has an empty name, so the
+  commonest row on the board was reported as damage. Found by the escaping test, which feeds the
+  codec every string a person can actually type — the separator, a newline, a lone backslash, a
+  trailing backslash, emoji — rather than a well-behaved sample.
+- **A torn save has to lose a line, not a profile.** Refusing the file loses everything to one bad
+  byte; skipping quietly loses the same thing and says nothing. `Loaded.Damaged` counts what was
+  dropped so the store can log it once, and everything that parsed is kept.
+
+`Loaded.Version` is written from the first save rather than added when a migration first needs
+it, because it cannot be added afterwards: a save with no version is indistinguishable from a
+version-one save, and that ambiguity is permanent.
+
+### A round trip cannot reach a branch its own encoder never produces
+
+Three of seventeen mutants survived the first pass, and all three sat in the same blind spot.
+`Plain` keeps a trailing backslash rather than dropping it, and keeps an escape it does not
+recognise rather than eating the marker. Neither branch is reachable by writing something and
+reading it back — this encoder never emits a lone trailing backslash and never emits `\q` — so
+every round-trip case in the fixture walked straight past both, however nasty the name being
+round-tripped was.
+
+The reflex is to call that dead code and delete it, which is what mutation testing has correctly
+demanded three times elsewhere in this port. Here it is wrong, and the difference is worth being
+able to tell: those branches are not for text this encoder wrote. They are for text that reached
+the decoder some other way — **a file truncated mid-write**, which ends on half an escape, and **a
+save written by a later version**, which carries escapes this one has not been taught. Both are
+real, both arrive at exactly these two branches, and in both the wrong answer is to silently
+change what the delver typed.
+
+So the gate is asked of the decoder directly. The rule that separates the two cases: if you can
+name the input that reaches the branch and say where it comes from, it is a gap in the tests; if
+you cannot, it is dead code.
+
+The third survivor was plainer. A score row is six fields, the torn-save fixture fed it three,
+and a mutant that asked for "at least four" rather than "exactly six" survived — three is short
+enough that any check catches it. The fixture now also feeds five, which is one field short of
+whole and is the only length that tells the two checks apart.
+
 ## Two runners, two NUnits
 
 The same test file is compiled by `dotnet test` and by Unity's Test Runner, and they do not
@@ -1245,3 +1304,7 @@ node Tools/extract/validate.mjs
 | Phase 9d — what a screen draws | none — invariants | passing, the fliers and the two gauges |
 | Phase 9e — what a relic has left | none — invariants | passing, two clocks and a budget per copy |
 | Phase 9f — the fight scene | none — invariants | Test Runner only; every reference wired |
+| Phase 10a — which layout a screen gets | `shell.json` | passing, thresholds read off the source's own line |
+| Phase 10b — the save, written and read | none — invariants | passing, every field reflected · 17 mutants |
+| Phase 10c — the save on disk | none — invariants | Test Runner only; the package's seam |
+| Phase 10d — where the buttons go | none — ported by hand | passing, 3 routing rules · 13 mutants |

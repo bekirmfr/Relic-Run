@@ -1,0 +1,77 @@
+{
+  "name": "a delver's progression, written out and read back",
+  "mutants": [
+    {
+      "name": "the save does not say what version wrote it",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "            Line(text, VersionKey, Version);\n",
+      "replace": ""
+    },
+    {
+      "name": "the wallet is never written",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "            Line(text, \"gold\", save.Gold);\n",
+      "replace": ""
+    },
+    {
+      "name": "the bestiary is never written",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "            foreach (int species in save.Seen) Line(text, \"seen\", Number(species));",
+      "replace": "            if (save.Seen.Count < 0) Line(text, \"seen\", \"0\");"
+    },
+    {
+      "name": "a day's best is written but its seed is not",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "                Line(text, \"daily\", day.Key.ToString(CultureInfo.InvariantCulture) + \"|\" +\n                                    Number(day.Value));",
+      "replace": "                Line(text, \"daily\", \"0|\" + Number(day.Value));"
+    },
+    {
+      "name": "a name is written raw, without escaping",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "                                    Lines.Escaped(row.Name));",
+      "replace": "                                    row.Name);"
+    },
+    {
+      "name": "a key this version does not know counts as damage",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "                default: return true;\n            }\n        }",
+      "replace": "                default: return false;\n            }\n        }"
+    },
+    {
+      "name": "damage is never counted",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "                if (!Take(ref loaded, record.Key, record.Value)) loaded.Damaged++;",
+      "replace": "                Take(ref loaded, record.Key, record.Value);"
+    },
+    {
+      "name": "the first hall can be taken away",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "            if (loaded.Save.Unlocked < 1) loaded.Save.Unlocked = 1;",
+      "replace": "            if (loaded.Save.Unlocked < 0) loaded.Save.Unlocked = 1;"
+    },
+    {
+      "name": "a short score row is read anyway, with the fields it has",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "            if (parts.Length != 6) return false;",
+      "replace": "            if (parts.Length < 4) return false;"
+    },
+    {
+      "name": "a torn number leaves whatever was there before",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "                case \"xp\": return Int(value, out save.Xp);",
+      "replace": "                case \"xp\": Int(value, out save.Xp); return true;"
+    },
+    {
+      "name": "the version is read as a number the save never wrote",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "                case VersionKey: return Int(value, out loaded.Version);",
+      "replace": "                case VersionKey: loaded.Version = Version; return true;"
+    },
+    {
+      "name": "a line the format could not read is not counted as damage",
+      "file": "Assets/GameAssets/Core/Meta/SaveCodec.cs",
+      "find": "Damaged = reading.Damaged };",
+      "replace": "Damaged = 0 };"
+    }
+  ]
+}

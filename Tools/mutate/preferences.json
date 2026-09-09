@@ -1,0 +1,131 @@
+{
+  "name": "what a delver chose, and the language they read it in",
+  "mutants": [
+    {
+      "name": "a name that was never given is written as an empty one",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.Name != null) Lines.Put(text, \"name\", Lines.Escaped(prefs.Name));",
+      "replace": "            Lines.Put(text, \"name\", Lines.Escaped(prefs.Name));"
+    },
+    {
+      "name": "a chosen language is written as an empty one when unset",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.Language != null) Lines.Put(text, \"lang\", Lines.Escaped(prefs.Language));",
+      "replace": "            Lines.Put(text, \"lang\", Lines.Escaped(prefs.Language));"
+    },
+    {
+      "name": "the mute setting is never written",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            Lines.Put(text, \"mute\", prefs.Muted ? \"1\" : \"0\");\n",
+      "replace": ""
+    },
+    {
+      "name": "the supporter pack is never written",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            Lines.Put(text, \"supporter\", prefs.Supporter ? \"1\" : \"0\");\n",
+      "replace": ""
+    },
+    {
+      "name": "the remembered arena hall is never written",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            Lines.Put(text, \"vsHall\", prefs.VersusHall.ToString(CultureInfo.InvariantCulture));\n",
+      "replace": ""
+    },
+    {
+      "name": "a name is written raw, without escaping",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.Name != null) Lines.Put(text, \"name\", Lines.Escaped(prefs.Name));",
+      "replace": "            if (prefs.Name != null) Lines.Put(text, \"name\", prefs.Name);"
+    },
+    {
+      "name": "an auto-named delver keeps the name the old build gave them",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.Name != null && prefs.Name.StartsWith(AutoNamed)) prefs.Name = null;",
+      "replace": "            if (prefs.Name != null && prefs.Name == AutoNamed) prefs.Name = null;"
+    },
+    {
+      "name": "an auto-named delver is left anonymous rather than asked again",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.Name != null && prefs.Name.StartsWith(AutoNamed)) prefs.Name = null;",
+      "replace": "            if (prefs.Name != null && prefs.Name.StartsWith(AutoNamed)) prefs.Name = string.Empty;"
+    },
+    {
+      "name": "a remembered hall may be below the first",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.Tier < 1) prefs.Tier = 1;",
+      "replace": "            if (prefs.Tier < 0) prefs.Tier = 1;"
+    },
+    {
+      "name": "a remembered arena hall may be below the first",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            if (prefs.VersusHall < 1) prefs.VersusHall = 1;",
+      "replace": "            if (prefs.VersusHall < 0) prefs.VersusHall = 1;"
+    },
+    {
+      "name": "an unreadable hall number becomes a zero rather than the default",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "                out number) ? number : fallback;",
+      "replace": "                out number) ? number : 0;"
+    },
+    {
+      "name": "a delver who never chose is treated as having chosen nothing",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "            get { return Name == null; }",
+      "replace": "            get { return string.IsNullOrEmpty(Name); }"
+    },
+    {
+      "name": "muting reads as true for anything that is not a zero",
+      "file": "Assets/GameAssets/Core/Meta/Preferences.cs",
+      "find": "                    case \"mute\": prefs.Muted = record.Value == \"1\"; break;",
+      "replace": "                    case \"mute\": prefs.Muted = record.Value != \"0\"; break;"
+    },
+    {
+      "name": "a chosen language the build does not ship is honoured anyway",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "            if (Has(shipped, chosen)) return chosen;",
+      "replace": "            if (chosen != null) return chosen;"
+    },
+    {
+      "name": "the device is never asked",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "            if (asked != null)\n            {\n                for (var i = 0; i < asked.Count; i++)\n                {\n                    string tag = Base(asked[i]);\n                    if (Has(shipped, tag)) return tag;\n                }\n            }",
+      "replace": ""
+    },
+    {
+      "name": "the device is asked worst first",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "                for (var i = 0; i < asked.Count; i++)",
+      "replace": "                for (int i = asked.Count - 1; i >= 0; i--)"
+    },
+    {
+      "name": "only the device's first choice is considered",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "                for (var i = 0; i < asked.Count; i++)",
+      "replace": "                for (var i = 0; i < 1 && i < asked.Count; i++)"
+    },
+    {
+      "name": "a tag keeps its region",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "            string language = dash < 0 ? tag : tag.Substring(0, dash);",
+      "replace": "            string language = tag;"
+    },
+    {
+      "name": "a tag is lowercased by the delver's own culture",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "            return language.ToLowerInvariant();",
+      "replace": "            return language.ToLower(new System.Globalization.CultureInfo(\"tr-TR\"));"
+    },
+    {
+      "name": "a tag is not lowercased at all",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "            return language.ToLowerInvariant();",
+      "replace": "            return language;"
+    },
+    {
+      "name": "a build that ships nothing answers with nothing",
+      "file": "Assets/GameAssets/Core/Content/Languages.cs",
+      "find": "            if (shipped == null || shipped.Count == 0) return Fallback;",
+      "replace": "            if (shipped == null || shipped.Count == 0) return null;"
+    }
+  ]
+}

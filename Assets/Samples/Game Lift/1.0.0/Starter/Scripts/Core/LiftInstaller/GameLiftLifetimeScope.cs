@@ -16,6 +16,7 @@ using GameLift.Save;
 using GameLift.Scene;
 using GameLift.Settings;
 using GameLift.Signal;
+using RelicRun.Game.Services;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -52,6 +53,12 @@ namespace GameLift.Installer
 
             builder.Register<ISaveHandler, EncryptedSaveHandler>(Lifetime.Singleton);
             builder.Register<ISaveService, SaveService>(Lifetime.Singleton);
+
+            // The delver's save, and it belongs HERE rather than in a scene's own scope. The
+            // vault caches what it read, so a second one built for a second scene would be a second
+            // opinion about how much gold there is — and whichever committed last would win. One
+            // vault, at the root, outliving every scene that asks it anything.
+            builder.Register<SaveVault>(Lifetime.Singleton);
 
             builder.Register<IPools, Pools>(Lifetime.Singleton);
 

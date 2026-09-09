@@ -1,0 +1,83 @@
+{
+  "name": "the shape everything saved is written in",
+  "mutants": [
+    {
+      "name": "escaping leaves the backslash alone",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                    case '\\\\': built.Append(\"\\\\\\\\\"); break;",
+      "replace": "                    case '\\u0000': built.Append(\"\\\\\\\\\"); break;"
+    },
+    {
+      "name": "escaping leaves the separator alone",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                    case '|': built.Append(\"\\\\p\"); break;",
+      "replace": "                    case '\\u0000': built.Append(\"\\\\p\"); break;"
+    },
+    {
+      "name": "escaping leaves the newline alone",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                    case '\\n': built.Append(\"\\\\n\"); break;",
+      "replace": "                    case '\\u0000': built.Append(\"\\\\n\"); break;"
+    },
+    {
+      "name": "escaping leaves the carriage return alone",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                    case '\\r': built.Append(\"\\\\r\"); break;",
+      "replace": "                    case '\\u0000': built.Append(\"\\\\r\"); break;"
+    },
+    {
+      "name": "a trailing backslash is dropped rather than kept",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                if (text[i] != '\\\\' || i == text.Length - 1)",
+      "replace": "                if (text[i] != '\\\\')"
+    },
+    {
+      "name": "an escape from a later version is mangled rather than kept whole",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                    default: built.Append('\\\\').Append(text[i]); break;",
+      "replace": "                    default: built.Append(text[i]); break;"
+    },
+    {
+      "name": "text with no escape in it is walked anyway",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "            if (text.IndexOf('\\\\') < 0) return text;",
+      "replace": "            if (text.IndexOf('\\\\') < 0) return string.Empty;"
+    },
+    {
+      "name": "a line with no space at all is read as a key with no value",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                if (space <= 0)\n                {\n                    reading.Damaged++;\n                    continue;\n                }",
+      "replace": "                if (space < 0) space = line.Length - 1;"
+    },
+    {
+      "name": "a line that is only a key is damage, and so is one with an empty value",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                if (space <= 0)",
+      "replace": "                if (space <= 0 || space == line.Length - 1)"
+    },
+    {
+      "name": "a blank line counts as damage",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                if (line.Trim().Length == 0) continue;",
+      "replace": "                if (line.Length < 0) continue;"
+    },
+    {
+      "name": "the split is on the last space rather than the first",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "                int space = line.IndexOf(' ');",
+      "replace": "                int space = line.LastIndexOf(' ');"
+    },
+    {
+      "name": "records are split on the carriage return rather than the newline",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "            foreach (string raw in text.Split('\\n'))",
+      "replace": "            foreach (string raw in text.Split('\\r'))"
+    },
+    {
+      "name": "a record is written without its separating space",
+      "file": "Assets/GameAssets/Core/Meta/Lines.cs",
+      "find": "            text.Append(key).Append(' ').Append(value).Append('\\n');",
+      "replace": "            text.Append(key).Append(value).Append('\\n');"
+    }
+  ]
+}
