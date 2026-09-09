@@ -49,6 +49,27 @@ namespace RelicRun.Game.Data
         /// <summary>The roles a book must fill.</summary>
         public static readonly IReadOnlyList<string> Roles = new[] { Ui, Display };
 
+        /// <summary>
+        /// Whether a role is drawn as pixel art, which decides how its face is baked.
+        /// </summary>
+        /// <remarks>
+        /// The two roles want opposite treatment and it is not a close call. Silkscreen is drawn
+        /// on an eight-pixel grid: baked as a bitmap at exactly that, point filtered, no padding,
+        /// so a whole pixel stays a whole pixel and <see cref="Core.Presentation.PixelScale"/>
+        /// keeps the canvas at a whole multiple of it. Space Grotesk is an outline face for
+        /// prose: baked as a distance field, padded so the field has somewhere to live, and
+        /// filtered — which is the only way it stays clean at sizes nobody chose in advance.
+        ///
+        /// Here rather than in the importer, because it is a fact about what the role IS. It was
+        /// briefly in both, which is one place too many: the importer knew, the test that gates
+        /// the bake did not, and the test went on asserting that both faces were bitmaps for as
+        /// long as it took somebody to run it.
+        /// </remarks>
+        public static bool IsPixelArt(string role)
+        {
+            return role == Ui;
+        }
+
         [Serializable]
         public struct Face
         {

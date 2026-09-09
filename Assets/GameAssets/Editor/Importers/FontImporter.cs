@@ -37,7 +37,8 @@ namespace RelicRun.Editor.Importers
             public int Atlas;
 
             /// <summary>Pixel art, which is baked as pixels and never filtered.</summary>
-            public bool Pixels;
+            /// <remarks>Asked of the role rather than stored, so one place decides.</remarks>
+            public bool Pixels { get { return FontBook.IsPixelArt(Role); } }
         }
 
         /// <summary>
@@ -56,18 +57,17 @@ namespace RelicRun.Editor.Importers
         /// the failure mode it is: nothing was broken, everything was wired, and the answer was
         /// simply not the one the source gives.
         ///
-        /// The two want opposite treatment, which is what <c>Pixels</c> decides. Silkscreen is
-        /// drawn on a grid at eight pixels and is baked as a bitmap at exactly that, point
-        /// filtered, so a whole pixel stays a whole pixel. Space Grotesk is an outline face for
-        /// prose and is baked as a distance field, which is the only way it stays clean at the
-        /// arbitrary sizes a scaled canvas asks for.
+        /// The two want opposite treatment, and which is which comes from
+        /// <see cref="FontBook.IsPixelArt"/> rather than being repeated here — it is a fact about
+        /// what the role is, and it was briefly written down in two places, which is how a test
+        /// came to assert that both faces were bitmaps after one of them had stopped being one.
         /// </remarks>
         private static readonly Cut[] Cuts =
         {
-            new Cut { Role = FontBook.Ui, File = "Silkscreen-Regular.ttf", SamplingSize = 8,
-                      Atlas = 512, Pixels = true },
-            new Cut { Role = FontBook.Display, File = "SpaceGrotesk.ttf", SamplingSize = 48,
-                      Atlas = 1024, Pixels = false },
+            new Cut { Role = FontBook.Ui, File = "Silkscreen-Regular.ttf",
+                      SamplingSize = 8, Atlas = 512 },
+            new Cut { Role = FontBook.Display, File = "SpaceGrotesk.ttf",
+                      SamplingSize = 48, Atlas = 1024 },
         };
 
         /// <summary>

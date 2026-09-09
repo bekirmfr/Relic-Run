@@ -70,35 +70,70 @@ namespace RelicRun.Tests.Editor
         }
 
         /// <summary>
-        /// Both atlases are sealed, unfiltered and rasterised rather than distance-fielded.
+        /// Each face is baked the way its role needs, and the two roles need opposite things.
         /// </summary>
         /// <remarks>
-        /// Each of these is the difference between pixel art and a blurry approximation of it,
-        /// and none of them is visible in a small screenshot. A signed distance field exists to
-        /// make type scale smoothly to any size, which is precisely what a face drawn on a
-        /// five-by-seven grid must never do.
+        /// None of this is visible in a small screenshot, and all of it is the difference between
+        /// pixel art and a blurry approximation of it.
+        ///
+        /// A distance field exists to make type scale smoothly to any size, which is exactly what
+        /// the ui face must never do: Silkscreen is drawn on an eight-pixel grid, and smoothing it
+        /// is the same mistake as scaling the canvas by 1.118. The display face is the other way
+        /// round — Space Grotesk is an outline face for prose, and a bitmap of it would be sharp
+        /// at one size and wrong at every other.
+        ///
+        /// This test previously asserted RASTER for BOTH, which was right until it wasn't. It
+        /// went on passing for as long as both faces happened to be bitmaps and failed the first
+        /// time it was run afterwards — so the rule it asks about now lives in
+        /// <see cref="FontBook.IsPixelArt"/>, in one place, where the importer reads it too.
         /// </remarks>
         [Test]
-        public void BothFacesAreBakedForPixelArt()
+        public void EachFaceIsBakedTheWayItsRoleNeeds()
         {
             foreach (string role in FontBook.Roles)
             {
                 TMP_FontAsset face = Face(role);
+                bool pixels = FontBook.IsPixelArt(role);
 
                 Assert.That(face.atlasPopulationMode, Is.EqualTo(AtlasPopulationMode.Static),
                     role + " still rasterises at runtime");
-                Assert.That(face.atlasRenderMode, Is.EqualTo(GlyphRenderMode.RASTER),
-                    role + " is not a bitmap face");
-                Assert.That(face.atlasPadding, Is.Zero, role + " has padding between its glyphs");
 
                 Assert.That(face.atlasTextures, Is.Not.Empty, role + " has no atlas");
                 Assert.That(face.atlasTextures.Length, Is.EqualTo(1),
                     role + " spilled into a second atlas — raise the size rather than allowing it");
 
+                if (pixels)
+                {
+                    Assert.That(face.atlasRenderMode, Is.EqualTo(GlyphRenderMode.RASTER),
+                        role + " is not a bitmap face");
+                    Assert.That(face.atlasPadding, Is.Zero,
+                        role + " has padding between its glyphs, which a point-sampled atlas " +
+                        "cannot bleed across and does not need");
+                }
+                else
+                {
+                    Assert.That(face.atlasRenderMode, Is.EqualTo(GlyphRenderMode.SDFAA),
+                        role + " is a bitmap, so it is sharp at one size and wrong at the rest");
+
+                    // A distance field with no room to put the field is the failure that looks
+                    // like a working font until somebody draws it at a size nobody tested.
+                    Assert.That(face.atlasPadding, Is.GreaterThan(0),
+                        role + " is a distance field with nowhere to keep the distance");
+                }
+
                 foreach (Texture2D atlas in face.atlasTextures)
                 {
-                    Assert.That(atlas.filterMode, Is.EqualTo(FilterMode.Point),
-                        role + "'s atlas is filtered");
+                    if (pixels)
+                    {
+                        Assert.That(atlas.filterMode, Is.EqualTo(FilterMode.Point),
+                            role + "'s atlas is filtered");
+                    }
+                    else
+                    {
+                        Assert.That(atlas.filterMode, Is.Not.EqualTo(FilterMode.Point),
+                            role + "'s atlas is point sampled, which undoes the smoothing a " +
+                            "distance field was baked for");
+                    }
                 }
             }
         }
