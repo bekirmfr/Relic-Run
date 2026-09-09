@@ -517,7 +517,8 @@ namespace RelicRun.Tests
             Assert.That(boss.Variant, Is.EqualTo(EnemyPackGenerator.VariantOf(EnemyRank.Boss)));
             Assert.That(boss.Variant, Is.Not.EqualTo(guard.Variant),
                 "a boss and a guard are drawn from different columns");
-            Assert.That(boss.Relics, Is.Not.Null.And.Count.EqualTo(1));
+            Assert.That(boss.Relics, Is.Not.Null);
+            Assert.That(boss.Relics.Count, Is.EqualTo(1));
         }
 
         /// <summary>

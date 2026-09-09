@@ -1168,6 +1168,23 @@ Three of the gates here are the kind that only exist because the failure was inv
 - `FightSceneTests` also asserts that something recomputes the factor. `ConstantPixelSize` alone
   is a canvas frozen at whatever the last person typed: right on one screen, wrong on the rest.
 
+## Two runners, two NUnits
+
+The same test file is compiled by `dotnet test` and by Unity's Test Runner, and they do not
+carry the same NUnit. Most of the time that is invisible. It stops being invisible at
+constraints that work by REFLECTION.
+
+`Assert.That(list, Has.Count.EqualTo(2))` reflects for a property literally named `Count`. An
+array has `Length`. The newer NUnit under `dotnet` resolves that anyway; Unity's bundled one
+throws `Property Count was not found`. So a green `dotnet test` run said nothing about it, and
+the failure arrived from the other runner with no hint that the assertion had ever been
+suspicious.
+
+Count through the interface instead — `Assert.That(list.Count, Is.EqualTo(2))` — which asks
+`IReadOnlyList` and needs no reflection at all. The same caution applies to `Has.Property`,
+`Has.Member` and anything else that names a member in a string: a string is not checked by
+either compiler, so it is checked by whichever runner is fussier.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:

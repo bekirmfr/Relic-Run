@@ -107,7 +107,13 @@ namespace RelicRun.Tests
         {
             EnemyState foe = Foe(40, RelicId.ThornVest, RelicId.IronSkin);
 
-            Assert.That(foe.Relics, Is.Not.Null.And.Count.EqualTo(2));
+            // Counted through the interface rather than with NUnit's Count constraint. That
+            // constraint reflects for a property literally called Count, and this list is an
+            // ARRAY — which has Length. The two runners disagree about that: the newer NUnit
+            // under dotnet resolves it anyway, Unity's bundled one throws. Reading the count
+            // asks IReadOnlyList, which both agree about.
+            Assert.That(foe.Relics, Is.Not.Null);
+            Assert.That(foe.Relics.Count, Is.EqualTo(2));
             Assert.That(foe.CountRelic(RelicId.ThornVest), Is.EqualTo(1));
 
             // A foe with no relics at all still has to be a coherent wearer rather than a null.
@@ -214,7 +220,7 @@ namespace RelicRun.Tests
                 break;
             }
 
-            Assert.That(found, Has.Count.EqualTo(many), "no Guard relic exists to build a set from");
+            Assert.That(found.Count, Is.EqualTo(many), "no Guard relic exists to build a set from");
 
             return found.ToArray();
         }
