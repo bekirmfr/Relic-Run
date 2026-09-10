@@ -153,5 +153,13 @@
   "en11": "Vault Eye",
   "en12": "Marrow Husk",
   "reroll": "REROLL — {n} GOLD",
-  "blocksWay": "It blocks the way."
+  "blocksWay": "It blocks the way.",
+  "floorCleared": "FLOOR {n} CLEARED",
+  "stairsDown": "The stairs go down.",
+  "inThePurse": "IN THE PURSE",
+  "riskItAll": "RISK IT ALL",
+  "riskGold": "RISK {n}",
+  "walkAway": "WALK AWAY",
+  "keepGold": "KEEP {n}",
+  "waitingBelow": "WAITING BELOW"
 }

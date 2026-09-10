@@ -81,7 +81,15 @@ namespace RelicRun.Core.Run
         /// <summary>Which inventory slots hold a copy that could be woken.</summary>
         public readonly IReadOnlyList<int> Awakenable;
 
-        /// <summary>What was fought.</summary>
+        /// <summary>
+        /// The pack this stop is about.
+        /// </summary>
+        /// <remarks>
+        /// Two stops carry one and they mean opposite things: a fought floor's is what has just
+        /// been beaten, and a gate's is what is waiting one floor down. Both are "the pack this
+        /// stop is about", and a delver only ever sees one of them at a time — the gate's is the
+        /// whole reason walking out is a decision rather than a coin toss.
+        /// </remarks>
         public readonly IReadOnlyList<EnemyState> Pack;
 
         /// <summary>And how it went, resolved in full before a frame of it is drawn.</summary>
@@ -131,9 +139,14 @@ namespace RelicRun.Core.Run
             return new Ask(AskKind.Revive, floor, null, 0, null, null, null, null);
         }
 
-        public static Ask CashOut(int floor)
+        /// <param name="below">
+        /// What is waiting one floor down, which the run has already rolled by the time it asks.
+        /// A delver deciding whether to risk the purse is entitled to see the first of them —
+        /// that is the source's own peek, and it is what makes this a decision.
+        /// </param>
+        public static Ask CashOut(int floor, IReadOnlyList<EnemyState> below = null)
         {
-            return new Ask(AskKind.CashOut, floor, null, 0, null, null, null, null);
+            return new Ask(AskKind.CashOut, floor, null, 0, null, null, below, null);
         }
 
         public static Ask Fought(int floor, IReadOnlyList<EnemyState> pack, CombatResult result)

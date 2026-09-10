@@ -153,5 +153,13 @@
   "en11": "Kasa Gözü",
   "en12": "İlik Kabuğu",
   "reroll": "YENİDEN ÇEK — {n} ALTIN",
-  "blocksWay": "Yolu kapıyor."
+  "blocksWay": "Yolu kapıyor.",
+  "floorCleared": "KAT {n} TEMİZLENDİ",
+  "stairsDown": "Merdivenler aşağı iniyor.",
+  "inThePurse": "KESEDE",
+  "riskItAll": "HEPSİNİ RİSKE AT",
+  "riskGold": "RİSK {n}",
+  "walkAway": "ÇEKİL GİT",
+  "keepGold": "{n} KALSIN",
+  "waitingBelow": "AŞAĞIDA BEKLİYOR"
 }

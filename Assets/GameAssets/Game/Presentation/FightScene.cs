@@ -236,7 +236,16 @@ namespace RelicRun.Game.Presentation
                     }
                 }
 
+                bool descending = stop.Kind == AskKind.CashOut && !stop.Answer.Yes;
+
                 delve.Answer();
+
+                if (descending)
+                {
+                    await Travelling(delve);
+
+                    if (Gone) return;
+                }
             }
 
             Nothing();
@@ -281,6 +290,37 @@ namespace RelicRun.Game.Presentation
             {
                 if (!earned.Seen.Contains(foe.SpeciesIndex)) earned.Seen.Add(foe.SpeciesIndex);
             }
+        }
+
+        /// <summary>
+        /// The walk down: the floor underfoot changes, and the delver is given a moment to see it.
+        /// </summary>
+        /// <remarks>
+        /// The only beat in a run that is not a question and not a fight. Without it the gate's
+        /// two buttons cut straight to the next floor's draft and the rail's one step down is
+        /// something a delver can only notice afterwards — which is the difference between having
+        /// chosen to go deeper and finding oneself deeper.
+        ///
+        /// The source slides a new dungeon band up from below while this happens. That is not
+        /// ported and cannot be yet: the hall art is keyed by TIER, not by floor, so there is no
+        /// second band to slide — a descent here would slide one image onto itself. What is real
+        /// is the pause and the rail, so that is what this does.
+        ///
+        /// The length is the pacing's own <c>PanMs</c>, the number the hall already pans by, so
+        /// the walk down and the walk along a floor move at one speed.
+        /// </remarks>
+        private async UniTask Travelling(Delve delve)
+        {
+            Nothing();
+            Rail(delve);
+
+            int held = _content != null && _content.Presentation != null
+                ? _content.Presentation.ToPacing().PanMs
+                : 0;
+
+            if (held <= 0 || Reduced()) return;
+
+            await UniTask.Delay(held, DelayType.UnscaledDeltaTime);
         }
 
         /// <summary>

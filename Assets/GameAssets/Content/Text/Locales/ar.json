@@ -153,5 +153,13 @@
   "en11": "عين الخزينة",
   "en12": "قشرة النخاع",
   "reroll": "إعادة السحب — {n} ذهب",
-  "blocksWay": "يسدّ الطريق."
+  "blocksWay": "يسدّ الطريق.",
+  "floorCleared": "تم تطهير الطابق {n}",
+  "stairsDown": "الدرج يهبط إلى الأسفل.",
+  "inThePurse": "في الكيس",
+  "riskItAll": "خاطر بكل شيء",
+  "riskGold": "تخاطر بـ {n}",
+  "walkAway": "انصرف",
+  "keepGold": "احتفظ بـ {n}",
+  "waitingBelow": "ينتظر في الأسفل"
 }

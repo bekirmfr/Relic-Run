@@ -194,7 +194,10 @@ namespace RelicRun.Core.Run
 
                 _nextPack = EnemyPackGenerator.Build(_run.Floor + 1, _rng, _setup.Dungeon);
 
-                Ask leaving = Ask.CashOut(_run.Floor);
+                // With what is waiting below, which was rolled a line ago. The pack is the same
+                // object the next floor will be fought with, so the peek cannot disagree with
+                // what the delver walks into.
+                Ask leaving = Ask.CashOut(_run.Floor, _nextPack);
                 yield return leaving;
 
                 if (leaving.Answer.Yes)

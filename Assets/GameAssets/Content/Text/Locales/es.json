@@ -153,5 +153,13 @@
   "en11": "Ojo de la Cámara",
   "en12": "Cascarón de Médula",
   "reroll": "RELANZAR — {n} ORO",
-  "blocksWay": "Bloquea el camino."
+  "blocksWay": "Bloquea el camino.",
+  "floorCleared": "PISO {n} DESPEJADO",
+  "stairsDown": "La escalera baja.",
+  "inThePurse": "EN LA BOLSA",
+  "riskItAll": "ARRIÉSGALO TODO",
+  "riskGold": "ARRIESGA {n}",
+  "walkAway": "MARCHARSE",
+  "keepGold": "CONSERVA {n}",
+  "waitingBelow": "ESPERA ABAJO"
 }

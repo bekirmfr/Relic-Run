@@ -153,5 +153,13 @@
   "en11": "宝物庫の目",
   "en12": "髄の骸",
   "reroll": "引き直し — {n} ゴールド",
-  "blocksWay": "行く手を阮んでいる。"
+  "blocksWay": "行く手を阮んでいる。",
+  "floorCleared": "{n}階 クリア",
+  "stairsDown": "階段は下へ続いている。",
+  "inThePurse": "財布の中",
+  "riskItAll": "すべて賭ける",
+  "riskGold": "賭け {n}",
+  "walkAway": "立ち去る",
+  "keepGold": "{n} を持ち帰る",
+  "waitingBelow": "下で待っている"
 }

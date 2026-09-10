@@ -153,5 +153,13 @@
   "en11": "Œil du Coffre",
   "en12": "Carcasse de Moelle",
   "reroll": "RELANCER — {n} OR",
-  "blocksWay": "Il barre le passage."
+  "blocksWay": "Il barre le passage.",
+  "floorCleared": "ÉTAGE {n} NETTOYÉ",
+  "stairsDown": "L'escalier descend.",
+  "inThePurse": "DANS LA BOURSE",
+  "riskItAll": "TOUT RISQUER",
+  "riskGold": "RISQUE {n}",
+  "walkAway": "S'EN ALLER",
+  "keepGold": "GARDER {n}",
+  "waitingBelow": "ATTEND EN BAS"
 }

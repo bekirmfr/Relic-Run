@@ -467,6 +467,7 @@ namespace RelicRun.Editor.Importers
             // after it so that where the delver IS stays visible on top of whatever they are
             // being asked. Both are last, so nothing built before them can be hidden by accident.
             DraftStage draft = Draft(canvas, content, face);
+            GateStage gate = Gate(canvas, content, face);
             FloorRailView railing = Rail(canvas, face);
 
             // Last of all, over everything including the rail. The card a fight opens on is the
@@ -525,12 +526,179 @@ namespace RelicRun.Editor.Importers
             // An array, so it cannot be wired by Pair like everything else. It is also the one
             // reference here that GROWS: a stage per stop, added as each is built, and the scene
             // finds the right one by asking rather than by which slot it landed in.
-            Stages(entry, new RunStage[] { draft });
+            Stages(entry, new RunStage[] { draft, gate });
         }
 
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>
+        /// The gate between two floors: risk the purse, or walk away with it.
+        /// </summary>
+        /// <remarks>
+        /// The gold button is wider than the green one — a flex of 1.2 against 1 in the source —
+        /// because descending is what the game is for and walking away is what it is ABOUT. Both
+        /// have to be on the screen at once and neither may look like the default.
+        /// </remarks>
+        private static GateStage Gate(GameObject parent, GameContent content, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Gate", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = panel.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = Ground;
+
+            GameObject kicker = Say(panel, face, "FLOOR 1 CLEARED", Text(9),
+                TextAlignmentOptions.Center, new Vector2(0f, 200f), new Vector2(0f, 18f), true);
+
+            GameObject title = Say(panel, face, "The stairs go down.", Text(30),
+                TextAlignmentOptions.Center, new Vector2(0f, 158f), new Vector2(0f, 44f), true);
+
+            GameObject gold = Say(panel, face, "\u25C6 0", Text(22), TextAlignmentOptions.Center,
+                new Vector2(0f, 108f), new Vector2(0f, 30f), true);
+
+            GameObject purse = Say(panel, face, "IN THE PURSE", Text(8),
+                TextAlignmentOptions.Center, new Vector2(0f, 84f), new Vector2(0f, 16f), true);
+
+            // Side by side, laid out rather than placed, so the wider one stays wider whatever
+            // the shell is.
+            GameObject row = Panel(panel, "Choice", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, 10f), new Vector2(-44f, 96f));
+
+            var beside = row.AddComponent<HorizontalLayoutGroup>();
+            beside.childAlignment = TextAnchor.MiddleCenter;
+            beside.childForceExpandWidth = true;
+            beside.childForceExpandHeight = true;
+            beside.childControlWidth = true;
+            beside.childControlHeight = true;
+            beside.spacing = 12f;
+
+            GameObject descend = Choice(row, face, "Descend", 1.2f,
+                new Color(0.890f, 0.702f, 0.255f), new Color(0.078f, 0.071f, 0.059f),
+                new Color(0.890f, 0.702f, 0.255f));
+
+            GameObject leave = Choice(row, face, "Leave", 1f,
+                new Color(0.078f, 0.071f, 0.059f), new Color(0.486f, 0.604f, 0.416f),
+                new Color(0.486f, 0.604f, 0.416f));
+
+            GameObject peek = Panel(panel, "Peek", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, -110f), new Vector2(-44f, 58f));
+
+            var frame = peek.AddComponent<Image>();
+            frame.sprite = White();
+            frame.color = new Color(0.118f, 0.071f, 0.047f, 0.55f);
+
+            var edge = peek.AddComponent<Outline>();
+            edge.effectColor = new Color(0.227f, 0.169f, 0.133f);
+            edge.effectDistance = new Vector2(2f, 2f);
+
+            GameObject peekArt = Box(peek, "Art", new Vector2(0f, 0.5f), new Vector2(30f, 30f),
+                new Vector2(28f, 0f));
+
+            peekArt.GetComponent<Image>().preserveAspect = true;
+
+            GameObject peekKicker = Say(peek, face, "WAITING BELOW", Text(8),
+                TextAlignmentOptions.Left, new Vector2(56f, 17f), new Vector2(260f, 14f));
+
+            GameObject peekName = Say(peek, face, "Foe", Text(14), TextAlignmentOptions.Left,
+                new Vector2(56f, 1f), new Vector2(260f, 20f));
+
+            GameObject peekStats = Say(peek, face, "0 HP", Text(8), TextAlignmentOptions.Left,
+                new Vector2(56f, -16f), new Vector2(300f, 14f));
+
+            var stage = panel.AddComponent<GateStage>();
+
+            Wire(stage, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_gold", gold.GetComponent<TMP_Text>()),
+                Pair("_purseLabel", purse.GetComponent<TMP_Text>()),
+
+                Pair("_descend", descend.GetComponent<Button>()),
+                Pair("_descendKicker", Line(descend, 0)),
+                Pair("_descendLabel", Line(descend, 1)),
+                Pair("_descendRisk", Line(descend, 2)),
+
+                Pair("_leave", leave.GetComponent<Button>()),
+                Pair("_leaveKicker", Line(leave, 0)),
+                Pair("_leaveLabel", Line(leave, 1)),
+                Pair("_leaveKeep", Line(leave, 2)),
+
+                Pair("_peek", peek),
+                Pair("_peekArt", peekArt.GetComponent<Image>()),
+                Pair("_peekKicker", peekKicker.GetComponent<TMP_Text>()),
+                Pair("_peekName", peekName.GetComponent<TMP_Text>()),
+                Pair("_peekStats", peekStats.GetComponent<TMP_Text>()),
+                Pair("_content", content),
+            });
+
+            panel.SetActive(false);
+
+            return stage;
+        }
+
+        /// <summary>
+        /// One of the gate's two buttons: a small line over a big one over a small one.
+        /// </summary>
+        /// <remarks>
+        /// Three lines rather than a label, because the middle one says WHAT the button does and
+        /// the two around it say what it costs — and a delver who reads only the big line has
+        /// still read the important half.
+        /// </remarks>
+        private static GameObject Choice(GameObject parent, TMP_FontAsset face, string name,
+            float share, Color fill, Color ink, Color edge)
+        {
+            var made = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+
+            made.transform.SetParent(parent.transform, false);
+
+            Image ground = made.GetComponent<Image>();
+            ground.sprite = White();
+            ground.color = fill;
+
+            var ring = made.AddComponent<Outline>();
+            ring.effectColor = edge;
+            ring.effectDistance = new Vector2(2f, 2f);
+
+            made.GetComponent<Button>().targetGraphic = ground;
+
+            // The wider of the two, by the source's own ratio. Flexible rather than fixed, so the
+            // pair fills whatever the shell gives them and keeps its proportion doing it.
+            var takes = made.AddComponent<LayoutElement>();
+            takes.flexibleWidth = share;
+
+            var down = made.AddComponent<VerticalLayoutGroup>();
+            down.childAlignment = TextAnchor.MiddleCenter;
+            down.childForceExpandWidth = true;
+            down.childForceExpandHeight = false;
+            down.childControlWidth = true;
+            down.childControlHeight = true;
+            down.spacing = 5f;
+            down.padding = new RectOffset(10, 10, 12, 12);
+
+            Say(made, face, "OVER", Text(8), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 14f), true).GetComponent<TMP_Text>().color = ink;
+
+            Say(made, face, "DO IT", Text(16), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 22f), true).GetComponent<TMP_Text>().color = ink;
+
+            Say(made, face, "UNDER", Text(11), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 16f), true).GetComponent<TMP_Text>().color = ink;
+
+            return made;
+        }
+
+        /// <summary>One of a button's three lines, by the order it was made in.</summary>
+        private static TMP_Text Line(GameObject button, int at)
+        {
+            var lines = button.GetComponentsInChildren<TMP_Text>(true);
+
+            return at >= 0 && at < lines.Length ? lines[at] : null;
+        }
+
 
         /// <summary>How big the delver is drawn.</summary>
         /// <remarks>

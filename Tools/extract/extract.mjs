@@ -177,6 +177,104 @@ const ADDED = {
     zh: "\u5B83\u6321\u4F4F\u4E86\u53BB\u8DEF\u3002",
     ar: "\u064A\u0633\u062F\u0651 \u0627\u0644\u0637\u0631\u064A\u0642.",
   },
+
+  /* The kicker over the gate. The source writes "FLOOR n CLEARED" into its
+   * markup. */
+  floorCleared: {
+    en: "FLOOR {n} CLEARED",
+    tr: "KAT {n} TEM\u0130ZLEND\u0130",
+    fr: "\u00C9TAGE {n} NETTOY\u00C9",
+    es: "PISO {n} DESPEJADO",
+    ru: "\u042D\u0422\u0410\u0416 {n} \u0417\u0410\u0427\u0418\u0429\u0415\u041D",
+    ja: "{n}\u968E \u30AF\u30EA\u30A2",
+    zh: "\u7B2C {n} \u5C42 \u5DF2\u6E05\u7A7A",
+    ar: "\u062A\u0645 \u062A\u0637\u0647\u064A\u0631 \u0627\u0644\u0637\u0627\u0628\u0642 {n}",
+  },
+
+  /* The gate's title. Two short lines in the source, and the whole mood of the
+   * screen a delver decides on. */
+  stairsDown: {
+    en: "The stairs go down.",
+    tr: "Merdivenler a\u015Fa\u011F\u0131 iniyor.",
+    fr: "L'escalier descend.",
+    es: "La escalera baja.",
+    ru: "\u041B\u0435\u0441\u0442\u043D\u0438\u0446\u0430 \u0432\u0435\u0434\u0451\u0442 \u0432\u043D\u0438\u0437.",
+    ja: "\u968E\u6BB5\u306F\u4E0B\u3078\u7D9A\u3044\u3066\u3044\u308B\u3002",
+    zh: "\u697C\u68AF\u901A\u5411\u4E0B\u65B9\u3002",
+    ar: "\u0627\u0644\u062F\u0631\u062C \u064A\u0647\u0628\u0637 \u0625\u0644\u0649 \u0627\u0644\u0623\u0633\u0641\u0644.",
+  },
+
+  /* Under the gold on the gate. */
+  inThePurse: {
+    en: "IN THE PURSE",
+    tr: "KESEDE",
+    fr: "DANS LA BOURSE",
+    es: "EN LA BOLSA",
+    ru: "\u0412 \u041A\u041E\u0428\u0415\u041B\u042C\u041A\u0415",
+    ja: "\u8CA1\u5E03\u306E\u4E2D",
+    zh: "\u94B1\u888B\u91CC",
+    ar: "\u0641\u064A \u0627\u0644\u0643\u064A\u0633",
+  },
+
+  /* Over the descend button. */
+  riskItAll: {
+    en: "RISK IT ALL",
+    tr: "HEPS\u0130N\u0130 R\u0130SKE AT",
+    fr: "TOUT RISQUER",
+    es: "ARRI\u00C9SGALO TODO",
+    ru: "\u0420\u0418\u0421\u041A\u041D\u0423\u0422\u042C \u0412\u0421\u0415\u041C",
+    ja: "\u3059\u3079\u3066\u8CED\u3051\u308B",
+    zh: "\u5B64\u6CE8\u4E00\u63B7",
+    ar: "\u062E\u0627\u0637\u0631 \u0628\u0643\u0644 \u0634\u064A\u0621",
+  },
+
+  /* And under it, what the bet costs if it is lost. */
+  riskGold: {
+    en: "RISK {n}",
+    tr: "R\u0130SK {n}",
+    fr: "RISQUE {n}",
+    es: "ARRIESGA {n}",
+    ru: "\u0421\u0422\u0410\u0412\u041A\u0410 {n}",
+    ja: "\u8CED\u3051 {n}",
+    zh: "\u8D4C\u4E0A {n}",
+    ar: "\u062A\u062E\u0627\u0637\u0631 \u0628\u0640 {n}",
+  },
+
+  /* Over the cash-out button. */
+  walkAway: {
+    en: "WALK AWAY",
+    tr: "\u00C7EK\u0130L G\u0130T",
+    fr: "S'EN ALLER",
+    es: "MARCHARSE",
+    ru: "\u0423\u0419\u0422\u0418",
+    ja: "\u7ACB\u3061\u53BB\u308B",
+    zh: "\u5C31\u6B64\u6536\u624B",
+    ar: "\u0627\u0646\u0635\u0631\u0641",
+  },
+
+  /* And under it, what walking away is worth. */
+  keepGold: {
+    en: "KEEP {n}",
+    tr: "{n} KALSIN",
+    fr: "GARDER {n}",
+    es: "CONSERVA {n}",
+    ru: "\u041E\u0421\u0422\u0410\u0412\u0418\u0422\u042C {n}",
+    ja: "{n} \u3092\u6301\u3061\u5E30\u308B",
+    zh: "\u4FDD\u4F4F {n}",
+    ar: "\u0627\u062D\u062A\u0641\u0638 \u0628\u0640 {n}",
+  },
+
+  /* Over the peek at the next floor's first foe. */
+  waitingBelow: {
+    en: "WAITING BELOW",
+    tr: "A\u015EA\u011EIDA BEKL\u0130YOR",
+    fr: "ATTEND EN BAS",
+    es: "ESPERA ABAJO",
+    ru: "\u0416\u0414\u0401\u0422 \u0412\u041D\u0418\u0417\u0423",
+    ja: "\u4E0B\u3067\u5F85\u3063\u3066\u3044\u308B",
+    zh: "\u5728\u4E0B\u9762\u7B49\u7740",
+    ar: "\u064A\u0646\u062A\u0638\u0631 \u0641\u064A \u0627\u0644\u0623\u0633\u0641\u0644",
+  },
 };
 
 let added = 0;

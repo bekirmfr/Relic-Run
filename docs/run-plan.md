@@ -284,8 +284,36 @@ because one is a reference and the other is a threat; the obvious tidy-up is to 
 function and there is a test standing in front of it. And the card's one sentence had no key
 either, so `blocksWay` joined `reroll` in the port's own `ADDED` table.
 
-**5 · The gate stages.** `travel` and `decide` — the breather, the floor rail advancing, cash out or
-descend. Done when a run can be walked out of with gold banked.
+**5 · The gate stages. — DONE.** Measured: floor one cleared, walked out at the gate, *the delve
+ended on floor 1 (CashedOut): 12 points, 12 experience, **13 banked***, and the menu opened on YOU
+WALKED OUT WITH THE PURSE.
+
+*Decide.* `GateCards` is one number said three times — held, at risk, kept — because that IS the
+decision and a delver reading it once tends to read it as only one of the three. There is now a
+test standing in front of those three ever disagreeing.
+
+The peek at what is below shows the foe at the **back** of the pack, not the front. That is the
+opposite of what it sounds like it should be, and writing it the obvious way is what a test caught:
+a pack is fought front to back with the worst of it last, so the first foe only tells a delver they
+survive the next thirty seconds — which they could already guess. It also makes the source's own
+wording true, since "BEHIND 2 GUARDS" describes something standing behind two other things.
+
+The same test turned up a real wart and it is pinned rather than smoothed: **the gate above the
+bazaar peeks at a pack that is never fought.** The run rolls one for the bazaar floor like any
+floor's, walks the delver through a shop instead, and rolls again on the way out. That is the
+source's behaviour — `BazaarRollsItsOwnPack` is the recorded rule — and peeking past it would
+change which numbers the RNG draws, and every recorded run with them.
+
+*Travel.* The walk down: stages off, the rail one floor deeper, and `PanMs` of nothing at all —
+the same 2.6 seconds the hall already pans by, so walking down and walking along a floor move at
+one speed. Without it the gate's two buttons cut straight to the next draft, and the rail's step is
+something a delver can only notice afterwards: the difference between having chosen to go deeper
+and finding oneself deeper. The source slides a new dungeon band up from below while this happens;
+that is NOT ported and cannot be yet, because the hall art is keyed by tier rather than by floor,
+so a descent would slide one image onto itself.
+
+Eight more strings joined the port's own `ADDED` table. The gate is the most consequential screen
+in the game and it was going to be entirely English otherwise.
 
 **6 · The rest.** `event`, `shop` / `merchant` with socket picking, `revive`, `pause`. Each is a
 stage the engine already answers and a screen that does not exist.
