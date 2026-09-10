@@ -25,4 +25,5 @@ MonoBehaviour:
   WalkMs: 3350
   PanMs: 2600
   IntroMs: 3000
+  FlyMs: 520
   SpeedShortensTheTickWait: 1

@@ -363,6 +363,27 @@ Measured, sampling the hall's pan against the two overlays: pan moving with the 
 settled at −1580 and *then* the card up, card down and the fight running, pan −1602 → −3075 →
 −3159 for the last stretch, and the gate only once it had arrived.
 
+**5c · Nobody meets a foe before they are introduced. — DONE.** Three things that were missing
+from the announcement, all reported from a delve.
+
+The foe's frame is now kept EMPTY from the moment the walk sets off until whatever was announced
+has flown into it. The card is worth nothing if the surprise is already standing there, and the
+source hides the same glyph for the same span. Only the showing waits — the sprite is set as
+early as ever, because everything on that screen redraws from any event.
+
+The card's picture then FLIES into the frame: `FoeFlight` carries a copy from one rect to the
+other over `FlyMs`, swelling a third again too large at sixty-two per cent of the way and settling
+from there. A flight that only shrank would read as the foe retreating; swelling first reads as it
+coming at you. A copy, so neither the card nor the frame has to know it exists, and a flight cut
+short leaves both where they were.
+
+And the card carries a FIGHT button with the timer draining behind it — one slab rather than a
+button beside a bar, so there is nothing to look between. Pressing it genuinely shortens the wait
+rather than hiding the card and leaving a delver looking at an empty room, which needed the loop to
+learn a wait it can be talked out of: `IPlaybackClock.Wait(ms, cut, token)` and
+`IPlaybackScreen.Impatient`, asked once a frame and only while a card is up. Everything else in a
+fight runs on the fight's own clock, and skipping THAT is what the speed control is for.
+
 Still missing, and now the only part that is: the bazaar's own hall. The source gives that floor
 `hall-bazaar.png` and the port has not imported it, so descending into the bazaar arrives in the
 dungeon's own hall. That is the line in `HallView.Descend` that changes when the art lands.

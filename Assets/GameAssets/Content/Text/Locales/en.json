@@ -161,5 +161,6 @@
   "riskGold": "RISK {n}",
   "walkAway": "WALK AWAY",
   "keepGold": "KEEP {n}",
-  "waitingBelow": "WAITING BELOW"
+  "waitingBelow": "WAITING BELOW",
+  "fightBtn": "FIGHT"
 }

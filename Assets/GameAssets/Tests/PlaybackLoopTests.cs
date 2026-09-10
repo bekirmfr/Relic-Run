@@ -76,6 +76,9 @@ namespace RelicRun.Tests
 
             public void Meet(int index) { Note("meet " + index); }
 
+            /// <summary>Whether the delver has pressed FIGHT. Set by a test that wants to.</summary>
+            public bool Impatient { get; set; }
+
             private void Note(string what)
             {
                 Told.Add(what);
@@ -107,6 +110,24 @@ namespace RelicRun.Tests
 
                 return Task.CompletedTask;
             }
+
+            /// <summary>
+            /// A wait with a way out, which this clock takes at once.
+            /// </summary>
+            /// <remarks>
+            /// Recorded as an ordinary wait of the same length, because what a test of the LOOP
+            /// wants to know is how long it asked for. Whether the delver cut it short is a
+            /// question for the screen, and <see cref="Cut"/> is what a test asks that with.
+            /// </remarks>
+            public Task Wait(int ms, Func<bool> cut, CancellationToken token)
+            {
+                Cut = cut != null && cut();
+
+                return Wait(ms, token);
+            }
+
+            /// <summary>Whether the last cut wait was over before it began.</summary>
+            public bool Cut;
 
             public Task Until(Func<bool> ready, CancellationToken token)
             {
@@ -142,6 +163,49 @@ namespace RelicRun.Tests
             // clock, gap by gap.
             Assert.That(clock.Waited, Is.EqualTo(new[] { 3350, 3000, 500, 1000, 450 }));
             Assert.That(clock.Gated, Is.Zero, "nobody paused, so nothing gated");
+        }
+
+        /// <summary>
+        /// The card a foe is announced on is the one wait a delver may cut short.
+        /// </summary>
+        /// <remarks>
+        /// Everything else in a fight runs on the fight's own clock, and skipping THAT is what
+        /// the speed control is for. This is a thing to read, so it holds until it has been read
+        /// or until its three seconds run out — whichever comes first.
+        /// </remarks>
+        [Test]
+        public async Task OnlyTheCardIsAskedWhetherTheDelverIsInAHurry()
+        {
+            var screen = new Notepad { Impatient = true };
+            var clock = new Stopwatch();
+
+            await PlaybackLoop.Play(Playing(On(0, CombatEventType.Enter), On(1)),
+                screen, clock, CancellationToken.None);
+
+            Assert.That(clock.Cut, Is.True, "the card did not offer a way out");
+
+            // And the walk did not: it is an animation with a length of its own, and a delver
+            // pressing FIGHT on the card before it is up has not asked to skip the approach.
+            Assert.That(clock.Waited[0], Is.EqualTo(3350));
+        }
+
+        /// <summary>A delver who presses nothing still gets on with the fight.</summary>
+        /// <remarks>
+        /// The source's own three-second auto-start. Unlike the pause gate, this wait cannot
+        /// last forever — which is the whole difference between a countdown and a gate.
+        /// </remarks>
+        [Test]
+        public async Task ACardNobodyDismissesRunsItsCourse()
+        {
+            var screen = new Notepad();
+            var clock = new Stopwatch();
+
+            await PlaybackLoop.Play(Playing(On(0, CombatEventType.Enter), On(1)),
+                screen, clock, CancellationToken.None);
+
+            Assert.That(clock.Cut, Is.False, "nobody pressed anything");
+            Assert.That(clock.Waited, Does.Contain(3000), "the card was not held for its own time");
+            Assert.That(screen.Told, Does.Contain("meet 0"));
         }
 
         [Test]
@@ -207,6 +271,11 @@ namespace RelicRun.Tests
                 if (++Waits > 64) throw new InvalidOperationException("the loop is not ending");
 
                 return Task.CompletedTask;
+            }
+
+            public Task Wait(int ms, Func<bool> cut, CancellationToken token)
+            {
+                return Wait(ms, token);
             }
 
             public Task Until(Func<bool> ready, CancellationToken token)

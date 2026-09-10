@@ -462,6 +462,10 @@ namespace RelicRun.Editor.Importers
             // covers the fight, and the row is part of what is being covered.
             FoeQueueView queue = Queue(canvas, content, face);
 
+            // Over the fight and under the stages, because it flies OUT of a stage and INTO the
+            // fight — so it must not be covered by the card it is leaving.
+            FoeFlight flight = Flier(canvas);
+
             // The stages, and then the rail. Hierarchy order is paint order on a canvas: a stage
             // is a full-screen panel that covers the fight while it is up, and the rail is built
             // after it so that where the delver IS stays visible on top of whatever they are
@@ -500,6 +504,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_content", content),
                 Pair("_intro", intro),
                 Pair("_queue", queue),
+                Pair("_flight", flight),
             });
 
             // The authored fight, which is now a FALLBACK rather than the fight. It carries the
@@ -532,6 +537,34 @@ namespace RelicRun.Editor.Importers
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>
+        /// The copy of a foe that flies from its card into the frame it is fought in.
+        /// </summary>
+        /// <remarks>
+        /// A copy, so neither the card nor the frame has to know it exists — and a flight cut
+        /// short leaves both exactly where they were. It draws nothing until something is thrown
+        /// into it.
+        /// </remarks>
+        private static FoeFlight Flier(GameObject parent)
+        {
+            GameObject flying = Box(parent, "Flier", new Vector2(0.5f, 0.5f),
+                new Vector2(96f, 96f), Vector2.zero);
+
+            Image picture = flying.GetComponent<Image>();
+            picture.preserveAspect = true;
+            picture.raycastTarget = false;
+            picture.enabled = false;
+
+            var view = flying.AddComponent<FoeFlight>();
+
+            Wire(view, new[] { Pair("_art", picture) });
+
+            flying.SetActive(false);
+
+            return view;
+        }
+
 
         /// <summary>
         /// One band of hall: a picture as wide as its own shape, pinned to the window's left.
@@ -898,6 +931,38 @@ namespace RelicRun.Editor.Importers
             GameObject blocks = Say(panel, face, "It blocks the way.", Text(12),
                 TextAlignmentOptions.Center, new Vector2(0f, -162f), new Vector2(0f, 24f), true);
 
+            // The way out, and the timer that takes it if nobody does. One object rather than a
+            // button beside a bar: the thing running out and the thing that stops it running out
+            // are the same slab, so there is nothing to look between.
+            GameObject fight = Panel(panel, "Fight", new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -224f), new Vector2(220f, 52f));
+
+            var slab = fight.AddComponent<Image>();
+            slab.sprite = White();
+            slab.color = new Color(0.890f, 0.702f, 0.255f);
+
+            fight.AddComponent<Button>().targetGraphic = slab;
+
+            GameObject wash = Box(fight, "Timer", new Vector2(0f, 0.5f), new Vector2(220f, 52f),
+                new Vector2(110f, 0f));
+
+            Image filling = wash.GetComponent<Image>();
+            filling.sprite = White();
+            filling.color = new Color(0.078f, 0.071f, 0.059f, 0.18f);
+            filling.enabled = true;
+            filling.preserveAspect = false;
+            filling.raycastTarget = false;
+
+            // Filled from the left, which is the source's transform-origin: what grows is the
+            // part of the wait already spent.
+            filling.type = Image.Type.Filled;
+            filling.fillMethod = Image.FillMethod.Horizontal;
+            filling.fillOrigin = (int)Image.OriginHorizontal.Left;
+            filling.fillAmount = 0f;
+
+            GameObject fightLabel = Say(fight, face, "FIGHT", Text(16),
+                TextAlignmentOptions.Center, Vector2.zero, new Vector2(0f, 52f), true);
+
             var banner = panel.AddComponent<IntroBanner>();
 
             Wire(banner, new[]
@@ -908,6 +973,9 @@ namespace RelicRun.Editor.Importers
                 Pair("_name", named.GetComponent<TMP_Text>()),
                 Pair("_stats", stats.GetComponent<TMP_Text>()),
                 Pair("_blocks", blocks.GetComponent<TMP_Text>()),
+                Pair("_fight", fight.GetComponent<Button>()),
+                Pair("_fightLabel", fightLabel.GetComponent<TMP_Text>()),
+                Pair("_timer", filling),
                 Pair("_content", content),
             });
 

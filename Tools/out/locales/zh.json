@@ -161,5 +161,6 @@
   "riskGold": "赌上 {n}",
   "walkAway": "就此收手",
   "keepGold": "保住 {n}",
-  "waitingBelow": "在下面等着"
+  "waitingBelow": "在下面等着",
+  "fightBtn": "战斗"
 }

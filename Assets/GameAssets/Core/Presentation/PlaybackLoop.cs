@@ -38,6 +38,20 @@ namespace RelicRun.Core.Presentation
 
         /// <summary>Whether the delver has stopped to look at something.</summary>
         bool Paused { get; }
+
+        /// <summary>
+        /// Whether the delver has asked to get on with it.
+        /// </summary>
+        /// <remarks>
+        /// The opposite of <see cref="Paused"/> and asked in only one place: while the card that
+        /// announces a foe is up. That card is the one wait in a fight a delver is invited to cut
+        /// short — everything else is the fight's own clock, and skipping THAT is what the speed
+        /// control is for.
+        ///
+        /// Asked rather than raised, so a screen with no button answers false forever and the
+        /// card simply runs its three seconds.
+        /// </remarks>
+        bool Impatient { get; }
     }
 
     /// <summary>Where the waiting happens.</summary>
@@ -50,6 +64,17 @@ namespace RelicRun.Core.Presentation
     {
         /// <summary>Waits this many milliseconds.</summary>
         Task Wait(int ms, CancellationToken token);
+
+        /// <summary>
+        /// Waits this many milliseconds, unless something becomes true first.
+        /// </summary>
+        /// <remarks>
+        /// A countdown with a way out, which is what a card carrying both a timer and a button
+        /// is. Unlike <see cref="Until"/> this cannot wait forever — a delver who never presses
+        /// anything still gets on with the fight, which is the behaviour the source's own
+        /// three-second auto-start has.
+        /// </remarks>
+        Task Wait(int ms, Func<bool> cut, CancellationToken token);
 
         /// <summary>Waits until something becomes true. The pause gate.</summary>
         Task Until(Func<bool> ready, CancellationToken token);
@@ -98,9 +123,24 @@ namespace RelicRun.Core.Presentation
                 PlaybackStep step = playing.Next();
                 if (step.Action == PlaybackAction.Done) return;
 
-                if (step.Action == PlaybackAction.Walk) screen.Walk(step.Index);
-                else if (step.Action == PlaybackAction.Meet) screen.Meet(step.Index);
-                else screen.Show(step.Index, playing.At(step.Index));
+                if (step.Action == PlaybackAction.Walk)
+                {
+                    screen.Walk(step.Index);
+                }
+                else if (step.Action == PlaybackAction.Meet)
+                {
+                    screen.Meet(step.Index);
+
+                    // The one wait a delver may cut short. A card announcing a foe is something
+                    // to READ, so it holds until it has been read or until the three seconds the
+                    // source gives it run out — whichever comes first.
+                    await clock.Wait(step.WaitMs, () => screen.Impatient, token);
+                    continue;
+                }
+                else
+                {
+                    screen.Show(step.Index, playing.At(step.Index));
+                }
 
                 await clock.Wait(step.WaitMs, token);
             }

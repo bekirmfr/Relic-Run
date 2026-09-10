@@ -275,6 +275,19 @@ const ADDED = {
     zh: "\u5728\u4E0B\u9762\u7B49\u7740",
     ar: "\u064A\u0646\u062A\u0638\u0631 \u0641\u064A \u0627\u0644\u0623\u0633\u0641\u0644",
   },
+
+  /* The way out of the card a fight opens on. The source writes this one into its
+   * markup as well, and it is the single most-pressed word in the game. */
+  fightBtn: {
+    en: "FIGHT",
+    tr: "SAVA\u015E",
+    fr: "COMBATTRE",
+    es: "LUCHAR",
+    ru: "\u0412 \u0411\u041E\u0419",
+    ja: "\u305F\u305F\u304B\u3046",
+    zh: "\u6218\u6597",
+    ar: "\u0642\u0627\u062A\u0644",
+  },
 };
 
 let added = 0;

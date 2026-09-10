@@ -161,5 +161,6 @@
   "riskGold": "RISQUE {n}",
   "walkAway": "S'EN ALLER",
   "keepGold": "GARDER {n}",
-  "waitingBelow": "ATTEND EN BAS"
+  "waitingBelow": "ATTEND EN BAS",
+  "fightBtn": "COMBATTRE"
 }

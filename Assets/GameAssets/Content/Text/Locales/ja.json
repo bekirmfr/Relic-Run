@@ -161,5 +161,6 @@
   "riskGold": "賭け {n}",
   "walkAway": "立ち去る",
   "keepGold": "{n} を持ち帰る",
-  "waitingBelow": "下で待っている"
+  "waitingBelow": "下で待っている",
+  "fightBtn": "たたかう"
 }

@@ -85,6 +85,17 @@ namespace RelicRun.Core.Presentation
         public int IntroMs = 3000;
 
         /// <summary>
+        /// How long the foe takes to fly from its card into the frame it fights from.
+        /// </summary>
+        /// <remarks>
+        /// The half second the source spends carrying the picture from the middle of the screen
+        /// down to the corner it will be fought in. It is the only thing joining the announcement
+        /// to the fight — without it the card blinks out and a foe appears somewhere else, and a
+        /// delver has to work out for themselves that they are the same creature.
+        /// </remarks>
+        public int FlyMs = 520;
+
+        /// <summary>
         /// How long the hall itself takes to slide, which is SHORTER than the walk.
         /// </summary>
         /// <remarks>

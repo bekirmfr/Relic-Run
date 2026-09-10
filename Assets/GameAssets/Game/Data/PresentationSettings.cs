@@ -72,6 +72,11 @@ namespace RelicRun.Game.Data
                  "approach behind it. Skipped by whatever skips the walk.")]
         [Min(0)] public int IntroMs = 3000;
 
+        [Tooltip("How long the foe takes to fly from its card into the frame it fights from. " +
+                 "The only thing joining the announcement to the fight: without it the card " +
+                 "blinks out and a foe appears somewhere else.")]
+        [Min(0)] public int FlyMs = 520;
+
         [Tooltip("Whether pressing the control also shortens the long waits. The source only " +
                  "shortened the gaps between events on the same tick, which was most likely a " +
                  "slip: it changed the least of what a delver pressing it wanted skipped.")]
@@ -96,6 +101,7 @@ namespace RelicRun.Game.Data
                 WalkMs = WalkMs,
                 PanMs = PanMs,
                 IntroMs = IntroMs,
+                FlyMs = FlyMs,
             };
         }
     }

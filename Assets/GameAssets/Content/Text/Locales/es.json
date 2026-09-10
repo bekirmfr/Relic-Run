@@ -161,5 +161,6 @@
   "riskGold": "ARRIESGA {n}",
   "walkAway": "MARCHARSE",
   "keepGold": "CONSERVA {n}",
-  "waitingBelow": "ESPERA ABAJO"
+  "waitingBelow": "ESPERA ABAJO",
+  "fightBtn": "LUCHAR"
 }

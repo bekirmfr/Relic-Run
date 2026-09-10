@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using RelicRun.Core.Combat;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
+using UnityEngine;
 
 namespace RelicRun.Game.Presentation
 {
@@ -115,6 +116,35 @@ namespace RelicRun.Game.Presentation
             {
                 return UniTask.Delay(ms, DelayType.UnscaledDeltaTime, PlayerLoopTiming.Update,
                     token).AsTask();
+            }
+
+            /// <summary>
+            /// The same, given up on as soon as something becomes true.
+            /// </summary>
+            /// <remarks>
+            /// Asked once a frame, which for once is the right shape rather than a compromise:
+            /// what it is watching is a button, and a button can be pressed on any frame. The
+            /// objection to polling elsewhere in this file is about a gate that may last minutes;
+            /// this one lasts three seconds and is a countdown by nature.
+            /// </remarks>
+            public async Task Wait(int ms, Func<bool> cut, CancellationToken token)
+            {
+                if (cut == null)
+                {
+                    await Wait(ms, token);
+                    return;
+                }
+
+                float over = Time.unscaledTime + ms / 1000f;
+
+                while (Time.unscaledTime < over)
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    if (cut()) return;
+
+                    await UniTask.Yield(PlayerLoopTiming.Update, token);
+                }
             }
 
             public Task Until(Func<bool> ready, CancellationToken token)

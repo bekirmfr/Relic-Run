@@ -161,5 +161,6 @@
   "riskGold": "СТАВКА {n}",
   "walkAway": "УЙТИ",
   "keepGold": "ОСТАВИТЬ {n}",
-  "waitingBelow": "ЖДЁТ ВНИЗУ"
+  "waitingBelow": "ЖДЁТ ВНИЗУ",
+  "fightBtn": "В БОЙ"
 }

@@ -55,6 +55,9 @@ namespace RelicRun.Game.Presentation
 
         [Tooltip("The row of foes on this floor. Hidden when there is only one.")]
         [SerializeField] private FoeQueueView _queue;
+
+        [Tooltip("Carries a foe from its card into the frame it is fought in.")]
+        [SerializeField] private FoeFlight _flight;
         [SerializeField] private RectTransform _enemyFliers;
 
         [Header("The purse")]
@@ -118,6 +121,17 @@ namespace RelicRun.Game.Presentation
         private int _foeVariant = -1;
 
         /// <summary>
+        /// Whether the foe's frame is being kept empty on purpose.
+        /// </summary>
+        /// <remarks>
+        /// True from the moment the walk sets off until whatever was announced has flown into
+        /// the frame. A delver should not see the thing they are about to be introduced to
+        /// standing there while they are walking toward it — the source hides the same glyph for
+        /// the same span, and the announcement is worth nothing if the surprise is already up.
+        /// </remarks>
+        private bool _hidden;
+
+        /// <summary>
         /// Who is on this floor, in the order they arrive.
         /// </summary>
         /// <remarks>
@@ -130,6 +144,19 @@ namespace RelicRun.Game.Presentation
 
         /// <summary>Whether the delver has stopped to look at something.</summary>
         public bool Paused { get; set; }
+
+        /// <summary>
+        /// Whether the delver has pressed FIGHT on the card in front of them.
+        /// </summary>
+        /// <remarks>
+        /// Asked by the loop, once a frame, and only while a card is up. False when there is no
+        /// card and false when there is no button on it, so a screen with neither simply lets the
+        /// card run its three seconds.
+        /// </remarks>
+        public bool Impatient
+        {
+            get { return _intro != null && _intro.Showing && _intro.Hurried; }
+        }
 
         /// <summary>
         /// Hands the card a fight opens on the delver's language.
@@ -190,6 +217,10 @@ namespace RelicRun.Game.Presentation
             // floor's last foe would be the first thing the next floor showed.
             if (_intro != null) _intro.Hide();
 
+            if (_flight != null) _flight.Stop();
+
+            _hidden = false;
+
             Dress();
 
             Queue(-1);
@@ -229,8 +260,9 @@ namespace RelicRun.Game.Presentation
         public void Show(int index, CombatEvent shown)
         {
             // The first thing anything does, so a blow is never struck behind the card that
-            // announced the foe taking it.
-            if (_intro != null && _intro.Showing) _intro.Hide();
+            // announced the foe taking it — and the foe it announced is thrown into its frame on
+            // the way past.
+            if (_intro != null && _intro.Showing) Arrive();
 
             Queue(index);
 
@@ -281,6 +313,11 @@ namespace RelicRun.Game.Presentation
         {
             if (_events == null || index < 0 || index >= _events.Count) return;
 
+            // Nobody meets a foe before they are introduced. The frame is emptied as the walk
+            // sets off and stays empty through the card, so what arrives in it is the thing that
+            // flies out of the announcement rather than something already standing there.
+            _hidden = true;
+
             if (_hall != null) _hall.Walk();
 
             Foe(_events[index].State);
@@ -303,7 +340,49 @@ namespace RelicRun.Game.Presentation
         {
             if (_events == null || index < 0 || index >= _events.Count) return;
 
-            if (_intro != null) _intro.Show(IntroCards.Of(_events[index].State));
+            if (_intro == null) return;
+
+            // Its own length, so the timer behind the button drains at the rate the loop is
+            // actually holding it for rather than at a number typed in twice.
+            _intro.Held = _pacing != null ? _pacing.Rules.IntroMs / 1000f : 0f;
+
+            _intro.Show(IntroCards.Of(_events[index].State));
+        }
+
+        /// <summary>
+        /// Takes the card down and carries what was on it into the frame.
+        /// </summary>
+        /// <remarks>
+        /// The join between the announcement and the fight, and the only reason the frame was
+        /// kept empty. A flight that cannot be made — no flier wired, no picture, nothing to fly
+        /// between — lands instantly rather than not at all, because the alternative is a foe
+        /// nobody can see for the rest of the floor.
+        /// </remarks>
+        private void Arrive()
+        {
+            RectTransform from = _intro.Picture;
+            Sprite drawn = _intro.Drawn;
+
+            _intro.Hide();
+
+            if (_flight == null)
+            {
+                Landed();
+                return;
+            }
+
+            float over = _pacing != null ? _pacing.Rules.FlyMs / 1000f : 0f;
+
+            _flight.Fly(drawn, from, _enemyArt != null ? (RectTransform)_enemyArt.transform : null,
+                over, Landed);
+        }
+
+        /// <summary>The foe is where it fights from now, so the frame may show it.</summary>
+        private void Landed()
+        {
+            _hidden = false;
+
+            if (_enemyArt != null) _enemyArt.enabled = _enemyArt.sprite != null;
         }
 
         /// <summary>Walks the rest of the hall, the floor being over.</summary>
@@ -453,7 +532,11 @@ namespace RelicRun.Game.Presentation
             {
                 Sprite art = _content.Enemies.For(state.EnemyIndex, state.EnemyVariant);
                 _enemyArt.sprite = art;
-                _enemyArt.enabled = art != null;
+
+                // The sprite is set either way; only the SHOWING of it waits. Everything else on
+                // this screen redraws from any event, so the picture has to be in place before a
+                // delver could ever see the frame — what is deferred is the moment it appears.
+                _enemyArt.enabled = art != null && !_hidden;
             }
 
             if (_enemyName != null) _enemyName.text = Named(state.EnemyIndex);
