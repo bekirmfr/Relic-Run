@@ -401,6 +401,11 @@ namespace RelicRun.Editor.Importers
                 Debug.Log("the fight scene had no camera, so one was made for it");
             }
 
+            // The inherited camera predates Eye() and has none. Unity warns once per FRAME that
+            // a scene has no listener, which is thousands of lines over a fight — enough to bury
+            // the console and, in one session, enough to make the editor look hung.
+            if (eye.GetComponent<AudioListener>() == null) eye.gameObject.AddComponent<AudioListener>();
+
             GameObject canvas = Canvas(eye);
             canvas.transform.SetParent(root.transform, false);
 
@@ -474,21 +479,25 @@ namespace RelicRun.Editor.Importers
                 Pair("_content", content),
             });
 
+            // The authored fight, which is now a FALLBACK rather than the fight. It carries the
+            // settings asset and nothing else: what it used to do — resolve a floor, drive the
+            // playback, own the screen — is the scene's, so that a delve ordered by the menu and
+            // a fight typed into an asset go down exactly the same road.
             var harness = root.AddComponent<FightHarness>();
 
-            Wire(harness, new[]
-            {
-                Pair("_view", view),
-                Pair("_content", content),
-                Pair("_fight", Fight()),
-            });
+            Wire(harness, new[] { Pair("_fight", Fight()) });
 
             // On the SCENE's root, not on the fight's. SceneService looks for one of these on the
             // object it instantiates, and it will not go hunting through the children for it.
             var entry = scene.GetComponent<FightScene>();
             if (entry == null) entry = scene.AddComponent<FightScene>();
 
-            Wire(entry, new[] { Pair("_view", view), Pair("_harness", harness) });
+            Wire(entry, new[]
+            {
+                Pair("_view", view),
+                Pair("_content", content),
+                Pair("_harness", harness),
+            });
         }
 
         /* ---------- wiring ---------- */

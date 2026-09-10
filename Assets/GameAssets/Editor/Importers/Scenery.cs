@@ -146,6 +146,12 @@ namespace RelicRun.Editor.Importers
             // nothing else, which looks exactly like a screen that failed to build.
             eye.cullingMask = ~0;
 
+            // Somewhere for the sound to arrive. Unity warns ONCE PER FRAME that a scene has no
+            // listener, which on a scene that is up for a minute is thousands of lines — enough
+            // to bury everything else in the console and, in one session, enough to make the
+            // editor look hung while it wrote them all to disk.
+            if (made.GetComponent<AudioListener>() == null) made.AddComponent<AudioListener>();
+
             return eye;
         }
 

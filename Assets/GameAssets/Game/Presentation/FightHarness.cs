@@ -1,9 +1,5 @@
-using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using RelicRun.Core.Combat;
-using RelicRun.Core.Content;
 using RelicRun.Core.Determinism;
-using RelicRun.Core.Presentation;
 using RelicRun.Core.Run;
 using RelicRun.Game.Data;
 using UnityEngine;
@@ -11,23 +7,21 @@ using UnityEngine;
 namespace RelicRun.Game.Presentation
 {
     /// <summary>
-    /// Resolves one fight and watches it. The smallest thing that is actually a game.
+    /// One fight, written down: the editor's way of asking for a particular one.
     /// </summary>
     /// <remarks>
-    /// A scaffold, and honest about it: there is no run around this fight, no draft before it and
-    /// nothing after it. What it proves is the whole chain — an engine resolving a floor, a
-    /// pacing built from its length, a loop walking it, and a screen drawing what it is told —
-    /// and that chain is the thing the rest of Phase 9 hangs from.
+    /// It used to BE the fight scene — resolving a floor, driving the playback and owning the
+    /// screen — which was right while there was nothing else to fight. Now the scene fights what
+    /// it is ORDERED to, and this is one of the two places an order can come from: the other is a
+    /// delver pressing PLAY.
     ///
-    /// The seed is fixed and shown. A fight nobody can reproduce is a fight nobody can
-    /// investigate, and the first thing anybody asks about a strange-looking fight is what seed
-    /// it was.
+    /// So it is a fallback rather than the main road, and that is the point of keeping it. A
+    /// fight that only exists when a run reaches it is a fight nobody can sit and stare at, and
+    /// the ability to open the scene on a chosen floor of a chosen hall with a chosen shelf is
+    /// most of how anything in the combat layer has ever been looked at.
     /// </remarks>
     public sealed class FightHarness : MonoBehaviour
     {
-        [SerializeField] private CombatView _view;
-        [SerializeField] private GameContent _content;
-
         /// <summary>
         /// Which fight to show. An asset, so that editing it survives a rebuild.
         /// </summary>
@@ -40,168 +34,62 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         [SerializeField] private FightSettings _fight;
 
-        private CombatPlaybackController _showing;
-        private bool _fighting;
-
-        /// <summary>
-        /// Resolves a fight and shows it, start to end.
-        /// </summary>
-        /// <remarks>
-        /// Started by <see cref="FightScene"/> and by nothing else. This used to also start
-        /// itself from <c>Start</c>, which meant that once the scene was loaded through the
-        /// service two fights ran over one view: every log line spawned twice, and the doubled
-        /// list looked like a fight where every blow landed twice rather than like a bug in the
-        /// wiring. Deleting the second caller is the fix; the guard below is so there can never
-        /// be a third.
-        ///
-        /// The guard returns rather than queueing. Two fights on one screen is not a thing that
-        /// can be done slightly — the second would draw over the first's widgets — so the honest
-        /// answer to being asked twice is to say so and refuse.
-        /// </remarks>
-        public async UniTask Fight()
+        /// <summary>Whether there is an authored fight to fall back on at all.</summary>
+        public bool Ready
         {
-            if (_fighting)
-            {
-                Debug.LogWarning("a fight is already on screen; ignoring the second", this);
-                return;
-            }
+            get { return _fight != null; }
+        }
 
-            if (_view == null || _content == null)
-            {
-                Debug.LogError("the harness has nothing to show or nothing to show it with", this);
-                return;
-            }
-
-            if (_fight == null)
-            {
-                Debug.LogError("no fight is set up — run Tools > Relic Run > Build Fight Scene, " +
-                               "which makes one and wires it", this);
-                return;
-            }
-
-            if (_content.Presentation == null)
-            {
-                // Everything else here has a sensible nothing to fall back on. The pacing does
-                // not: with no numbers there is no beat, and a fight would either flash past or
-                // never move.
-                Debug.LogError("no pacing is authored — run Tools > Relic Run > Import Content", this);
-                return;
-            }
-
-            _fighting = true;
-
-            try
-            {
-                IReadOnlyList<CombatEvent> events = Resolve();
-                // The settings live in an asset now, so the log names the asset as well as the
-                // fight. Otherwise the first question about a strange fight — what was it? — has
-                // no answer visible on the object being watched.
-                Debug.Log(_fight.Describe() + ": " + events.Count + " events", _fight);
-
-                Pacing pacing = Pacing.For(events.Count, _fight.ReducedMotion, _fight.Speed,
-                    _content.Presentation.ToPacing());
-
-                _view.Begin(events, pacing, Reading(), Shelf.Of(_delver), false, _fight.Hall);
-                _showing = new CombatPlaybackController(_content.Presentation);
-
-                await _showing.Show(events, _view, _fight.SkipIntro);
-            }
-            finally
-            {
-                // In a finally, because a fight that is abandoned still ends. Left set, the
-                // guard above would turn one cancelled fight into a screen that refuses to show
-                // any more of them — quietly, which is the worst way to refuse.
-                _fighting = false;
-            }
+        /// <summary>How the authored fight is to be watched, rather than what it is.</summary>
+        public FightSettings Watching
+        {
+            get { return _fight; }
         }
 
         /// <summary>
-        /// The hero the last fight was resolved for, kept so the tray can read their shelf.
+        /// The authored fight, as a plan.
         /// </summary>
         /// <remarks>
-        /// The shelf only. Nothing else about this object is safe to read afterwards — it is the
-        /// engine's working copy and holds the state the fight ENDED in, which is exactly why
-        /// every number the tray animates comes off the events instead.
+        /// The pack is built HERE rather than left to <see cref="Bout"/>, because the asset may
+        /// override it — an authored pack is most of what this exists for. Building it costs the
+        /// same draws the generator would have cost, from a generator seeded the same way, so an
+        /// asset that overrides nothing produces exactly the fight the plan would have rolled.
+        ///
+        /// The hall it is scaled for is the hall it SAYS, which it was not before: the harness
+        /// used to scale by whatever <c>RunSetup.ForLevel</c> carried, which is nothing at all,
+        /// so every authored fight was fought at the first hall's difficulty whichever backdrop
+        /// it was watched against. Authored fights therefore hit harder from the second hall
+        /// down — which is what the setting always claimed.
         /// </remarks>
-        private HeroState _delver;
-
-        /// <summary>
-        /// The fight itself, resolved before a single frame of it is drawn.
-        /// </summary>
-        /// <remarks>
-        /// Invariant 2. Nothing in the presentation layer computes combat, so this returns a
-        /// finished list and the screen's only job afterwards is to read it out.
-        /// </remarks>
-        private IReadOnlyList<CombatEvent> Resolve()
+        public FightPlan Plan(out int ceiling)
         {
-            HeroState hero = _fight.Delver.Build(_fight.Floor);
-            _delver = hero;
+            ceiling = 0;
 
-            // One stream for both, which is why an authored pack changes the whole fight and not
-            // just who is standing in it: generating a pack CONSUMES draws, so skipping that
-            // leaves every later roll reading a different part of the sequence. The same seed
-            // then describes a different fight, which is fine until somebody compares the two and
-            // concludes the engine moved.
+            if (_fight == null) return null;
+
+            HeroState hero = _fight.Delver.Build(_fight.Floor);
+
+            ceiling = hero.Pmax;
+
+            // One stream for the pack and the fight, which is why an authored pack changes the
+            // whole fight and not just who is standing in it: generating one CONSUMES draws, so
+            // skipping that leaves every later roll reading a different part of the sequence.
             var rng = new Mulberry32(_fight.Seed);
 
-            List<EnemyState> pack = _fight.Foes.Build(_fight.Floor, rng,
-                RunSetup.ForLevel(_fight.Delver.Level).Dungeon);
-
-            return new CombatEngine(CombatRules.Delve()).ResolveFloor(hero, pack, rng).Events;
-        }
-
-        /// <summary>English, or nothing at all if the content has not been imported.</summary>
-        private CombatLog Reading()
-        {
-            if (_content.Locales == null) return new CombatLog(null);
-
-            var strings = Strings(LocaleBook.Fallback);
-            return new CombatLog(strings == null ? null : new Locale(LocaleBook.Fallback, strings));
-        }
-
-        /// <summary>
-        /// Reads a language out of the content, synchronously.
-        /// </summary>
-        /// <remarks>
-        /// Through the editor asset rather than through Addressables, which is a scaffold's
-        /// shortcut and marked as one. A real loader awaits the address; this is a harness that
-        /// wants to be pressed and watched.
-        /// </remarks>
-        private Dictionary<string, string> Strings(string language)
-        {
-#if UNITY_EDITOR
-            var address = _content.Locales.For(language);
-            var text = address == null ? null : address.editorAsset as TextAsset;
-            if (text == null) return null;
-
-            var table = new Dictionary<string, string>();
-            foreach (var line in Newtonsoft.Json.Linq.JObject.Parse(text.text).Properties())
+            return new FightPlan
             {
-                table[line.Name] = line.Value.ToString();
-            }
-
-            return table;
-#else
-            return null;
-#endif
+                Seed = _fight.Seed,
+                Floor = _fight.Floor,
+                Tier = _fight.Hall,
+                Delver = hero,
+                Pack = _fight.Foes.Build(_fight.Floor, rng, DungeonConfig.ForTier(_fight.Hall)),
+            };
         }
 
-        /// <summary>
-        /// Stops whatever is on screen.
-        /// </summary>
-        /// <remarks>
-        /// Called when the screen is taken down, not only when the object dies. A playback loop
-        /// that outlived its screen would go on drawing into destroyed widgets — a null
-        /// reference per beat, which reads as the NEXT screen being broken.
-        /// </remarks>
-        public void Abandon()
+        /// <summary>What this fight is, in one line, for the log.</summary>
+        public string Describe()
         {
-            if (_showing != null) _showing.Abandon();
-        }
-
-        private void OnDestroy()
-        {
-            if (_showing != null) _showing.Dispose();
+            return _fight != null ? _fight.Describe() : "no authored fight";
         }
     }
 }

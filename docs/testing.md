@@ -1484,6 +1484,30 @@ question with no exceptions: every character these cards can write, silkscreen c
 
 A box looks like a font that has not loaded, never like a character nobody bundled.
 
+## Three ways a scene fails to load, all of them quiet
+
+**A SceneConfig keeps its handle after play mode ends.** A config holds an `AssetReference`, and
+an AssetReference caches the Addressables handle it loaded ON THE ASSET, which outlives play
+mode. Stop with a scene still up and it stays "loaded"; the next attempt throws
+`Attempting to load AssetReference that has already been loaded`. `SceneService` releases
+properly through its own `Clear`, so a build never sees it — the editor sees it every time.
+`SceneHandles` now releases them on both edges of play mode.
+
+**The service swallows its own failures.** `LoadScene` catches, writes the reason with
+`Debug.Log` rather than `LogError`, and returns null. So a load that failed completes its task
+perfectly, and the caller's `ContinueWith(OnlyOnFaulted)` never runs: the button does nothing and
+says nothing. Both callers now check the RESULT as well as the fault.
+
+**Nothing loads at all once the attribution SDK stalls.** `AppStartupOrchestrator` loads the
+default scene first — which is why the menu appears — then awaits `IAttributionService`, which on
+this machine begins `FB.Init` and never returns. Everything Addressables after that point sits at
+`AsyncOperationStatus.None` forever, including a direct
+`Addressables.LoadAssetAsync<GameObject>("TitleScene")` asked from a probe. The play mode script
+is Fast Mode, so there is no build to be stale.
+
+It is worth knowing the shape of it: the menu works, every screen in it works, and the ONE thing
+that cannot happen is loading another scene. Which reads exactly like a broken PLAY button.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1560,3 +1584,4 @@ node Tools/extract/validate.mjs
 | Phase 10n — the modals themselves | none — invariants | Editor; 5 popups, listed once each |
 | Phase 10o — a foe's card | none — invariants | passing, 13 dossiers and 4 ranks · 18 mutants |
 | Phase 10p — the supporter pack | none — invariants | passing, the one modal that is fully translated |
+| Phase 11a — one floor, resolved | none — invariants | passing, the plan, the clamp and the delver's statline |

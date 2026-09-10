@@ -34,7 +34,8 @@ namespace RelicRun.Game.Data
         [Tooltip("Which floor of the hall. Seven is the bazaar and has no fight.")]
         [Range(1, 13)] public int Floor = 1;
 
-        [Tooltip("Which hall, counting from one. Decides the backdrop the delver walks down.")]
+        [Tooltip("Which hall, counting from one. Decides the backdrop AND what waits at the " +
+                 "bottom of it: a deeper hall multiplies enemy health, attack and drops.")]
         [Range(1, 10)] public int Hall = 1;
 
         [Header("The delver")]

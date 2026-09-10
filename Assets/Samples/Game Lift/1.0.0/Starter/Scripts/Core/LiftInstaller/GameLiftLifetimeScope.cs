@@ -60,6 +60,11 @@ namespace GameLift.Installer
             // vault, at the root, outliving every scene that asks it anything.
             builder.Register<SaveVault>(Lifetime.Singleton);
 
+            // What the next screen is to fight, and how the last one went. Here for the reason
+            // above: the scene service's LoadScene takes a key and nothing else, so a screen
+            // cannot be handed its subject and the handoff has to outlive the load.
+            builder.Register<FightOrder>(Lifetime.Singleton);
+
             builder.Register<IPools, Pools>(Lifetime.Singleton);
 
             builder.RegisterInstance(_popupSettings);

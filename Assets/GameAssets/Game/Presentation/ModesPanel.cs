@@ -68,12 +68,13 @@ namespace RelicRun.Game.Presentation
             // delver still gets the banner explaining why. A button that cannot be pressed says
             // nothing; one that can be pressed and declines says what it wants.
             //
-            // Today's Daily and a delve into a hall are the same request as far as this screen
-            // is concerned, and they should not be — Pages.Featured already distinguishes them
-            // with StartsTheDaily. Nothing carries that across yet because the run layer is not
-            // built, so both land on the Phase 9 fight scaffold. When it is, this is one of the
-            // two call sites that has to say WHICH run it means.
-            Press(_daily, () => { if (_canDaily) Go(Page.Run); });
+            // Which run it means, said out loud. Today's Daily and a delve into a hall are the
+            // same destination and not the same thing: the Daily is one fixed seed the whole
+            // world shares, and a delve is a fresh one nobody else will ever see.
+            Press(_daily, () =>
+            {
+                if (_canDaily) Go(new Play { Goes = Page.Run, StartsTheDaily = true });
+            });
             Press(_versus, () => Go(Page.Staging));
 
             Press(_back, () => Go(Page.Title));

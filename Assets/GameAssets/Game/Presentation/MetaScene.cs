@@ -2,6 +2,10 @@ using System;
 using System.Threading.Tasks;
 using GameLift.Popup;
 using GameLift.Scene;
+using RelicRun.Core.Combat;
+using RelicRun.Core.Determinism;
+using RelicRun.Core.Meta;
+using RelicRun.Core.Run;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using RelicRun.Game.Services;
@@ -80,6 +84,7 @@ namespace RelicRun.Game.Presentation
         private const float Tick = 1f;
 
         private SaveVault _vault;
+        private FightOrder _orders;
         private ISceneService _scenes;
         private Speech _speech;
         private Modals _modals;
@@ -104,6 +109,7 @@ namespace RelicRun.Game.Presentation
         public async Task Initialize()
         {
             _vault = Vault();
+            _orders = Orders();
             _scenes = Scenes();
             _speech = new Speech();
 
@@ -238,14 +244,16 @@ namespace RelicRun.Game.Presentation
         /// where it was opened from. The board is the case that proves it: the same screen, two
         /// ways in, and one of them goes back to the end of a run.
         /// </remarks>
-        private void Asked(Page page)
+        private void Asked(Play play)
         {
+            Page page = play.Goes;
+
             // The run is not a panel. It is its own scene, because a fight is a different thing
             // from a menu: it owns the whole screen, it has a lifecycle of its own, and the
             // service tears the menu down as it loads rather than drawing one over the other.
             if (page == Page.Run)
             {
-                Delve();
+                Delve(play.StartsTheDaily);
                 return;
             }
 
@@ -264,16 +272,24 @@ namespace RelicRun.Game.Presentation
         /// Hands over to the run.
         /// </summary>
         /// <remarks>
-        /// What loads today is the fight SCAFFOLD from Phase 9 — one fight, set up from the
-        /// Fight asset, rather than a delve into the hall the delver just chose. The hall IS
-        /// remembered and committed before this is called, so nothing is lost by the run layer
-        /// not existing yet; when it does, this line is what changes.
+        /// One floor, which is not yet a run: there is no draft before it, no gate after it and
+        /// no way down to the second. What it IS is the delver's own first floor — their hall,
+        /// their level's statline, and a seed that means what it says — rather than a fight
+        /// written into an editor asset, which is what this used to load.
+        ///
+        /// The order is placed BEFORE the scene is asked for, because the scene reads it while
+        /// it is being built and this object is destroyed as part of that same load.
         ///
         /// Not awaited, and deliberately: the service tears this scene down as part of loading,
         /// so awaiting here would be awaiting on an object being destroyed. The task is dropped
         /// with its failure reported rather than left to disappear silently.
         /// </remarks>
-        private void Delve()
+        /// <param name="daily">
+        /// Whether this is today's Daily. The whole difference is the SEED — one number the
+        /// world shares, against one nobody else will ever see — which is why it is the only
+        /// thing carried across from the button that was pressed.
+        /// </param>
+        private void Delve(bool daily)
         {
             if (_scenes == null)
             {
@@ -281,12 +297,108 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
-            Task loading = _scenes.LoadScene(SceneKeys.GameScene);
+            Order(daily);
 
-            loading.ContinueWith(
-                done => Debug.LogError("could not load the run: " + done.Exception, this),
-                TaskContinuationOptions.OnlyOnFaulted |
-                TaskContinuationOptions.ExecuteSynchronously);
+            Loading(_scenes.LoadScene(SceneKeys.GameScene), "the run");
+        }
+
+        /// <summary>
+        /// Says what the fight is to be.
+        /// </summary>
+        /// <remarks>
+        /// The delver is built by <see cref="Bout.Delver"/> rather than here, so a fight started
+        /// from this screen and a floor of a real run seed the same hero from the same table. It
+        /// is the sort of drift that produces perfectly plausible numbers and shows up only as a
+        /// first floor that plays differently depending on which button started it.
+        ///
+        /// A failure leaves NO order, deliberately. The fight scene falls back to its authored
+        /// fight and says so, which is a screen showing the wrong fight loudly rather than a
+        /// screen showing nothing.
+        /// </remarks>
+        private void Order(bool daily)
+        {
+            if (_orders == null)
+            {
+                Debug.LogWarning("nothing is holding the order, so the fight will show whatever " +
+                                 "is authored rather than this delver's own", this);
+                return;
+            }
+
+            SaveState earned = _vault != null ? _vault.Earned : new SaveState();
+            Preferences chosen = _vault != null ? _vault.Chosen : new Preferences();
+
+            int tier = chosen.Tier;
+
+            RunSetup setup = RunSetup.ForLevel(earned.Level);
+
+            setup.Dungeon = DungeonConfig.ForTier(tier);
+
+            HeroState delver = Bout.Delver(setup);
+
+            var plan = new FightPlan
+            {
+                // The Daily's seed is the day's. Everything else is a number nobody has seen,
+                // which is what makes a practice delve practice.
+                Seed = daily
+                    ? DailySeed.For(DateTimeOffset.UtcNow)
+                    : (uint)UnityEngine.Random.Range(int.MinValue, int.MaxValue),
+
+                Floor = 1,
+                Tier = tier,
+                Delver = delver,
+            };
+
+            _orders.Place(plan, delver.Pmax);
+
+            Debug.Log((daily ? "the Daily" : "a delve") + " into hall " + tier +
+                      ", seed " + plan.Seed, this);
+        }
+
+        /// <summary>
+        /// Watches a scene load and says if it did not happen.
+        /// </summary>
+        /// <remarks>
+        /// Both halves matter, and the second one is the one that was missing. A load that FAULTS
+        /// is easy: the task carries the exception. A load that fails is not — the service
+        /// catches its own exception, writes it as an ordinary message, and returns null, so the
+        /// task completes perfectly and the game simply does not go anywhere.
+        ///
+        /// That is how an addressable handle left over from a previous editor session turned
+        /// into a PLAY button that did nothing and said nothing.
+        /// </remarks>
+        private static void Loading(Task<GameObject> loading, string what)
+        {
+            loading.ContinueWith(done =>
+            {
+                if (done.IsFaulted)
+                {
+                    Debug.LogError("could not load " + what + ": " + done.Exception);
+                    return;
+                }
+
+                if (done.Result == null)
+                {
+                    Debug.LogError("nothing was loaded for " + what + ". The scene service " +
+                                   "swallowed the reason and logged it as an ordinary message — " +
+                                   "look just above this line for it.");
+                }
+            }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        /// <summary>Finds what carries a fight from this screen to the next one.</summary>
+        /// <remarks>
+        /// Missing the same way the save is, and survivable the same way: the fight falls back to
+        /// whatever is authored, which is wrong but visible, and says so on the way past.
+        /// </remarks>
+        private FightOrder Orders()
+        {
+            var scope = GetComponent<LifetimeScope>();
+
+            if (scope == null || scope.Container == null) return null;
+
+            FightOrder orders;
+
+            return scope.Container.TryResolve(out orders) ? orders : null;
         }
 
         private void Draw(MetaPanel panel)

@@ -64,7 +64,15 @@ namespace RelicRun.Game.Presentation
         /// decides — which is what lets a screen be reached from two places without knowing it
         /// has been, and what keeps the back button's answer in one piece of code.
         /// </remarks>
-        public event Action<Page> Wants;
+        /// <remarks>
+        /// A <see cref="Play"/> rather than a <see cref="Page"/>, because two of these requests
+        /// are the same destination and not the same thing: today's Daily and a delve into a
+        /// chosen hall both land on the run, and they are different runs. Core has said so all
+        /// along — <c>Pages.Featured</c> returns the pair precisely "so that a caller cannot
+        /// route to the run screen without saying which run it is showing" — and until there was
+        /// a run to start, nothing carried it across.
+        /// </remarks>
+        public event Action<Play> Wants;
 
         /// <summary>
         /// What the game says, in the delver's language.
@@ -100,9 +108,15 @@ namespace RelicRun.Game.Presentation
         /// <summary>Asks to go somewhere. For subclasses to call from their own buttons.</summary>
         protected void Go(Page page)
         {
-            Action<Page> asked = Wants;
+            Go(new Play { Goes = page });
+        }
 
-            if (asked != null) asked(page);
+        /// <summary>The same, for a request that has to say which run it means.</summary>
+        protected void Go(Play play)
+        {
+            Action<Play> asked = Wants;
+
+            if (asked != null) asked(play);
         }
     }
 }
