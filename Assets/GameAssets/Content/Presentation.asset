@@ -24,4 +24,5 @@ MonoBehaviour:
   SpeedSteps: 010000000200000004000000
   WalkMs: 3350
   PanMs: 2600
+  IntroMs: 3000
   SpeedShortensTheTickWait: 1

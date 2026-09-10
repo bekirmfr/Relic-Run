@@ -111,15 +111,20 @@ namespace RelicRun.Tests
         /* ---------- the walk ---------- */
 
         /// <summary>
-        /// A foe entering is announced twice: once to walk to them, once to show it.
+        /// A foe entering is announced three times: walk to them, meet them, then fight.
         /// </summary>
         /// <remarks>
-        /// The walk does not consume the event. That is why the source keeps a <c>_walked</c>
-        /// index at all — the walk is what puts the cursor back, so without a memory of having
-        /// walked already, the same foe would be approached forever.
+        /// The order is the whole point and it is easy to get backwards. The card a fight opens
+        /// on is opaque and covers everything, so raising it as the walk SET OFF plays the entire
+        /// approach behind it — three and a half seconds of hall sliding where nobody can see it,
+        /// which is what this port did until somebody watched it properly.
+        ///
+        /// Neither of the first two consumes the event. That is why the source keeps a
+        /// <c>_walked</c> index at all: a step that does not advance the cursor is one that would
+        /// otherwise repeat forever.
         /// </remarks>
         [Test]
-        public void MeetingAFoeWalksTheHallFirstAndShowsItSecond()
+        public void AFoeIsWalkedToFirstAndAnnouncedSecond()
         {
             CombatPlayback playing = Playing(On(0, CombatEventType.Enter), On(2));
 
@@ -129,15 +134,21 @@ namespace RelicRun.Tests
             Assert.That(walk.WaitMs, Is.EqualTo(3350));
             Assert.That(playing.Cursor, Is.Zero, "the walk did not consume it");
 
+            PlaybackStep meet = playing.Next();
+            Assert.That(meet.Action, Is.EqualTo(PlaybackAction.Meet));
+            Assert.That(meet.Index, Is.EqualTo(0));
+            Assert.That(meet.WaitMs, Is.EqualTo(3000), "the card is read for its own three seconds");
+            Assert.That(playing.Cursor, Is.Zero, "nor did the card");
+
             PlaybackStep show = playing.Next();
             Assert.That(show.Action, Is.EqualTo(PlaybackAction.Show));
-            Assert.That(show.Index, Is.EqualTo(0), "and now the same event is shown");
+            Assert.That(show.Index, Is.EqualTo(0), "and only now is the same event shown");
             Assert.That(playing.Cursor, Is.EqualTo(1));
         }
 
-        /// <summary>Every foe in a pack is walked to, and each exactly once.</summary>
+        /// <summary>Every foe in a pack is walked to and announced, and each exactly once.</summary>
         [Test]
-        public void EachFoeIsWalkedToOnce()
+        public void EachFoeIsWalkedToOnceAndAnnouncedOnce()
         {
             CombatPlayback playing = Playing(
                 On(0, CombatEventType.Enter), On(1),
@@ -158,7 +169,8 @@ namespace RelicRun.Tests
 
             Assert.That(actions, Is.EqualTo(new[]
             {
-                "Walk:0", "Show:0", "Show:1", "Walk:2", "Show:2", "Show:3",
+                "Walk:0", "Meet:0", "Show:0", "Show:1",
+                "Walk:2", "Meet:2", "Show:2", "Show:3",
             }));
         }
 

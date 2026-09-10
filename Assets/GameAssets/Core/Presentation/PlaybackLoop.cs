@@ -27,6 +27,15 @@ namespace RelicRun.Core.Presentation
         /// <summary>Set off down the hall to meet the foe entering at this index.</summary>
         void Walk(int index);
 
+        /// <summary>
+        /// Announce the foe entering at this index, the walking now being over.
+        /// </summary>
+        /// <remarks>
+        /// Separate from <see cref="Walk"/> so the approach is visible. A screen that raised its
+        /// card at the same moment it set off would cover its own hall for the whole walk.
+        /// </remarks>
+        void Meet(int index);
+
         /// <summary>Whether the delver has stopped to look at something.</summary>
         bool Paused { get; }
     }
@@ -90,6 +99,7 @@ namespace RelicRun.Core.Presentation
                 if (step.Action == PlaybackAction.Done) return;
 
                 if (step.Action == PlaybackAction.Walk) screen.Walk(step.Index);
+                else if (step.Action == PlaybackAction.Meet) screen.Meet(step.Index);
                 else screen.Show(step.Index, playing.At(step.Index));
 
                 await clock.Wait(step.WaitMs, token);

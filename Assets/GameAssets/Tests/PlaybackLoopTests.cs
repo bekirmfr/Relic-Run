@@ -74,6 +74,8 @@ namespace RelicRun.Tests
 
             public void Walk(int index) { Note("walk " + index); }
 
+            public void Meet(int index) { Note("meet " + index); }
+
             private void Note(string what)
             {
                 Told.Add(what);
@@ -133,8 +135,12 @@ namespace RelicRun.Tests
             await PlaybackLoop.Play(Playing(On(0, CombatEventType.Enter), On(1), On(3)),
                 screen, clock, CancellationToken.None);
 
-            Assert.That(screen.Told, Is.EqualTo(new[] { "walk 0", "show 0", "show 1", "show 3" }));
-            Assert.That(clock.Waited, Is.EqualTo(new[] { 3350, 500, 1000, 450 }));
+            Assert.That(screen.Told,
+                Is.EqualTo(new[] { "walk 0", "meet 0", "show 0", "show 1", "show 3" }));
+
+            // The walk and the card are flat and their own; everything after is the fight's own
+            // clock, gap by gap.
+            Assert.That(clock.Waited, Is.EqualTo(new[] { 3350, 3000, 500, 1000, 450 }));
             Assert.That(clock.Gated, Is.Zero, "nobody paused, so nothing gated");
         }
 

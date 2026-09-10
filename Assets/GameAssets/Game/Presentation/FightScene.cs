@@ -208,6 +208,10 @@ namespace RelicRun.Game.Presentation
 
                     if (Gone) return;
 
+                    await Stretching(stop);
+
+                    if (Gone) return;
+
                     stop.Answer = new Answer();
                 }
                 else
@@ -290,6 +294,55 @@ namespace RelicRun.Game.Presentation
             {
                 if (!earned.Seen.Contains(foe.SpeciesIndex)) earned.Seen.Add(foe.SpeciesIndex);
             }
+        }
+
+        /// <summary>
+        /// The last stretch, out of the fight and along to the door at the end of the floor.
+        /// </summary>
+        /// <remarks>
+        /// A floor's foes are met SHORT of the far door — evenly spaced along the hall — so the
+        /// last of them falls with the delver standing in the middle of it. The source spends a
+        /// full stride walking the rest before it offers the gate, and it is right to: the gate
+        /// asks whether to go down, and a delver should have reached the stairs before being
+        /// asked.
+        ///
+        /// Not walked when the delver FELL. There is no stroll to the door at the end of a floor
+        /// that killed you, and what comes next is a revive or an ending rather than a choice.
+        /// </remarks>
+        private async UniTask Stretching(Ask fought)
+        {
+            if (_view == null || Fell(fought)) return;
+
+            int held = _content != null && _content.Presentation != null
+                ? _content.Presentation.ToPacing().WalkMs
+                : 0;
+
+            if (held <= 0 || Reduced()) return;
+
+            _view.Stretch();
+
+            await UniTask.Delay(held, DelayType.UnscaledDeltaTime);
+        }
+
+        /// <summary>Whether the floor ended with the delver on it rather than through it.</summary>
+        /// <remarks>
+        /// Read off the events rather than off the run, because the run has not been told yet —
+        /// this happens while the fought floor is still the pending question.
+        /// </remarks>
+        private static bool Fell(Ask fought)
+        {
+            if (fought == null || fought.Result == null) return true;
+
+            IReadOnlyList<CombatEvent> events = fought.Result.Events;
+
+            if (events == null) return true;
+
+            for (int i = events.Count - 1; i >= 0; i--)
+            {
+                if (events[i].Type == CombatEventType.Death) return true;
+            }
+
+            return false;
         }
 
         /// <summary>

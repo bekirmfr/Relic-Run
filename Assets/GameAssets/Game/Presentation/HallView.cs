@@ -109,6 +109,31 @@ namespace RelicRun.Game.Presentation
         {
             _stride++;
 
+            Stride();
+        }
+
+        /// <summary>
+        /// The last stretch: out of the last fight and along to the far door.
+        /// </summary>
+        /// <remarks>
+        /// A floor's foes are met at even intervals SHORT of the door — a floor of three is met
+        /// at a quarter, a half and three quarters — so beating the last of them leaves the
+        /// delver standing in the middle of a hall. This is the walk to the end of it, and the
+        /// source spends a full stride on it before the gate is offered.
+        ///
+        /// Which is not decoration: the gate asks whether to go down, and a delver is entitled to
+        /// have arrived at the stairs before being asked.
+        /// </remarks>
+        public void Stretch()
+        {
+            _stride = _foes + 1;
+
+            Stride();
+        }
+
+        /// <summary>Sets off toward wherever the current stride lands.</summary>
+        private void Stride()
+        {
             _from = Showing();
             _to = HallPan.Of(_stride, _foes);
             _started = Time.unscaledTime;

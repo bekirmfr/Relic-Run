@@ -67,6 +67,11 @@ namespace RelicRun.Game.Data
                  "the room has settled by the time the next foe is standing in it.")]
         [Min(0)] public int PanMs = 2600;
 
+        [Tooltip("How long the card a fight opens on is held, AFTER the walk rather than during " +
+                 "it. The card is opaque, so raising it as the walk set off would play the whole " +
+                 "approach behind it. Skipped by whatever skips the walk.")]
+        [Min(0)] public int IntroMs = 3000;
+
         [Tooltip("Whether pressing the control also shortens the long waits. The source only " +
                  "shortened the gaps between events on the same tick, which was most likely a " +
                  "slip: it changed the least of what a delver pressing it wanted skipped.")]
@@ -90,6 +95,7 @@ namespace RelicRun.Game.Data
                 SpeedShortensTheTickWait = SpeedShortensTheTickWait,
                 WalkMs = WalkMs,
                 PanMs = PanMs,
+                IntroMs = IntroMs,
             };
         }
     }

@@ -15,6 +15,15 @@ namespace RelicRun.Core.Presentation
 
         /// <summary>Walk the hall to meet the foe that is about to enter, then hold.</summary>
         Walk,
+
+        /// <summary>
+        /// Put up the card for the foe now standing there, then hold.
+        /// </summary>
+        /// <remarks>
+        /// A separate step from <see cref="Walk"/> because it happens AFTER it. The delver walks
+        /// down the hall in the open, arrives, and only then is told what they have arrived at.
+        /// </remarks>
+        Meet,
     }
 
     /// <summary>One instruction: do this, then wait that long.</summary>
@@ -67,6 +76,7 @@ namespace RelicRun.Core.Presentation
 
         private int _cursor;
         private int _walked = -1;
+        private int _met = -1;
 
         /// <summary>The pacing, which changes when the delver presses the speed control.</summary>
         public Pacing Pacing { get; private set; }
@@ -117,11 +127,16 @@ namespace RelicRun.Core.Presentation
         /// What to do next, and how long to hold afterwards.
         /// </summary>
         /// <remarks>
-        /// A foe entering is announced TWICE. The first time the cursor reaches it, playback
-        /// walks the hall to meet them and does not advance; the second time it shows the event
-        /// and moves on. That is the source's own arrangement and it is why <c>_walked</c> exists
-        /// there — without it the walk would repeat forever, because the walk is what puts the
-        /// cursor back.
+        /// A foe entering is announced THREE times. The cursor reaches it and playback walks the
+        /// hall toward them without advancing; reaches it again and puts their card up, still
+        /// without advancing; and only the third time shows the event and moves on. That is the
+        /// source's own arrangement — it keeps a <c>_walked</c> index for exactly this reason,
+        /// because a step that does not advance the cursor is one that would otherwise repeat
+        /// forever.
+        ///
+        /// The order is the whole point. Walking with the card already up plays the approach
+        /// behind an opaque overlay, which is three and a half seconds of hall sliding where
+        /// nobody can see it.
         ///
         /// The hold after an event is the gap to the NEXT event's tick, so the timing of a fight
         /// is the fight's own. The last event has nothing to look ahead to and holds for the
@@ -133,10 +148,19 @@ namespace RelicRun.Core.Presentation
 
             int at = _cursor;
 
-            if (_walks && _walked != at && _events[at].Type == CombatEventType.Enter)
+            if (_walks && _events[at].Type == CombatEventType.Enter)
             {
-                _walked = at;
-                return new PlaybackStep(PlaybackAction.Walk, at, Pacing.Rules.WalkMs);
+                if (_walked != at)
+                {
+                    _walked = at;
+                    return new PlaybackStep(PlaybackAction.Walk, at, Pacing.Rules.WalkMs);
+                }
+
+                if (_met != at)
+                {
+                    _met = at;
+                    return new PlaybackStep(PlaybackAction.Meet, at, Pacing.Rules.IntroMs);
+                }
             }
 
             _cursor = at + 1;

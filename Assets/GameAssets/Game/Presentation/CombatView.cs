@@ -285,11 +285,37 @@ namespace RelicRun.Game.Presentation
 
             Foe(_events[index].State);
 
-            // The row FIRST, so the foe about to be announced is already ringed behind the card
-            // when it comes down — rather than the row catching up a frame later.
+            // The row FIRST, so the foe walked toward is already ringed by the time the card
+            // over them goes up — rather than the row catching up a floor later.
             Queue(index);
+        }
+
+        /// <summary>
+        /// Announces whoever the walk arrived at.
+        /// </summary>
+        /// <remarks>
+        /// A separate beat from <see cref="Walk"/>, and the order matters more than it looks: the
+        /// card is opaque and covers the whole screen, so raising it as the walk SET OFF played
+        /// the entire approach behind it. The hall slid for three and a half seconds where nobody
+        /// could see it, which made the walk read as a pause with nothing in it.
+        /// </remarks>
+        public void Meet(int index)
+        {
+            if (_events == null || index < 0 || index >= _events.Count) return;
 
             if (_intro != null) _intro.Show(IntroCards.Of(_events[index].State));
+        }
+
+        /// <summary>Walks the rest of the hall, the floor being over.</summary>
+        /// <remarks>
+        /// Forwarded, like the descent. The scene knows a floor has been cleared; this knows what
+        /// a cleared floor looks like.
+        /// </remarks>
+        public void Stretch()
+        {
+            if (_intro != null) _intro.Hide();
+
+            if (_hall != null) _hall.Stretch();
         }
 
         /// <summary>

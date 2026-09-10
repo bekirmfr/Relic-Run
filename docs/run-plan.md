@@ -342,6 +342,27 @@ who has walked into one has not arrived at the floor beyond it. That is also why
 mid-descent with its floor not yet advanced: `Delve` yields the event before it steps through the
 gate, so a pending event is exactly the signal that the walk ends in the gap.
 
+**5b · The order of a floor. — DONE.** The three beats a floor is made of were running on top of
+each other, and it took watching one properly to see it.
+
+A foe entering is announced THREE times now, not two. Playback walks the hall toward them and does
+not advance; puts their card up and still does not advance; and only then shows the event. The card
+is opaque and covers the whole screen, so raising it as the walk SET OFF played the entire approach
+behind it — three and a half seconds of hall sliding where nobody could see it, which made the walk
+read as a pause with nothing in it. `PlaybackAction.Meet` and `PacingRules.IntroMs` are what
+separate them; three tests failed on the change and were rewritten to the new order rather than
+around it.
+
+And a floor now ENDS at its door. A floor's foes are met evenly spaced short of the far door, so
+the last of them falls with the delver standing in the middle of the hall; the source spends a full
+stride walking the rest before it offers the gate. It is right to: the gate asks whether to go
+down, and a delver should have reached the stairs before being asked. Not walked when the delver
+fell — there is no stroll to the door at the end of a floor that killed you.
+
+Measured, sampling the hall's pan against the two overlays: pan moving with the card down, pan
+settled at −1580 and *then* the card up, card down and the fight running, pan −1602 → −3075 →
+−3159 for the last stretch, and the gate only once it had arrived.
+
 Still missing, and now the only part that is: the bazaar's own hall. The source gives that floor
 `hall-bazaar.png` and the port has not imported it, so descending into the bazaar arrives in the
 dungeon's own hall. That is the line in `HallView.Descend` that changes when the art lands.

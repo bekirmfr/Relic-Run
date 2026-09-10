@@ -70,6 +70,21 @@ namespace RelicRun.Core.Presentation
         public int WalkMs = 3350;
 
         /// <summary>
+        /// How long the card a fight opens on is held before the first blow.
+        /// </summary>
+        /// <remarks>
+        /// AFTER the walk, not during it. The source announces a foe entering twice — once to
+        /// set off down the hall toward them, and once to put their card up when the walking has
+        /// stopped — and running the two together would play the whole approach behind an opaque
+        /// overlay. Which is what this port did first: three and a half seconds of hall sliding
+        /// where nobody could see it.
+        ///
+        /// Flat, like the walk and for the same reason: it is a thing to read rather than a wait.
+        /// It is skipped by whatever skips the walk.
+        /// </remarks>
+        public int IntroMs = 3000;
+
+        /// <summary>
         /// How long the hall itself takes to slide, which is SHORTER than the walk.
         /// </summary>
         /// <remarks>
