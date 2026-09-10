@@ -98,6 +98,19 @@ namespace RelicRun.Core.Run
         /// <summary>The answer, written by whoever is being asked.</summary>
         public Answer Answer;
 
+        /// <summary>
+        /// What came of it, written by the run once the answer is in.
+        /// </summary>
+        /// <remarks>
+        /// Only an event fills this, and only after it has been answered. A choice at an event is
+        /// made BLIND — the hint says what it costs, never what it does, and half of them roll
+        /// for it — so the sentence afterwards is the only place the run says what happened.
+        ///
+        /// On the stop rather than in a second stop of its own, because a second stop would be a
+        /// second answer, and every run this project has recorded would have to grow one.
+        /// </remarks>
+        public EventOutcome Outcome;
+
         private Ask(AskKind kind, int floor, IReadOnlyList<RelicId> offer, int price,
             DungeonEvent ev, IReadOnlyList<int> awakenable, IReadOnlyList<EnemyState> pack,
             CombatResult result)

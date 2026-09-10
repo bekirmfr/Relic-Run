@@ -287,7 +287,12 @@ namespace RelicRun.Core.Run
             // A counter is a counter: an outcome that costs gold pays the Debt of Flesh, the
             // same as the bazaar and the reroll ladder do.
             int purse = _run.Gold;
-            ev.Choices[choice].Resolve(_run, _events);
+
+            // Written back onto the stop, so whoever asked can read out what came of it. An
+            // event is two beats — a blind choice and then the sentence saying what it did — and
+            // splitting them into two stops would put a second answer in every recorded run.
+            choosing.Outcome = ev.Choices[choice].Resolve(_run, _events);
+
             if (_run.Gold < purse) DelveRun.PayTheDebt(_run);
 
             // An event can hurt, but never kill: the floor at one is what makes the Spike Trap a

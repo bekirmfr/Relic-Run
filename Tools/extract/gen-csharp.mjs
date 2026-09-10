@@ -1092,6 +1092,96 @@ ${events.map((e) => `            "${stem(e.art)}",`).join("\n")}
 }
 `);
 
+/* ---------- EventText ---------- */
+
+/* What an event SAYS, kept apart from what it does for the same reason EventArt is: the rules
+   half is hand-ported against the corpus and nothing that changes a sentence should be able to
+   reach a file that decides what a choice costs.
+
+   The choices' order is the order DungeonEvents declares them in, and both come from the same
+   extraction — so a label can never end up describing a different choice than the one it sits on.
+   The hint is the line under a label and carries everything a cost does not: the ones priced in
+   HP, in speed, in a coin flip. Null becomes an empty string, because a screen printing "null"
+   is worse than one printing nothing. */
+
+const q = JSON.stringify;
+
+write("EventText.cs", header(`prose for ${events.length} dungeon events`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>One thing a delver can do about an event, as the screen words it.</summary>
+    public sealed class EventChoiceText
+    {
+        /// <summary>What the button says. English.</summary>
+        public readonly string Label;
+
+        /// <summary>
+        /// The line under it, or empty.
+        /// </summary>
+        /// <remarks>
+        /// Everything a gold cost cannot say: prices in health, in speed, in a coin flip. A
+        /// choice that costs nothing and promises nothing has none.
+        /// </remarks>
+        public readonly string Hint;
+
+        public EventChoiceText(string label, string hint)
+        {
+            Label = label;
+            Hint = hint;
+        }
+    }
+
+    /// <summary>Everything an event says, as the screen reads it out.</summary>
+    public sealed class EventTextDef
+    {
+        /// <summary>The kicker over the art: MERCHANT, GAMBLE, TRAP and the rest. English.</summary>
+        public readonly string Kicker;
+
+        public readonly string Title;
+
+        /// <summary>The paragraph under it. English.</summary>
+        public readonly string Text;
+
+        public readonly IReadOnlyList<EventChoiceText> Choices;
+
+        public EventTextDef(string kicker, string title, string text,
+            params EventChoiceText[] choices)
+        {
+            Kicker = kicker;
+            Title = title;
+            Text = text;
+            Choices = choices;
+        }
+    }
+
+    /// <summary>
+    /// What the twelve events say.
+    /// </summary>
+    /// <remarks>
+    /// The prose half of an event. What each choice DOES is <c>DungeonEvents</c>' and is
+    /// hand-ported against the corpus; this is only what a delver reads, kept apart so that
+    /// rewording a line can never reach a file that decides what a choice costs.
+    ///
+    /// English, like every other generated string in this project. The source ships these in its
+    /// markup rather than its string table, so there is nothing to translate them from.
+    /// </remarks>
+    public static class EventText
+    {
+        /// <summary>Position is the event's index, as everything about events is.</summary>
+        public static readonly IReadOnlyList<EventTextDef> All = new[]
+        {
+${events.map((e) => `            new EventTextDef(${q(e.cat)}, ${q(e.title)}, ${q(e.text)},
+${e.choices.map((c) => `                new EventChoiceText(${q(c.label)}, ${q(c.hint || "")})`).join(",\n")}),`).join("\n")}
+        };
+
+        public static EventTextDef Get(int index) { return All[index]; }
+    }
+}
+`);
+
 /* ---------- EnemyCatalog ---------- */
 
 /* Only the presentation half of the bestiary: what a species is called, and which row of the

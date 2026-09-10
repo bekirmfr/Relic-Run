@@ -162,5 +162,8 @@
   "walkAway": "就此收手",
   "keepGold": "保住 {n}",
   "waitingBelow": "在下面等着",
-  "fightBtn": "战斗"
+  "fightBtn": "战斗",
+  "betweenFloors": "层与层之间",
+  "continueDescent": "继续下行",
+  "notEnoughGold": "金币不足"
 }

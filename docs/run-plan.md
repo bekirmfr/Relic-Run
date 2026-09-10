@@ -388,8 +388,40 @@ Still missing, and now the only part that is: the bazaar's own hall. The source 
 `hall-bazaar.png` and the port has not imported it, so descending into the bazaar arrives in the
 dungeon's own hall. That is the line in `HallView.Descend` that changes when the art lands.
 
-**6 · The rest.** `event`, `shop` / `merchant` with socket picking, `revive`, `pause`. Each is a
-stage the engine already answers and a screen that does not exist.
+**6 · The rest.** `event` — DONE — then `shop` / `merchant`, `revive`, `pause`. Each is a stage the
+engine already answers and a screen that does not exist.
+
+A correction to this line before anything else: **the source's socket picking is dead code.**
+`socketPick` is never assigned — the only thing that could set it sits behind a ternary whose
+branches are both the empty array — so `socketPicking` is always false, the picker never renders,
+and `shopSocket` is unreachable. The socket/component system was replaced by AWAKENING, which is
+what Core already ports (`DealKind.Awaken`). So the bazaar is wares and awakening, and there is
+nothing to pick a socket into.
+
+**6a · The event. — DONE.** Two beats on one screen, which is the shape the source has: the
+picture and the title stay put while the choices give way to the sentence saying what one of them
+did. That second beat is why `RunStage.Tells` exists — the run answers an event in ONE stop, the
+way every recorded run answers one, and writes the outcome back onto the stop for the screen to
+read out while the scene waits.
+
+The prose is generated (`EventText.cs`, from the same extraction the logic was hand-ported from)
+and the outcome sentences are not: they live in `DungeonEvents.cs` beside the branches they
+describe, because a line reading "+25 gold" is a claim about a branch and belongs where somebody
+changing that branch will see it. Nine of the twenty-six choices fork on a roll.
+
+Two tests failed on their first run and both were the test being wrong, which is the point of
+writing them: a free choice can still rob you — the thief takes ten gold from a delver who fights
+him for nothing — and a priced choice can name its price in the LABEL rather than the hint, which
+is what the Imp's Dice does. What replaced them are the invariants that are actually true: a
+priced choice shows its number somewhere a delver reads, and an event can hurt but never kill.
+
+**On translating these screens.** The source ships the event, shop, merchant and revive screens
+entirely in hardcoded English — no locale keys at all, in any of the eight languages. The port
+adds keys for the UI chrome around them (`betweenFloors`, `continueDescent`, `notEnoughGold`) and
+leaves the PROSE in English, exactly as the source does. Twelve titles, twelve paragraphs,
+twenty-six labels and hints and some forty outcome sentences is not a thing to machine-translate
+into Arabic and Japanese unreviewed, and doing so would look like eight shipped languages while
+being one shipped language and seven guesses.
 
 **7 · Versus.** Staging currently orders a DELVE. `VersusRun` is gated and unbuilt; it wants the
 same treatment as steps 1 and 3.

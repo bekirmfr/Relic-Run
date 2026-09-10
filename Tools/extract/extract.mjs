@@ -288,6 +288,43 @@ const ADDED = {
     zh: "\u6218\u6597",
     ar: "\u0642\u0627\u062A\u0644",
   },
+
+  /* The kicker over an event. The source's own constant, and the only place
+   * this violet is used. */
+  betweenFloors: {
+    en: "BETWEEN FLOORS",
+    tr: "KATLAR ARASINDA",
+    fr: "ENTRE DEUX \u00C9TAGES",
+    es: "ENTRE PISOS",
+    ru: "\u041C\u0415\u0416\u0414\u0423 \u042D\u0422\u0410\u0416\u0410\u041C\u0418",
+    ja: "\u968E\u3068\u968E\u306E\u3042\u3044\u3060",
+    zh: "\u5C42\u4E0E\u5C42\u4E4B\u95F4",
+    ar: "\u0628\u064A\u0646 \u0627\u0644\u0637\u0648\u0627\u0628\u0642",
+  },
+
+  /* Under an event's outcome, once it has been read. */
+  continueDescent: {
+    en: "CONTINUE THE DESCENT",
+    tr: "\u0130NMEYE DEVAM ET",
+    fr: "POURSUIVRE LA DESCENTE",
+    es: "CONTINUAR EL DESCENSO",
+    ru: "\u041F\u0420\u041E\u0414\u041E\u041B\u0416\u0418\u0422\u042C \u0421\u041F\u0423\u0421\u041A",
+    ja: "\u964D\u4E0B\u3092\u7D9A\u3051\u308B",
+    zh: "\u7EE7\u7EED\u4E0B\u884C",
+    ar: "\u0648\u0627\u0635\u0644 \u0627\u0644\u0646\u0632\u0648\u0644",
+  },
+
+  /* Added to a choice's hint when the purse cannot cover it. */
+  notEnoughGold: {
+    en: "NOT ENOUGH GOLD",
+    tr: "YETERL\u0130 ALTIN YOK",
+    fr: "PAS ASSEZ D'OR",
+    es: "ORO INSUFICIENTE",
+    ru: "\u041D\u0415 \u0425\u0412\u0410\u0422\u0410\u0415\u0422 \u0417\u041E\u041B\u041E\u0422\u0410",
+    ja: "\u30B4\u30FC\u30EB\u30C9\u304C\u8DB3\u308A\u306A\u3044",
+    zh: "\u91D1\u5E01\u4E0D\u8DB3",
+    ar: "\u0644\u0627 \u064A\u0643\u0641\u064A \u0627\u0644\u0630\u0647\u0628",
+  },
 };
 
 let added = 0;

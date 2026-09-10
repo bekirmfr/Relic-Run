@@ -162,5 +162,8 @@
   "walkAway": "立ち去る",
   "keepGold": "{n} を持ち帰る",
   "waitingBelow": "下で待っている",
-  "fightBtn": "たたかう"
+  "fightBtn": "たたかう",
+  "betweenFloors": "階と階のあいだ",
+  "continueDescent": "降下を続ける",
+  "notEnoughGold": "ゴールドが足りない"
 }

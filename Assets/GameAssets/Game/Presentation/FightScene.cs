@@ -242,7 +242,18 @@ namespace RelicRun.Game.Presentation
 
                 bool descending = stop.Kind == AskKind.CashOut && !stop.Answer.Yes;
 
+                // Asked BEFORE the run is pumped, because pumping is what fills in the outcome
+                // and the stage that has to read it out is the one that was just answered.
+                RunStage telling = Telling(stop);
+
                 delve.Answer();
+
+                if (telling != null)
+                {
+                    await Told(telling, stop, delve.State);
+
+                    if (Gone) return;
+                }
 
                 if (descending)
                 {
@@ -293,6 +304,48 @@ namespace RelicRun.Game.Presentation
             foreach (EnemyState foe in pack)
             {
                 if (!earned.Seen.Contains(foe.SpeciesIndex)) earned.Seen.Add(foe.SpeciesIndex);
+            }
+        }
+
+        /// <summary>Which stage, if any, has something to say about a stop once it is answered.</summary>
+        private RunStage Telling(Ask stop)
+        {
+            if (stop == null) return null;
+
+            RunStage stage = Staging(stop.Kind);
+
+            return stage != null && stage.Showing && stage.Tells ? stage : null;
+        }
+
+        /// <summary>
+        /// Lets a stage read out what the answer turned out to mean, and waits.
+        /// </summary>
+        /// <remarks>
+        /// A second wait on the same stop rather than a second stop. An event is answered once —
+        /// the way every run this project has recorded answers one — and what follows is reading
+        /// rather than deciding, so the run has already moved on by the time these words are on
+        /// screen. Which is exactly why the outcome is written onto the stop: it is the only
+        /// thing still holding what happened.
+        /// </remarks>
+        private async UniTask Told(RunStage stage, Ask stop, RunState run)
+        {
+            var waiting = new UniTaskCompletionSource<Answer>();
+
+            _deciding = waiting;
+
+            Action<Answer> heard = Release;
+
+            stage.Decided += heard;
+
+            try
+            {
+                stage.Tell(stop, run);
+
+                await waiting.Task;
+            }
+            finally
+            {
+                stage.Decided -= heard;
             }
         }
 
@@ -531,15 +584,12 @@ namespace RelicRun.Game.Presentation
         /// available: it takes what it is shown, spends nothing, and does not ask to be brought
         /// back. That is deliberate — a scaffold that made INTERESTING choices would be a
         /// scaffold somebody mistook for the game, and every one of these is a line that a stage
-        /// will delete. The draft's was the first to go.
+        /// will delete. The draft's went first, then the gate's, then the event's.
         /// </remarks>
         private static Answer Plainly(Ask ask)
         {
             switch (ask.Kind)
             {
-                case AskKind.Event:
-                    return new Answer { Choice = 0 };
-
                 case AskKind.Bazaar:
                     return new Answer { Deal = BazaarDeal.Walk };
 

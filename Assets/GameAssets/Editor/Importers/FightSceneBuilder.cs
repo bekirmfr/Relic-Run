@@ -472,6 +472,7 @@ namespace RelicRun.Editor.Importers
             // being asked. Both are last, so nothing built before them can be hidden by accident.
             DraftStage draft = Draft(canvas, content, face);
             GateStage gate = Gate(canvas, content, face);
+            EventStage happening = Event(canvas, content, face);
             FloorRailView railing = Rail(canvas, face);
 
             // Last of all, over everything including the rail. The card a fight opens on is the
@@ -531,12 +532,168 @@ namespace RelicRun.Editor.Importers
             // An array, so it cannot be wired by Pair like everything else. It is also the one
             // reference here that GROWS: a stage per stop, added as each is built, and the scene
             // finds the right one by asking rather than by which slot it landed in.
-            Stages(entry, new RunStage[] { draft, gate });
+            Stages(entry, new RunStage[] { draft, gate, happening });
         }
 
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>
+        /// The event in the gap between two floors.
+        /// </summary>
+        /// <remarks>
+        /// One screen with two lower halves. The picture and the title stay put while the
+        /// choices are swapped for the sentence saying what one of them did, so a delver reads
+        /// the answer in the place they asked the question.
+        ///
+        /// Laid out top to bottom rather than placed, because an event's paragraph is four lines
+        /// in English and may be six in German, and everything under it has to move down.
+        /// </remarks>
+        private static EventStage Event(GameObject parent, GameContent content, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Event", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = panel.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = Ground;
+
+            GameObject column = Panel(panel, "Column", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                Vector2.zero, new Vector2(-44f, 0f));
+
+            var down = column.AddComponent<VerticalLayoutGroup>();
+            down.childAlignment = TextAnchor.UpperLeft;
+            down.childForceExpandWidth = true;
+            down.childForceExpandHeight = false;
+            down.childControlWidth = true;
+            down.childControlHeight = true;
+            down.spacing = 10f;
+
+            var hugs = column.AddComponent<ContentSizeFitter>();
+            hugs.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            GameObject kicker = Say(column, face, "BETWEEN FLOORS", Text(8),
+                TextAlignmentOptions.Left, Vector2.zero, new Vector2(0f, 14f), true);
+
+            GameObject art = Box(column, "Art", new Vector2(0.5f, 0.5f), new Vector2(0f, 150f),
+                Vector2.zero);
+
+            Image picture = art.GetComponent<Image>();
+            picture.preserveAspect = true;
+
+            var kept = art.AddComponent<LayoutElement>();
+            kept.minHeight = 150f;
+            kept.preferredHeight = 150f;
+
+            GameObject title = Say(column, face, "The Pale Merchant", Text(24),
+                TextAlignmentOptions.TopLeft, Vector2.zero, new Vector2(0f, 30f), true);
+
+            GameObject text = Say(column, face, "A lantern gutters in an alcove.", Text(13),
+                TextAlignmentOptions.TopLeft, Vector2.zero, new Vector2(0f, 60f), true);
+
+            GameObject choices = Panel(column, "Choices", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), Vector2.zero, new Vector2(0f, 0f));
+
+            var stack = choices.AddComponent<VerticalLayoutGroup>();
+            stack.childAlignment = TextAnchor.UpperCenter;
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = true;
+            stack.spacing = 10f;
+            stack.padding = new RectOffset(0, 0, 12, 0);
+
+            Button choice = Choice(choices, face);
+
+            // The other lower half: the sentence, and the way on.
+            GameObject outcome = Panel(column, "Outcome", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), Vector2.zero, new Vector2(0f, 0f));
+
+            var after = outcome.AddComponent<VerticalLayoutGroup>();
+            after.childAlignment = TextAnchor.UpperCenter;
+            after.childForceExpandWidth = true;
+            after.childForceExpandHeight = false;
+            after.childControlWidth = true;
+            after.childControlHeight = true;
+            after.spacing = 20f;
+            after.padding = new RectOffset(0, 0, 12, 0);
+
+            GameObject said = Say(outcome, face, "What happened.", Text(15),
+                TextAlignmentOptions.TopLeft, Vector2.zero, new Vector2(0f, 40f), true);
+
+            GameObject onward = Press(outcome, "Onward", face, "CONTINUE THE DESCENT", Text(14),
+                new Color(0.890f, 0.702f, 0.255f), new Color(0.098f, 0.082f, 0.063f), 46f);
+
+            outcome.SetActive(false);
+
+            var stage = panel.AddComponent<EventStage>();
+
+            Wire(stage, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_art", picture),
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_text", text.GetComponent<TMP_Text>()),
+                Pair("_choices", (RectTransform)choices.transform),
+                Pair("_choice", choice),
+                Pair("_outcome", outcome),
+                Pair("_outcomeText", said.GetComponent<TMP_Text>()),
+                Pair("_onward", onward.GetComponent<Button>()),
+                Pair("_onwardLabel", onward.GetComponentInChildren<TMP_Text>(true)),
+                Pair("_content", content),
+            });
+
+            panel.SetActive(false);
+
+            return stage;
+        }
+
+        /// <summary>
+        /// One way out of an event: what it says, and what it costs underneath.
+        /// </summary>
+        /// <remarks>
+        /// The hint is a child that is turned off when there is nothing to warn about, rather
+        /// than an empty line — an empty line still takes its height, and half the choices in the
+        /// game have no hint at all.
+        /// </remarks>
+        private static Button Choice(GameObject parent, TMP_FontAsset face)
+        {
+            var made = new GameObject("Way", typeof(RectTransform), typeof(Image), typeof(Button));
+
+            made.transform.SetParent(parent.transform, false);
+
+            Image ground = made.GetComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.082f, 0.071f, 0.051f);
+
+            var ring = made.AddComponent<Outline>();
+            ring.effectColor = new Color(0.227f, 0.200f, 0.157f);
+            ring.effectDistance = new Vector2(2f, 2f);
+
+            Button press = made.GetComponent<Button>();
+            press.targetGraphic = ground;
+
+            var down = made.AddComponent<VerticalLayoutGroup>();
+            down.childAlignment = TextAnchor.MiddleLeft;
+            down.childForceExpandWidth = true;
+            down.childForceExpandHeight = false;
+            down.childControlWidth = true;
+            down.childControlHeight = true;
+            down.spacing = 5f;
+            down.padding = new RectOffset(16, 16, 13, 13);
+
+            Say(made, face, "Buy the relic", Text(14), TextAlignmentOptions.Left, Vector2.zero,
+                new Vector2(0f, 20f), true);
+
+            Say(made, face, "COSTS 60 GOLD", Text(8), TextAlignmentOptions.Left, Vector2.zero,
+                new Vector2(0f, 12f), true);
+
+            made.SetActive(false);
+
+            return press;
+        }
+
 
         /// <summary>
         /// The copy of a foe that flies from its card into the frame it is fought in.

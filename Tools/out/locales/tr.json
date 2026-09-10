@@ -162,5 +162,8 @@
   "walkAway": "ÇEKİL GİT",
   "keepGold": "{n} KALSIN",
   "waitingBelow": "AŞAĞIDA BEKLİYOR",
-  "fightBtn": "SAVAŞ"
+  "fightBtn": "SAVAŞ",
+  "betweenFloors": "KATLAR ARASINDA",
+  "continueDescent": "İNMEYE DEVAM ET",
+  "notEnoughGold": "YETERLİ ALTIN YOK"
 }

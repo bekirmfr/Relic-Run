@@ -67,6 +67,29 @@ namespace RelicRun.Game.Presentation
         /// <param name="run">The run as it stands, for everything the stop does not carry.</param>
         public abstract void Draw(Ask ask, RunState run);
 
+        /// <summary>
+        /// Whether this stage has something to say once the run has answered.
+        /// </summary>
+        /// <remarks>
+        /// One stage does: an event, whose choice is made blind and whose outcome is the only
+        /// place the run explains what it did. The scene waits for a second press when this is
+        /// true, and pumps straight on when it is not.
+        /// </remarks>
+        public virtual bool Tells
+        {
+            get { return false; }
+        }
+
+        /// <summary>
+        /// Reads out what the answer turned out to mean.
+        /// </summary>
+        /// <remarks>
+        /// Called after the run has been pumped, so whatever the stop carries about its outcome
+        /// is already written. Raise <see cref="Decided"/> when the delver has read it — the
+        /// answer is ignored, because the run has already had the only one it needed.
+        /// </remarks>
+        public virtual void Tell(Ask ask, RunState run) { }
+
         /// <summary>Says what the delver chose. For subclasses to call from their own buttons.</summary>
         protected void Decide(Answer answer)
         {

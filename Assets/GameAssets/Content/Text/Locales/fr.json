@@ -162,5 +162,8 @@
   "walkAway": "S'EN ALLER",
   "keepGold": "GARDER {n}",
   "waitingBelow": "ATTEND EN BAS",
-  "fightBtn": "COMBATTRE"
+  "fightBtn": "COMBATTRE",
+  "betweenFloors": "ENTRE DEUX ÉTAGES",
+  "continueDescent": "POURSUIVRE LA DESCENTE",
+  "notEnoughGold": "PAS ASSEZ D'OR"
 }

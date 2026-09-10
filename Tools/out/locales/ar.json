@@ -162,5 +162,8 @@
   "walkAway": "انصرف",
   "keepGold": "احتفظ بـ {n}",
   "waitingBelow": "ينتظر في الأسفل",
-  "fightBtn": "قاتل"
+  "fightBtn": "قاتل",
+  "betweenFloors": "بين الطوابق",
+  "continueDescent": "واصل النزول",
+  "notEnoughGold": "لا يكفي الذهب"
 }

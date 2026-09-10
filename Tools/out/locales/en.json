@@ -162,5 +162,8 @@
   "walkAway": "WALK AWAY",
   "keepGold": "KEEP {n}",
   "waitingBelow": "WAITING BELOW",
-  "fightBtn": "FIGHT"
+  "fightBtn": "FIGHT",
+  "betweenFloors": "BETWEEN FLOORS",
+  "continueDescent": "CONTINUE THE DESCENT",
+  "notEnoughGold": "NOT ENOUGH GOLD"
 }

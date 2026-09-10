@@ -162,5 +162,8 @@
   "walkAway": "УЙТИ",
   "keepGold": "ОСТАВИТЬ {n}",
   "waitingBelow": "ЖДЁТ ВНИЗУ",
-  "fightBtn": "В БОЙ"
+  "fightBtn": "В БОЙ",
+  "betweenFloors": "МЕЖДУ ЭТАЖАМИ",
+  "continueDescent": "ПРОДОЛЖИТЬ СПУСК",
+  "notEnoughGold": "НЕ ХВАТАЕТ ЗОЛОТА"
 }
