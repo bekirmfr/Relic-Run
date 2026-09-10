@@ -231,7 +231,9 @@ namespace RelicRun.Editor.Importers
             var root = new GameObject(RootName);
             root.transform.SetParent(scene.transform, false);
 
-            GameObject canvas = Canvas();
+            Camera eye = Eye(root);
+
+            GameObject canvas = Canvas(eye);
             canvas.transform.SetParent(root.transform, false);
 
             TitlePanel title = Title(canvas, face);

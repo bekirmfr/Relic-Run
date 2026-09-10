@@ -1390,6 +1390,53 @@ The only way to know is to read the markup. Three consequences fall out of it:
   every key those screens can produce against the shipped English, because `Locale` answers an
   unknown key with the key — which is right, and is diagnosable only by somebody looking.
 
+## A screenshot of a game with no camera
+
+Screenshots of the running game kept coming back stale — a navigation behind, or byte-identical
+to the one before. It was worked around twice before it was diagnosed, and the diagnosis is worth
+keeping because the cause is not in the capture at all.
+
+**Screen Space - Overlay UI is composited by the canvas after every camera has finished.** No
+camera renders it, so no camera can render it to a texture — `capture_game_view --source camera`
+answered `No camera found to capture`, which was *literally true*: the menu scene had zero
+cameras. The only place overlay UI exists is the back buffer, and the back buffer refreshes when
+the Game view repaints. An editor being driven from a terminal is unfocused and repaints lazily,
+so a capture returns whatever frame was last drawn.
+
+Forcing it does not work. `GameView.Repaint()` and `QueuePlayerLoopUpdate()` from an `eval` are
+queued onto the editor loop, and the capture — another main-thread operation — runs before they
+land. Three pumps and three seconds still returned the previous screen.
+
+What works is not depending on the back buffer:
+
+| | Overlay | Screen Space - Camera |
+|---|---|---|
+| `--source camera` | nothing to render | renders on demand |
+| Same screen twice | different bytes | **identical bytes** |
+| Needs focus | yes | no |
+
+Measured, not assumed: title → 18718, levels → 17134, title again → **18718**, profile → 20173,
+title again → **18718**.
+
+So both scenes now carry a camera and their canvases are Screen Space - Camera. That is worth
+doing for the game and not only for the pictures: a scene with no camera has no clear colour, so
+whatever is outside the interface is undefined; `Camera.main` is null for anything that reaches
+for it; and the render pipeline is asked to draw a frame with nothing to draw it from. The menu
+had been shipping in that state.
+
+Three things this left behind:
+
+- **`Scenery.Aim` falls back to Overlay when handed no camera.** A canvas set to Screen Space -
+  Camera with a null camera draws NOTHING — not a warning, not a partial screen, an empty frame.
+  So has the plane distance: outside the near and far clips, same empty frame.
+- **The popup canvas cannot be wired by a builder.** It belongs to the application's root prefab,
+  which exists before any scene loads, so at author time there is no camera to point it at.
+  `MetaScene` aims it at its own camera on load.
+- **Capture at the screen's own size.** Asking for a different one resizes the render target;
+  `PixelCanvas` correctly refits to the new size, and a query caught mid-flight reported a screen
+  of 395x1367 with a canvas still scaled for 1440x3040. That transient looked exactly like a bug
+  in the scaler and was not one.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:

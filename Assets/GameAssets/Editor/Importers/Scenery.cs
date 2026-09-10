@@ -97,13 +97,65 @@ namespace RelicRun.Editor.Importers
 
         /* ---------- the pieces ---------- */
 
+        /// <summary>
+        /// The camera every screen is drawn through.
+        /// </summary>
+        /// <remarks>
+        /// This game draws itself entirely in UI — halls, heroes, relics and bars are all Images —
+        /// so it is tempting to conclude it needs no camera at all, and for a while the menu had
+        /// none. That is wrong twice over.
+        ///
+        /// It is wrong for the game: a scene with no camera has no clear colour, so whatever is
+        /// outside the interface is undefined, <c>Camera.main</c> is null for anything that ever
+        /// reaches for it, and the render pipeline is asked to draw a frame with nothing to draw
+        /// it from.
+        ///
+        /// And it is wrong for anybody trying to LOOK at the game. Screen Space - Overlay UI is
+        /// composited after every camera by the canvas itself, so no camera can render it to a
+        /// texture: the only place it exists is the back buffer, which refreshes when the Game
+        /// view repaints and not when anybody asks. Driving the editor from a terminal, that
+        /// meant screenshots that lagged a navigation behind, or came back byte-identical to the
+        /// last one. Through a camera the same capture is synchronous and exact — the same screen
+        /// twice gives the same bytes twice.
+        ///
+        /// Orthographic, because nothing here has depth. The clear colour is the game's own dark
+        /// ground rather than the editor's blue, so a screen that fails to draw looks like this
+        /// game failing rather than like a different program.
+        /// </remarks>
+        public static Camera Eye(GameObject parent)
+        {
+            var made = new GameObject("Eye", typeof(Camera));
+
+            made.transform.SetParent(parent.transform, false);
+            made.transform.localPosition = new Vector3(0f, 0f, -10f);
+
+            Camera eye = made.GetComponent<Camera>();
+
+            eye.orthographic = true;
+            eye.clearFlags = CameraClearFlags.SolidColor;
+            eye.backgroundColor = new Color(0.047f, 0.043f, 0.035f, 1f);
+            eye.nearClipPlane = 0.1f;
+            eye.farClipPlane = 100f;
+
+            // Everything. A mask that excluded the UI layer would render a clear colour and
+            // nothing else, which looks exactly like a screen that failed to build.
+            eye.cullingMask = ~0;
+
+            return eye;
+        }
+
         /// <summary>A canvas that scales by whole pixels and keeps doing so.</summary>
-        public static GameObject Canvas()
+        /// <param name="eye">
+        /// What draws it. Screen Space - Camera rather than Overlay, so the whole interface goes
+        /// through something that can be rendered on demand — see <see cref="Eye"/> for why that
+        /// is worth the extra reference.
+        /// </param>
+        public static GameObject Canvas(Camera eye)
         {
             var canvas = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas),
                 typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(PixelCanvas));
 
-            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            Aim(canvas.GetComponent<Canvas>(), eye);
 
             CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
 
@@ -120,6 +172,32 @@ namespace RelicRun.Editor.Importers
             Wire(canvas.GetComponent<PixelCanvas>(), new[] { Pair("_scaler", scaler) });
 
             return canvas;
+        }
+
+        /// <summary>
+        /// Points a canvas at a camera, or leaves it overlaid when there is none.
+        /// </summary>
+        /// <remarks>
+        /// The fallback is not politeness. A canvas set to Screen Space - Camera with no camera
+        /// draws NOTHING — not a warning, not a blank screen with the interface missing, but an
+        /// empty frame — so a missing camera has to leave the canvas somewhere it still works.
+        ///
+        /// The plane distance sits between the near and far clips. At or beyond either, the
+        /// canvas is clipped away and the result is the same empty frame.
+        /// </remarks>
+        public static void Aim(Canvas canvas, Camera eye)
+        {
+            if (canvas == null) return;
+
+            if (eye == null)
+            {
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                return;
+            }
+
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = eye;
+            canvas.planeDistance = 10f;
         }
 
         public static GameObject Panel(GameObject parent, string name, Vector2 anchorMin,

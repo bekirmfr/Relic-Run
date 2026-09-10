@@ -391,7 +391,17 @@ namespace RelicRun.Editor.Importers
             var root = new GameObject(RootName);
             root.transform.SetParent(scene.transform, false);
 
-            GameObject canvas = Canvas();
+            // The fight's prefab has carried a camera since before any of this was generated, so
+            // it is found rather than made — a second one would fight the first for the frame.
+            Camera eye = scene.GetComponentInChildren<Camera>(true);
+
+            if (eye == null)
+            {
+                eye = Eye(root);
+                Debug.Log("the fight scene had no camera, so one was made for it");
+            }
+
+            GameObject canvas = Canvas(eye);
             canvas.transform.SetParent(root.transform, false);
 
             var view = canvas.AddComponent<CombatView>();

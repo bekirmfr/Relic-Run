@@ -103,6 +103,8 @@ namespace RelicRun.Game.Presentation
 
             _modals = new Modals(Popups(), _vault, _speech);
 
+            Aim();
+
             // Redraw whatever is showing when a modal changes something. A settings modal that
             // altered the language and left the screen behind it in the old one would be the
             // change appearing to have failed.
@@ -327,6 +329,43 @@ namespace RelicRun.Game.Presentation
             }
 
             return vault;
+        }
+
+        /// <summary>
+        /// Points the popup canvas at this scene's camera.
+        /// </summary>
+        /// <remarks>
+        /// It cannot be wired by a builder. The popup canvas belongs to the application's root
+        /// prefab, which exists before any scene is loaded and outlives all of them, so at the
+        /// moment it is authored there is no camera in existence to point it at.
+        ///
+        /// Left alone it stays Screen Space - Overlay, and a modal drawn that way is composited
+        /// outside every camera — which works on screen and cannot be captured, so the one part
+        /// of the interface that appears ON TOP of everything would be the one part nobody could
+        /// take a picture of. Its sorting order still keeps it above this scene's canvas.
+        ///
+        /// Nothing is restored when the scene goes: the next scene aims it at its own camera, and
+        /// a canvas pointing at a destroyed camera between the two draws nothing for a frame that
+        /// nobody is looking at.
+        /// </remarks>
+        private void Aim()
+        {
+            Camera eye = GetComponentInChildren<Camera>(true);
+
+            if (eye == null) return;
+
+            foreach (Canvas canvas in FindObjectsByType<Canvas>(FindObjectsInactive.Include,
+                         FindObjectsSortMode.None))
+            {
+                // Only the ones this scene does not own. Its own are already aimed by the builder,
+                // and re-aiming them here would hide a builder that had stopped doing it.
+                if (canvas.transform.IsChildOf(transform)) continue;
+                if (canvas.renderMode != RenderMode.ScreenSpaceOverlay) continue;
+
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = eye;
+                canvas.planeDistance = 10f;
+            }
         }
 
         /// <summary>Finds whatever opens modals.</summary>
