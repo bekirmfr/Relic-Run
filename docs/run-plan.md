@@ -230,9 +230,28 @@ once `Delve` seeded its own delver the two were a second spelling of the same th
 fault this plan was written to avoid. And `HallView` was loading its four-and-a-half-megabyte
 backdrop once per FLOOR, which nothing noticed while a screen only ever showed one fight.
 
-**3 · The run scene, with two stages.** One scene, a stage machine, a floor rail, and `draft` and
-`combat`. `Delve` already drives it; what this adds is a screen for the draft, which means deleting
-the first of the auto-answers. Done when a delver picks their own relic.
+**3 · The run scene, with two stages. — DONE.** `FightScene` is a stage machine now: it draws the
+rail, routes each stop to whichever `RunStage` says it handles that kind, and waits there until the
+delver has decided. `AskKind.Fought` is the one stop that is not a question — it is read out and
+answered when the reading is over. Stops with no stage are still answered dully and said once, but
+the draft's line is gone from `Plainly`.
+
+Two Core pieces came first, so the screen decides nothing: `FloorRails.Of` says which floors are
+marked, which are behind, how big each node is drawn and where the events sit, and `DraftCards.Of`
+says what is on offer and — the only line on a card that decides anything — which held relics each
+would CHAIN with. Nine tests, all first try.
+
+`DraftStage` answers both `Draft` and `Reroll`, because they are one table with a different question
+over it; that is what `RunStage.Handles` is for. Measured end to end: PLAY → DELVE → *take one
+relic* → picked Wind Anklet over Momentum Bead → floor one fought → floor two, with the reroll
+offered at ten gold.
+
+Two things fell out of it. A card built from authored offsets printed a three-line description
+straight through the relic's name, so the card lays itself out — which is what any of this has to
+do for a language that is not English. And the reroll button had no key at all: the source writes
+that label into its markup rather than its string table, so the port adds keys of its own now
+(`ADDED` in `extract.mjs`), in all eight languages, gated by a test that finds them by difference
+rather than by a list anybody has to maintain.
 
 **4 · The delver in the fight.** A hero sprite from the compositor that already exists, the foe
 queue, the intro banner. This is the step that makes the fight look like the source's.

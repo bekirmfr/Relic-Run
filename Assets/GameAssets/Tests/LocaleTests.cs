@@ -208,6 +208,81 @@ namespace RelicRun.Tests
         }
 
         /// <summary>
+        /// The strings the PORT adds are written in all eight languages, placeholders and all.
+        /// </summary>
+        /// <remarks>
+        /// The source writes a handful of its labels straight into its markup instead of through
+        /// its string table, so they are English on a Japanese screen. Where the port draws one
+        /// of those it adds a key of its own — <c>ADDED</c> in <c>Tools/extract/extract.mjs</c> —
+        /// and a key nobody translated shows up as itself, which is worse than the English it
+        /// was meant to replace.
+        ///
+        /// Found by DIFFERENCE rather than by a list kept here: anything English has that the
+        /// recorded corpus does not is something the port added, so this gate covers the next
+        /// one too without anybody remembering to come back.
+        /// </remarks>
+        [Test]
+        public void TheStringsThePortAddsAreWrittenInEveryLanguage()
+        {
+            var recorded = new HashSet<string>();
+            foreach (JToken key in (JArray)_corpus["keys"]) recorded.Add(key.Value<string>());
+
+            Dictionary<string, string> english = Corpus.LocaleTable("en");
+
+            var added = new List<string>();
+            foreach (KeyValuePair<string, string> one in english)
+            {
+                if (!recorded.Contains(one.Key)) added.Add(one.Key);
+            }
+
+            Assert.That(added.Count, Is.GreaterThan(0),
+                "the port adds no strings of its own — if that is now true, delete this test");
+
+            foreach (JToken lang in (JArray)_corpus["languages"])
+            {
+                string code = lang.Value<string>();
+                Dictionary<string, string> table = Corpus.LocaleTable(code);
+
+                foreach (string key in added)
+                {
+                    string said;
+
+                    Assert.That(table.TryGetValue(key, out said), Is.True,
+                        code + " has nothing for the added string " + key);
+
+                    // And it still says the number. A price is what the reroll button is FOR,
+                    // and a translation that dropped the placeholder would read as a button
+                    // offering something free.
+                    foreach (string hole in Holes(english[key]))
+                    {
+                        Assert.That(said.Contains(hole), Is.True,
+                            code + " lost " + hole + " out of " + key);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Every placeholder in a string, as it is written.</summary>
+        private static IEnumerable<string> Holes(string text)
+        {
+            var found = new List<string>();
+
+            for (var i = 0; i < text.Length; i++)
+            {
+                if (text[i] != '{') continue;
+
+                int end = text.IndexOf('}', i);
+
+                if (end < 0) break;
+
+                found.Add(text.Substring(i, end - i + 1));
+                i = end;
+            }
+
+            return found;
+        }
+
+        /// <summary>
         /// A placeholder is filled everywhere it appears, not just the first time.
         /// </summary>
         /// <remarks>

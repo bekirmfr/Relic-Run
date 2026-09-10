@@ -91,6 +91,20 @@ namespace RelicRun.Core.Run
         /// <summary>What the run is waiting on, or null once it has ended.</summary>
         public Ask Pending { get; private set; }
 
+        /// <summary>
+        /// Which floors have an event in the gap BEFORE them, keyed by the floor left behind.
+        /// </summary>
+        /// <remarks>
+        /// Rolled once, when the run is made, and true for the whole descent — which is what
+        /// lets the rail across the top of a run draw every event at the start, including ones
+        /// the delver has not walked into yet. Read-only from out here, because it is the run's
+        /// shape rather than its state: the delve rolls it and nothing else may move it.
+        /// </remarks>
+        public IReadOnlyDictionary<int, int> Events
+        {
+            get { return _placed; }
+        }
+
         /// <summary>Whether there is nothing left to ask.</summary>
         public bool Finished
         {

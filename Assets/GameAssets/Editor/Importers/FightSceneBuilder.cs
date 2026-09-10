@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using GameLift.Scene;
+using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using RelicRun.Game.Presentation;
 using TMPro;
@@ -454,6 +455,13 @@ namespace RelicRun.Editor.Importers
             GameObject log = Log(canvas);
             RelicTray tray = Tray(canvas, content, slot);
 
+            // The stages, and then the rail. Hierarchy order is paint order on a canvas: a stage
+            // is a full-screen panel that covers the fight while it is up, and the rail is built
+            // after it so that where the delver IS stays visible on top of whatever they are
+            // being asked. Both are last, so nothing built before them can be hidden by accident.
+            DraftStage draft = Draft(canvas, content, face);
+            FloorRailView railing = Rail(canvas, face);
+
             Wire(view, new[]
             {
                 Pair("_heroHealth", heroHealth.GetComponent<Image>()),
@@ -497,12 +505,273 @@ namespace RelicRun.Editor.Importers
                 Pair("_view", view),
                 Pair("_content", content),
                 Pair("_harness", harness),
+                Pair("_rail", railing),
             });
+
+            // An array, so it cannot be wired by Pair like everything else. It is also the one
+            // reference here that GROWS: a stage per stop, added as each is built, and the scene
+            // finds the right one by asking rather than by which slot it landed in.
+            Stages(entry, new RunStage[] { draft });
         }
 
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>How tall one relic on the draft table is.</summary>
+        private const float CardHeight = 92f;
+
+        /// <summary>The ground a stage is drawn on: the game's own dark, and opaque.</summary>
+        /// <remarks>
+        /// Opaque on purpose. A stage covers the fight rather than floating over it, and a
+        /// translucent one would leave a half-visible foe behind a draft — which reads as a fight
+        /// still happening while the delver is being asked to shop.
+        /// </remarks>
+        private static readonly Color Ground = new Color(0.07f, 0.06f, 0.05f, 1f);
+
+        /// <summary>
+        /// The rail across the top: where the delver is in the descent.
+        /// </summary>
+        /// <remarks>
+        /// A label on the left and thirteen nodes on the right, laid out by Unity. The node is a
+        /// template rather than thirteen authored objects, because how big each one is drawn is
+        /// <c>FloorRails</c>' answer and changes as the delver walks — thirteen authored sizes
+        /// would be thirteen chances to disagree with it.
+        /// </remarks>
+        private static FloorRailView Rail(GameObject parent, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Rail", new Vector2(0f, 1f), new Vector2(1f, 1f),
+                new Vector2(0f, -34f), new Vector2(-40f, 24f));
+
+            GameObject line = Say(panel, face, "FLOOR 1 / 13", Text(11),
+                TextAlignmentOptions.Left, new Vector2(0f, 0f), new Vector2(120f, 24f));
+
+            // Right-aligned, so the deepest floors sit against the same edge whatever the rail
+            // is showing. The nodes change size as the delver walks — that is the whole encoding
+            // — and a centred row would slide sideways under them on every floor.
+            GameObject nodes = Panel(panel, "Nodes", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, 0f), new Vector2(0f, 24f));
+
+            var row = nodes.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleRight;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childControlWidth = false;
+            row.childControlHeight = false;
+            row.spacing = 6f;
+
+            GameObject node = Box(nodes, "Node", new Vector2(0.5f, 0.5f),
+                new Vector2(FloorRails.PlainAway, FloorRails.PlainAway), Vector2.zero);
+
+            Image dot = node.GetComponent<Image>();
+            dot.sprite = White();
+            dot.enabled = true;
+
+            // The event marker, which the view finds as the node's FIRST child and only
+            // recolours. Above the node rather than on it, so a node's size still reads as what
+            // kind of floor it is with a marker sitting over it.
+            GameObject mark = Box(node, "Event", new Vector2(0.5f, 1f), new Vector2(4f, 4f),
+                new Vector2(0f, 6f));
+
+            Image ink = mark.GetComponent<Image>();
+            ink.sprite = White();
+            ink.enabled = true;
+
+            // Off, so it is a template and not a fourteenth floor. An inactive child is skipped
+            // by the layout group as well as by the drawing, which is what makes this work.
+            node.SetActive(false);
+
+            var view = panel.AddComponent<FloorRailView>();
+
+            Wire(view, new[]
+            {
+                Pair("_line", line.GetComponent<TMP_Text>()),
+                Pair("_nodes", (RectTransform)nodes.transform),
+                Pair("_node", dot),
+            });
+
+            return view;
+        }
+
+        /// <summary>
+        /// The draft: the relics on offer, and what a fresh offer would cost.
+        /// </summary>
+        /// <remarks>
+        /// A full-screen panel that covers the fight while the question is up. The cards are
+        /// spawned from a template for the same reason the rail's nodes are: how many are offered
+        /// is the delver's LEVEL talking — two, and three from level ten — so nothing authored
+        /// here counts them.
+        /// </remarks>
+        private static DraftStage Draft(GameObject parent, GameContent content, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Draft", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = panel.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = Ground;
+
+            GameObject head = Panel(panel, "Head", new Vector2(0f, 1f), new Vector2(1f, 1f),
+                new Vector2(0f, -90f), new Vector2(-40f, 40f));
+
+            GameObject title = Say(head, face, "TAKE A RELIC", Text(19),
+                TextAlignmentOptions.Center, Vector2.zero, new Vector2(0f, 40f), true);
+
+            GameObject cards = Panel(panel, "Cards", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, 20f), new Vector2(-40f, 0f));
+
+            var stack = cards.AddComponent<VerticalLayoutGroup>();
+            stack.childAlignment = TextAnchor.UpperCenter;
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = true;
+            stack.spacing = 12f;
+
+            // The table is as tall as what is on it. Two relics are offered until level ten and
+            // three after, and a relic's description is three lines in English and five in
+            // German — so a table with a height typed into it would be right for one offer in
+            // one language.
+            var hugs = cards.AddComponent<ContentSizeFitter>();
+            hugs.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            Button card = Card(cards, face);
+
+            GameObject foot = Panel(panel, "Foot", new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 120f), new Vector2(-120f, 40f));
+
+            GameObject reroll = Press(foot, "Reroll", face, "REROLL", Text(15),
+                new Color(0.20f, 0.17f, 0.12f), new Color(0.89f, 0.70f, 0.25f), 40f);
+
+            var stage = panel.AddComponent<DraftStage>();
+
+            Wire(stage, new[]
+            {
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_cards", (RectTransform)cards.transform),
+                Pair("_card", card),
+                Pair("_reroll", reroll.GetComponent<Button>()),
+                Pair("_rerollLabel", reroll.GetComponentInChildren<TMP_Text>(true)),
+                Pair("_content", content),
+            });
+
+            // Off, like every stage. Which one is up is a fact about what the run has stopped to
+            // ask, so a stage left showing in the prefab would be a screen nobody asked for —
+            // and, on a scene that opens straight into a fight, one covering it.
+            panel.SetActive(false);
+
+            return stage;
+        }
+
+        /// <summary>
+        /// One relic on the draft table: an icon, a name, what it does, and what it chains with.
+        /// </summary>
+        /// <remarks>
+        /// The three lines are read back by ORDER rather than by name, so the order they are made
+        /// in here is the order the stage dresses them in. The icon is deliberately not the
+        /// button's own graphic: the press is taken by the card's ground, which covers the whole
+        /// card, where an icon covers forty units of it.
+        /// </remarks>
+        private static Button Card(GameObject parent, TMP_FontAsset face)
+        {
+            var made = new GameObject("Card", typeof(RectTransform), typeof(Image), typeof(Button));
+            var rect = (RectTransform)made.transform;
+
+            rect.SetParent(parent.transform, false);
+            rect.sizeDelta = new Vector2(0f, CardHeight);
+
+            Image ground = made.GetComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.12f, 0.11f, 0.09f);
+
+            Button press = made.GetComponent<Button>();
+            press.targetGraphic = ground;
+
+            // The icon beside the words, and both measured by Unity. Authored offsets were what
+            // this had first, and a description that wrapped to three lines printed itself
+            // straight through the relic's name — which is exactly the bug a layout cannot have.
+            var beside = made.AddComponent<HorizontalLayoutGroup>();
+            beside.childAlignment = TextAnchor.UpperLeft;
+            beside.childForceExpandWidth = false;
+            beside.childForceExpandHeight = false;
+            beside.childControlWidth = true;
+            beside.childControlHeight = true;
+            beside.spacing = 12f;
+            beside.padding = new RectOffset(12, 12, 10, 10);
+
+            GameObject icon = Box(made, "Icon", new Vector2(0f, 0.5f), new Vector2(44f, 44f),
+                Vector2.zero);
+
+            var kept = icon.AddComponent<LayoutElement>();
+            kept.minWidth = 44f;
+            kept.preferredWidth = 44f;
+            kept.minHeight = 44f;
+            kept.preferredHeight = 44f;
+
+            var lines = new GameObject("Lines", typeof(RectTransform));
+            lines.transform.SetParent(made.transform, false);
+
+            var down = lines.AddComponent<VerticalLayoutGroup>();
+            down.childAlignment = TextAnchor.UpperLeft;
+            down.childForceExpandWidth = true;
+            down.childForceExpandHeight = false;
+            down.childControlWidth = true;
+            down.childControlHeight = true;
+            down.spacing = 3f;
+
+            // The one child allowed to take whatever is left. Without it the words are as wide as
+            // they happen to be, and a short description would leave the card half empty while a
+            // long one ran off the end of it.
+            var takes = lines.AddComponent<LayoutElement>();
+            takes.flexibleWidth = 1f;
+
+            // In this order, because the stage dresses them by ORDER: name, what it does, and
+            // then the line that says what it would chain with.
+            Say(lines, face, "Relic", Text(17), TextAlignmentOptions.TopLeft,
+                Vector2.zero, new Vector2(0f, 24f), true);
+
+            Say(lines, face, "what it does", Text(13), TextAlignmentOptions.TopLeft,
+                Vector2.zero, new Vector2(0f, 40f), true);
+
+            Say(lines, face, "FAMILY", Text(11), TextAlignmentOptions.TopLeft,
+                Vector2.zero, new Vector2(0f, 18f), true);
+
+            made.SetActive(false);
+
+            return press;
+        }
+
+        /// <summary>
+        /// Hands the scene its stages.
+        /// </summary>
+        /// <remarks>
+        /// By hand rather than through <c>Wire</c>, because an ARRAY of references is not one
+        /// reference: a serialized array has to be sized before its elements exist, and the
+        /// generic helper only knows how to set a single object.
+        /// </remarks>
+        private static void Stages(FightScene scene, RunStage[] stages)
+        {
+            var serialized = new SerializedObject(scene);
+
+            SerializedProperty property = serialized.FindProperty("_stages");
+
+            if (property == null)
+            {
+                Debug.LogError("FightScene has no field called _stages — the builder and the " +
+                               "scene have drifted apart");
+                return;
+            }
+
+            property.arraySize = stages.Length;
+
+            for (var i = 0; i < stages.Length; i++)
+            {
+                property.GetArrayElementAtIndex(i).objectReferenceValue = stages[i];
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
 
         /// <summary>
         /// The log, newest at the bottom, laid out by Unity rather than by arithmetic.

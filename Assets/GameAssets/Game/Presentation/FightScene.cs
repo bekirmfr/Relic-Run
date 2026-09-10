@@ -28,12 +28,16 @@ namespace RelicRun.Game.Presentation
     /// its subject — <c>LoadScene</c> takes a key and <c>Initialize</c> takes nothing — which is
     /// what <see cref="FightOrder"/> is for.
     ///
-    /// It walks a whole <see cref="Delve"/>, floor after floor, and plays every fight it is
-    /// handed. What it does NOT have yet is a screen for any of the other stops, so it answers
-    /// them itself and says so once: the first relic of every offer, the first choice of every
-    /// event, no rerolls, no deals, no revive. That is a scaffold and it is labelled as one —
-    /// but it is a scaffold around the REAL run loop, so replacing an answer with a screen is a
-    /// stage at a time rather than a rewrite.
+    /// It walks a whole <see cref="Delve"/>, floor after floor, and it is a STAGE MACHINE rather
+    /// than a screen: a stop is routed to whichever <see cref="RunStage"/> says it handles that
+    /// kind, and the run waits there until the delver has decided. A fought floor is the one stop
+    /// that is not a question — it is read out at the pace the content says, and answered when
+    /// the reading is over.
+    ///
+    /// Stops with no stage yet are still answered here, dully, and said once: the first choice of
+    /// every event, no deals, no revive. That is a scaffold and it is labelled as one — but it is
+    /// a scaffold around the REAL run loop, so replacing an answer with a stage is a stage at a
+    /// time rather than a rewrite.
     ///
     /// When the run ends it is settled into the save through <c>Career.Settle</c>, which is the
     /// same scoring and banking the corpus gates, and the delver is handed back to the menu with
@@ -48,6 +52,12 @@ namespace RelicRun.Game.Presentation
         [Tooltip("The authored fight, used when nobody has ordered a delve.")]
         [SerializeField] private FightHarness _harness;
 
+        [Tooltip("Where the delver is in the descent. Drawn on every stop.")]
+        [SerializeField] private FloorRailView _rail;
+
+        [Tooltip("A screen per stop. Which one is up is decided by what the run asks.")]
+        [SerializeField] private RunStage[] _stages;
+
         private CombatPlaybackController _showing;
         private FightOrder _order;
         private ISceneService _scenes;
@@ -55,6 +65,9 @@ namespace RelicRun.Game.Presentation
         private Speech _speech;
         private bool _walking;
         private bool _abandoned;
+
+        /// <summary>What is waiting on a stage, so an abandoned run does not wait forever.</summary>
+        private UniTaskCompletionSource<Answer> _deciding;
 
         /// <summary>Built. Starts the delve without waiting for it to finish.</summary>
         /// <remarks>
@@ -95,6 +108,11 @@ namespace RelicRun.Game.Presentation
             _abandoned = true;
 
             if (_showing != null) _showing.Abandon();
+
+            // A stage is a press that may never come. The scene can be taken away while a delver
+            // is still looking at a draft, and the walk is sitting on this — so it is completed
+            // rather than left, and the walk's own Gone check turns the answer into a return.
+            Release(new Answer());
 
             return Task.CompletedTask;
         }
@@ -165,32 +183,59 @@ namespace RelicRun.Game.Presentation
 
             await Say();
 
+            Lend();
+
             var told = false;
 
             while (!delve.Finished)
             {
                 if (Gone) return;
 
-                if (delve.Pending.Kind == AskKind.Fought)
-                {
-                    Met(earned, delve.Pending.Pack);
+                Ask stop = delve.Pending;
 
-                    await Read(delve.Pending, order.Tier, delve.State);
+                Rail(delve);
+
+                if (stop.Kind == AskKind.Fought)
+                {
+                    Nothing();
+                    Met(earned, stop.Pack);
+
+                    await Read(stop, order.Tier, delve.State);
 
                     if (Gone) return;
+
+                    stop.Answer = new Answer();
                 }
-                else if (!told)
+                else
                 {
-                    told = true;
+                    RunStage stage = Staging(stop.Kind);
 
-                    Debug.Log("no screen answers a " + delve.Pending.Kind + " yet, so this delve " +
-                              "answers its own — the first relic, the first choice, and no deals",
-                        this);
+                    if (stage == null)
+                    {
+                        Nothing();
+
+                        if (!told)
+                        {
+                            told = true;
+
+                            Debug.Log("no stage answers a " + stop.Kind + " yet, so this delve " +
+                                      "answers its own — the first choice, and no deals", this);
+                        }
+
+                        stop.Answer = Plainly(stop);
+                    }
+                    else
+                    {
+                        stop.Answer = await Decided(stage, stop, delve.State);
+
+                        if (Gone) return;
+                    }
                 }
 
-                delve.Pending.Answer = Plainly(delve.Pending);
                 delve.Answer();
             }
+
+            Nothing();
 
             Settle(delve, order, earned);
         }
@@ -235,21 +280,136 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>
+        /// Hands every stage the delver's language, and takes them all off the screen.
+        /// </summary>
+        /// <remarks>
+        /// After <see cref="Say"/> rather than in <c>Initialize</c>, because the language is
+        /// fetched and a stage drawing itself is not allowed to wait. Every stage starts hidden
+        /// whatever the prefab was saved with: which one is up is a fact about the run, and a
+        /// stage left showing by whoever last edited the scene would be a screen the run has not
+        /// asked for.
+        /// </remarks>
+        private void Lend()
+        {
+            if (_stages == null) return;
+
+            foreach (RunStage stage in _stages)
+            {
+                if (stage == null) continue;
+
+                stage.Words = _speech != null ? _speech.Locale : null;
+                stage.Showing = false;
+            }
+        }
+
+        /// <summary>Which stage draws a stop, or null when nothing does yet.</summary>
+        private RunStage Staging(AskKind kind)
+        {
+            if (_stages == null) return null;
+
+            foreach (RunStage stage in _stages)
+            {
+                if (stage != null && stage.Handles(kind)) return stage;
+            }
+
+            return null;
+        }
+
+        /// <summary>Puts one stage on the screen and takes every other one off.</summary>
+        private void Only(RunStage stage)
+        {
+            if (_stages == null) return;
+
+            foreach (RunStage one in _stages)
+            {
+                if (one != null) one.Showing = one == stage;
+            }
+        }
+
+        /// <summary>No stage: the fight, or the end of the run.</summary>
+        private void Nothing()
+        {
+            Only(null);
+        }
+
+        /// <summary>Where the delver is in the descent.</summary>
+        /// <remarks>
+        /// Redrawn on every stop rather than only on arriving at a floor, because two stops
+        /// happen on the same floor — the draft and then the fight — and a rail that moved only
+        /// with the floor would be right by accident.
+        /// </remarks>
+        private void Rail(Delve delve)
+        {
+            if (_rail == null) return;
+
+            _rail.Show(FloorRails.Of(delve.State.Floor, delve.Events));
+        }
+
+        /// <summary>
+        /// Shows a stop and waits for the delver to decide it.
+        /// </summary>
+        /// <remarks>
+        /// The whole difference between a run and a replay. Everything else in this loop takes
+        /// however long a machine takes; this takes however long a person takes, which is why the
+        /// run is an iterator and not a function that returns a finished delve.
+        /// </remarks>
+        private async UniTask<Answer> Decided(RunStage stage, Ask stop, RunState run)
+        {
+            var waiting = new UniTaskCompletionSource<Answer>();
+
+            _deciding = waiting;
+
+            Action<Answer> heard = Release;
+
+            stage.Decided += heard;
+
+            try
+            {
+                Only(stage);
+                stage.Draw(stop, run);
+
+                return await waiting.Task;
+            }
+            finally
+            {
+                stage.Decided -= heard;
+            }
+        }
+
+        /// <summary>
+        /// Lets the walk carry on, whether a delver pressed something or the scene went away.
+        /// </summary>
+        /// <remarks>
+        /// Cleared BEFORE it is completed, so a stage that raises twice — a double press, a
+        /// button that was not disabled quickly enough — answers once. The second raise finds
+        /// nothing waiting and does nothing, which is what stops one press from being spent on
+        /// the next floor's question.
+        /// </remarks>
+        private void Release(Answer answer)
+        {
+            UniTaskCompletionSource<Answer> waiting = _deciding;
+
+            if (waiting == null) return;
+
+            _deciding = null;
+
+            waiting.TrySetResult(answer);
+        }
+
+        /// <summary>
         /// What a delver with no screen to press would do.
         /// </summary>
         /// <remarks>
-        /// One answer per stop, and every one of them is the dullest available: it takes what it
-        /// is shown, spends nothing, and does not ask to be brought back. That is deliberate — a
-        /// scaffold that made INTERESTING choices would be a scaffold somebody mistook for the
-        /// game, and every one of these is a line that a screen will delete.
+        /// One answer per stop that has no stage yet, and every one of them is the dullest
+        /// available: it takes what it is shown, spends nothing, and does not ask to be brought
+        /// back. That is deliberate — a scaffold that made INTERESTING choices would be a
+        /// scaffold somebody mistook for the game, and every one of these is a line that a stage
+        /// will delete. The draft's was the first to go.
         /// </remarks>
         private static Answer Plainly(Ask ask)
         {
             switch (ask.Kind)
             {
-                case AskKind.Draft:
-                    return new Answer { Pick = ask.Offer[0] };
-
                 case AskKind.Event:
                     return new Answer { Choice = 0 };
 

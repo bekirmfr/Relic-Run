@@ -135,6 +135,48 @@ const strCtx = vm.createContext({ window: {} });
 vm.runInContext(STRINGS_SRC, strCtx, { filename: "strings.js" });
 const LOCALES = strCtx.window.DD_STRINGS;
 const LOCALE_IDS = Object.keys(LOCALES);
+
+/*
+ * Strings the PORT adds, in every language the source ships.
+ *
+ * The source writes a handful of its labels straight into the markup rather than
+ * through DD_STRINGS, so they are English on a Japanese screen. Where the port
+ * draws one of those, it needs a key — and a key with nothing behind it shows as
+ * the key, which is worse than English.
+ *
+ * Everything here is therefore OURS, not the source's, and is marked as such: a
+ * later extraction must not quietly turn one of these into a translation nobody
+ * wrote. English is the fallback for any language left out.
+ */
+const ADDED = {
+  /* The draft's reroll button. The source's markup reads "↻ REROLL" and then
+   * "— {n} GOLD" on a second line; the arrow is stripped by Locale.Clean the way
+   * every other icon in this table is, so it is not written here. */
+  reroll: {
+    en: "REROLL \u2014 {n} GOLD",
+    tr: "YEN\u0130DEN \u00C7EK \u2014 {n} ALTIN",
+    fr: "RELANCER \u2014 {n} OR",
+    es: "RELANZAR \u2014 {n} ORO",
+    ru: "\u041F\u0415\u0420\u0415\u0411\u0420\u041E\u0421 \u2014 {n} \u0417\u041E\u041B\u041E\u0422\u0410",
+    ja: "\u5F15\u304D\u76F4\u3057 \u2014 {n} \u30B4\u30FC\u30EB\u30C9",
+    zh: "\u91CD\u65B0\u62BD\u53D6 \u2014 {n} \u91D1\u5E01",
+    ar: "\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0633\u062D\u0628 \u2014 {n} \u0630\u0647\u0628",
+  },
+};
+
+let added = 0;
+for (const [key, byLang] of Object.entries(ADDED)) {
+  for (const id of LOCALE_IDS) {
+    if (key in LOCALES[id]) {
+      warn(`added string "${key}" now exists in ${id} — the source has caught up, drop ours`);
+      continue;
+    }
+    LOCALES[id][key] = byLang[id] ?? byLang.en;
+    added++;
+  }
+}
+console.log(`  + ${added} added strings across ${LOCALE_IDS.length} languages`);
+
 for (const id of LOCALE_IDS) write(`locales/${id}.json`, LOCALES[id]);
 
 /* ---------- 2. relics ---------- */
