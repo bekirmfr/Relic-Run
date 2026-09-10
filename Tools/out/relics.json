@@ -20,6 +20,13 @@
       "name": "Whetstone",
       "desc": "+2 attack.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Every dawn it whispers the same word: sharper.",
+      "passive": "+1 ATK, permanent.",
+      "native": null,
+      "activation": "Hones the edge again: +1 ATK this floor.",
+      "awake": "Strikes ignore enemy DEF."
     }
   },
   {
@@ -43,6 +50,13 @@
       "name": "Ox Heart",
       "desc": "+13 max HP, heal 13.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Two sizes too big. Still warm.",
+      "passive": "+13 max HP on pickup (and heals 13).",
+      "native": null,
+      "activation": "Squeezes out 2 healing.",
+      "awake": "Also heals 2 at each floor's gate."
     }
   },
   {
@@ -70,6 +84,13 @@
       "flavor": "The body remembers every coin that leaves.",
       "passive": "Spending gold heals 10.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "The body remembers every coin that leaves.",
+      "passive": "Spending gold heals 10.",
+      "native": null,
+      "activation": null,
+      "awake": "The debt pays double: heal 20."
     }
   },
   {
@@ -95,6 +116,13 @@
       "name": "Coin Magnet",
       "desc": "Loose coins drop +1 gold.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Gold remembers where it belongs.",
+      "passive": "Kill loot and coin spills: +1 gold each.",
+      "native": "Fires on every kill.",
+      "activation": "Pulls in 2 gold.",
+      "awake": null
     }
   },
   {
@@ -125,6 +153,13 @@
       "name": "Alchemist's Vial",
       "desc": "When you gain gold: heal 1.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Gold in, mercy out.",
+      "passive": null,
+      "native": "Fires whenever gold reaches you.",
+      "activation": "Distills 1 healing.",
+      "awake": null
     }
   },
   {
@@ -155,6 +190,13 @@
       "name": "Blood Altar",
       "desc": "When you heal: deal 2 damage.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "It tithes in blood — the enemy's.",
+      "passive": null,
+      "native": "Fires whenever you heal.",
+      "activation": "Deals 2 damage.",
+      "awake": "Its blood also feeds you: heals 1 when it strikes."
     }
   },
   {
@@ -182,6 +224,13 @@
       "name": "Thorn Vest",
       "desc": "When hit: deal 2 back.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Go on, it dares. Hug me.",
+      "passive": null,
+      "native": "Fires when you take a hit.",
+      "activation": "Deals 2 damage back.",
+      "awake": null
     }
   },
   {
@@ -209,6 +258,13 @@
       "name": "Vampire Tooth",
       "desc": "When you attack: heal 1.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Still hungry after all these years.",
+      "passive": null,
+      "native": "Fires on every strike you land.",
+      "activation": "Drinks back 1 healing.",
+      "awake": "Drains the ceiling: each bite takes 1 max HP from the foe."
     }
   },
   {
@@ -232,6 +288,13 @@
       "name": "Midas Blade",
       "desc": "On pickup: +1 attack per 60 gold in the purse (now +{n}).",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "A king's greed, bottled and sold on.",
+      "passive": "On pickup: +1 ATK per 50 gold in the purse.",
+      "native": null,
+      "activation": "Coughs up 2 gold.",
+      "awake": "Recounts live: +1 ATK per 50g at all times."
     }
   },
   {
@@ -254,6 +317,13 @@
       "name": "Greedy Curse",
       "desc": "Gold gains doubled. Hits hurt +1.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "It pays well. It collects better.",
+      "passive": "Gold gains doubled; hits hurt +1.",
+      "native": "Fires when you take a hit.",
+      "activation": "Scrapes together 2 gold.",
+      "awake": "The extra hurt is charged to your purse: 2 gold per point, not HP."
     }
   },
   {
@@ -277,6 +347,13 @@
       "name": "Swift Boots",
       "desc": "Attack 25% faster.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "They never touch the same stone twice.",
+      "passive": "Attack 25% faster.",
+      "native": null,
+      "activation": "A burst of pace: +2 SPD this floor.",
+      "awake": "Every 4th strike is instant."
     }
   },
   {
@@ -300,6 +377,13 @@
       "name": "Battle Dash",
       "desc": "You strike first in every fight.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "The fight starts before they blink.",
+      "passive": "You strike first on each floor's opening fight.",
+      "native": null,
+      "activation": "A burst of pace: +2 SPD this floor.",
+      "awake": "Opens every fight."
     }
   },
   {
@@ -323,6 +407,13 @@
       "name": "Lucky Clover",
       "desc": "Unlocks evasion: dodge enemy attacks at LCK%. Also +10 LCK.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Four leaves. One promise it never states.",
+      "passive": "Unlocks evasion: dodge enemy attacks at LCK%. Also +15 LCK.",
+      "native": "Fires when an enemy misses you.",
+      "activation": "Releases a luck signal into the chain.",
+      "awake": "Dodges release luck signals."
     }
   },
   {
@@ -346,6 +437,13 @@
       "name": "Iron Skin",
       "desc": "+2 DEF. Hits land softer.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Skin like a rumor — hard to pierce.",
+      "passive": "+2 DEF, always.",
+      "native": null,
+      "activation": "Hardens: +2 DEF this floor.",
+      "awake": "The first hit each fight glances off."
     }
   },
   {
@@ -371,6 +469,13 @@
       "name": "Adrenaline Gland",
       "desc": "First hit taken each floor: +1 attack, permanently.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Pain is just ignition.",
+      "passive": "First hit each floor: +1 ATK, permanent.",
+      "native": "Fires on the first hit you take each floor.",
+      "activation": "+1 ATK this floor.",
+      "awake": "Fires on the first hit of every fight."
     }
   },
   {
@@ -393,6 +498,13 @@
       "name": "Piggy Bank",
       "desc": "Cash out for 25% more gold.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Fatter every floor. Never full.",
+      "passive": "Cash out for 25% more gold.",
+      "native": null,
+      "activation": "Rattles out 1 gold.",
+      "awake": null
     }
   },
   {
@@ -416,6 +528,13 @@
       "name": "Berserker Charm",
       "desc": "+4 attack while below half HP.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "It only speaks when you bleed.",
+      "passive": "+4 ATK while below half HP.",
+      "native": null,
+      "activation": "+1 ATK this floor (+2 while bloodied).",
+      "awake": "Bloodied: also +25% attack speed."
     }
   },
   {
@@ -441,6 +560,13 @@
       "name": "Rabbit’s Foot",
       "desc": "Each lucky break: +1 LCK this floor. In versus: every 3rd.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Unlucky for the rabbit. Lucky for you.",
+      "passive": null,
+      "native": "Fires on every luck signal.",
+      "activation": "+1 LCK this floor.",
+      "awake": "Fires on every signal, even in the arena."
     }
   },
   {
@@ -468,6 +594,13 @@
       "name": "Cutpurse Hook",
       "desc": "Doubles loose-coin spill odds; spills pay +1 gold per copy.",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "It steals mid-swing, and swears it didn't.",
+      "passive": "Doubles loose-coin spill odds; spills pay +1 per copy.",
+      "native": "Spills are lucky breaks — luck relics react.",
+      "activation": "Nicks 1 gold.",
+      "awake": "Every strike spills — no roll."
     }
   },
   {
@@ -493,6 +626,13 @@
       "name": "Weighted Dice",
       "desc": "+5 LCK. Your strikes may crit for 1.5× damage. Crit chance = [[LCK]].",
       "source": "strings"
+    },
+    "lore": {
+      "flavour": "Loaded? Prove it.",
+      "passive": "Strikes may crit for 1.5× damage (LCK% chance).",
+      "native": "Every crit is a lucky break — luck relics react.",
+      "activation": "A 2-damage mini-crit.",
+      "awake": "Crits hit ×2."
     }
   },
   {
@@ -522,6 +662,13 @@
       "flavor": "It remembers how to grow back — when it must.",
       "passive": "Bloodied: heal 2 after every hit taken.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It remembers how to grow back — when it must.",
+      "passive": "Bloodied: heal 2 after every hit taken.",
+      "native": null,
+      "activation": null,
+      "awake": "Knits from the foe: every stitch is drained from their HP."
     }
   },
   {
@@ -546,6 +693,13 @@
       "flavor": "Always room for one more meal.",
       "passive": "Breather heals ×2.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Always room for one more meal.",
+      "passive": "Breather heals ×2.",
+      "native": null,
+      "activation": null,
+      "awake": "Breathers also +1 max HP."
     }
   },
   {
@@ -573,6 +727,13 @@
       "flavor": "Tied once, it gives forever.",
       "passive": "Relic heals +1.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Tied once, it gives forever.",
+      "passive": "Relic heals +1.",
+      "native": null,
+      "activation": null,
+      "awake": "Bears it for you: 1 in 3 hits is redirected to the foe entirely."
     }
   },
   {
@@ -598,6 +759,13 @@
       "flavor": "Sign here. And here. And bleed here.",
       "passive": "-20 HP (versus: -20% max HP per round); +5 ATK forever.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Sign here. And here. And bleed here.",
+      "passive": "-20 HP (versus: -20% max HP per round); +5 ATK forever.",
+      "native": null,
+      "activation": null,
+      "awake": "The pact pays +8 ATK."
     }
   },
   {
@@ -622,6 +790,13 @@
       "flavor": "The ground gave you back. Once.",
       "passive": "Cheat death once per run (25% HP).",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "The ground gave you back. Once.",
+      "passive": "Cheat death once per run (25% HP).",
+      "native": null,
+      "activation": null,
+      "awake": "Rise at 50% HP."
     }
   },
   {
@@ -649,6 +824,13 @@
       "flavor": "Soft outside. Softer inside.",
       "passive": "+1 DEF; first hit each fight -2.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Soft outside. Softer inside.",
+      "passive": "+1 DEF; first hit each fight -2.",
+      "native": null,
+      "activation": null,
+      "awake": "Learns the blow: after the first hit, that damage lands 50% lighter all fight."
     }
   },
   {
@@ -679,6 +861,13 @@
       "nativeText": "Fires when an enemy crits you.",
       "activeText": "Reflects the full crit.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "See how you like it.",
+      "passive": null,
+      "native": "Fires when an enemy crits you.",
+      "activation": "Reflects the full crit.",
+      "awake": "Also reflects normal hits at half."
     }
   },
   {
@@ -704,6 +893,13 @@
       "flavor": "Every blow forges it harder.",
       "passive": "Strikes harden you, blow by blow.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Every blow forges it harder.",
+      "passive": "Strikes harden you, blow by blow.",
+      "native": null,
+      "activation": null,
+      "awake": "The forge never cools: cap +12."
     }
   },
   {
@@ -732,6 +928,13 @@
       "nativeText": "Fires when you dodge.",
       "activeText": "+1 DEF this floor.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It rings before the blade arrives.",
+      "passive": null,
+      "native": "Fires when you dodge.",
+      "activation": "+1 DEF this floor.",
+      "awake": "Each ring also chips 1 damage off the foe."
     }
   },
   {
@@ -760,6 +963,13 @@
       "nativeText": "Fires on luck signals.",
       "activeText": "Charges the next strike (+50%).",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Chance, honed to a killing angle.",
+      "passive": null,
+      "native": "Fires on luck signals.",
+      "activation": "Charges the next strike (+50%).",
+      "awake": "Charged strikes hit +100% instead of +50%."
     }
   },
   {
@@ -788,6 +998,13 @@
       "nativeText": "Fires on luck signals.",
       "activeText": "+1 SPD this floor.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Fortune runs in the veins.",
+      "passive": null,
+      "native": "Fires on luck signals.",
+      "activation": "+1 SPD this floor.",
+      "awake": null
     }
   },
   {
@@ -813,6 +1030,13 @@
       "flavor": "Sworn hard. Sworn briefly.",
       "passive": "+4 ATK vs worthy blood; shatters after 4 floors.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Sworn hard. Sworn briefly.",
+      "passive": "+4 ATK vs worthy blood; shatters after 4 floors.",
+      "native": null,
+      "activation": null,
+      "awake": "The oath holds: it never shatters."
     }
   },
   {
@@ -841,6 +1065,13 @@
       "nativeText": "Fires on every 3rd heal.",
       "activeText": "+1 ATK this floor.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Cooled in mercy, swung in anger.",
+      "passive": null,
+      "native": "Fires on every 3rd heal.",
+      "activation": "+1 ATK this floor.",
+      "awake": "Tempers on every heal."
     }
   },
   {
@@ -868,6 +1099,13 @@
       "flavor": "Heads, it ends. Tails, it ends.",
       "passive": "Execute low foes, once per floor.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Heads, it ends. Tails, it ends.",
+      "passive": "Execute low foes, once per floor.",
+      "native": null,
+      "activation": null,
+      "awake": "Executes below 30% HP."
     }
   },
   {
@@ -893,6 +1131,13 @@
       "flavor": "It hears the arrow leave the string.",
       "passive": "+2 SPD, permanent.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It hears the arrow leave the string.",
+      "passive": "+2 SPD, permanent.",
+      "native": null,
+      "activation": null,
+      "awake": null
     }
   },
   {
@@ -921,6 +1166,13 @@
       "nativeText": "Fires when you dodge.",
       "activeText": "Enemy -1 SPD.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "They swing where you were.",
+      "passive": null,
+      "native": "Fires when you dodge.",
+      "activation": "Enemy -1 SPD.",
+      "awake": "Staggered foes trip: their next strike hits themselves."
     }
   },
   {
@@ -946,6 +1198,13 @@
       "flavor": "It only rolls downhill.",
       "passive": "Strikes slowly build speed, floor-long.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It only rolls downhill.",
+      "passive": "Strikes slowly build speed, floor-long.",
+      "native": null,
+      "activation": null,
+      "awake": "Rolls every 2nd strike."
     }
   },
   {
@@ -974,6 +1233,13 @@
       "nativeText": "Fires when you dodge.",
       "activeText": "Instant riposte.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Its beat skips when yours should.",
+      "passive": null,
+      "native": "Fires when you dodge.",
+      "activation": "Instant riposte.",
+      "awake": "Ripostes also strike for 2."
     }
   },
   {
@@ -1002,6 +1268,13 @@
       "nativeText": "Fires when you dodge.",
       "activeText": "Releases a luck signal.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Nailed on backwards, works anyway.",
+      "passive": null,
+      "native": "Fires when you dodge.",
+      "activation": "Releases a luck signal.",
+      "awake": "+12 LCK per copy."
     }
   },
   {
@@ -1035,6 +1308,13 @@
       "nativeText": "Fires on your first dodge each fight.",
       "activeText": "Counter-strike, half ATK.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It twitched. Someone paid.",
+      "passive": null,
+      "native": "Fires on your first dodge each fight.",
+      "activation": "Counter-strike, half ATK.",
+      "awake": "Every dodge counters."
     }
   },
   {
@@ -1060,6 +1340,13 @@
       "flavor": "Luck lends. Luck collects.",
       "passive": "+10 LCK; -10% gold.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Luck lends. Luck collects.",
+      "passive": "+10 LCK; -10% gold.",
+      "native": null,
+      "activation": null,
+      "awake": "The debt is forgiven — no gold tax."
     }
   },
   {
@@ -1093,6 +1380,13 @@
       "nativeText": "Fires on every kill.",
       "activeText": "+5 gold.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Everyone pays at this gate.",
+      "passive": null,
+      "native": "Fires on every kill.",
+      "activation": "+5 gold.",
+      "awake": null
     }
   },
   {
@@ -1117,6 +1411,13 @@
       "flavor": "It presses the scale, gently.",
       "passive": "Shop & reroll prices -20%.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It presses the scale, gently.",
+      "passive": "Shop & reroll prices -20%.",
+      "native": null,
+      "activation": null,
+      "awake": "The bazaar offers TWO deals per visit."
     }
   },
   {
@@ -1142,6 +1443,13 @@
       "flavor": "Wealth, worn close.",
       "passive": "Gold hardens into armor.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Wealth, worn close.",
+      "passive": "Gold hardens into armor.",
+      "native": null,
+      "activation": null,
+      "awake": "Gold hardens twice as fast: +1 DEF per 25g."
     }
   },
   {
@@ -1175,6 +1483,13 @@
       "nativeText": "Fires when a relic deals damage.",
       "activeText": "+1 gold.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Violence, distilled and bottled.",
+      "passive": null,
+      "native": "Fires when a relic deals damage.",
+      "activation": "+1 gold.",
+      "awake": null
     }
   },
   {
@@ -1208,6 +1523,13 @@
       "nativeText": "Fires when a relic pays out.",
       "activeText": "Emits a luck signal.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Every coin has a voice. It knows the song.",
+      "passive": null,
+      "native": "Fires when a relic pays out.",
+      "activation": "Emits a luck signal.",
+      "awake": "Sings for ALL gold, not just relic gold."
     }
   },
   {
@@ -1241,6 +1563,13 @@
       "nativeText": "Fires on luck signals.",
       "activeText": "Deals 1.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Fortune, sharpened to a point.",
+      "passive": null,
+      "native": "Fires on luck signals.",
+      "activation": "Deals 1.",
+      "awake": null
     }
   },
   {
@@ -1266,6 +1595,13 @@
       "flavor": "It counts itself among your treasures.",
       "passive": "Set counts +1; -15 max HP.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "It counts itself among your treasures.",
+      "passive": "Set counts +1; -15 max HP.",
+      "native": null,
+      "activation": null,
+      "awake": null
     }
   },
   {
@@ -1291,6 +1627,13 @@
       "flavor": "When it rings, every table empties.",
       "passive": "No enemy healing; your heals -1.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "When it rings, every table empties.",
+      "passive": "No enemy healing; your heals -1.",
+      "native": null,
+      "activation": null,
+      "awake": "Your heals are exempt from the famine."
     }
   },
   {
@@ -1316,6 +1659,13 @@
       "flavor": "Strength is just weight you agreed to carry.",
       "passive": "+5 ATK; -5 SPD.",
       "source": "NEWR"
+    },
+    "lore": {
+      "flavour": "Strength is just weight you agreed to carry.",
+      "passive": "+5 ATK; -5 SPD.",
+      "native": null,
+      "activation": null,
+      "awake": null
     }
   }
 ]

@@ -47,11 +47,11 @@ namespace RelicRun.Core.Content
 
         public RelicTextDef(RelicId id, string name, string nameKey, string what, string whatKey)
         {
-            What = what;
-            WhatKey = whatKey;
             Id = id;
             Name = name;
             NameKey = nameKey;
+            What = what;
+            WhatKey = whatKey;
         }
 
         /// <summary>Whether this relic's name reaches a delver in their own language.</summary>

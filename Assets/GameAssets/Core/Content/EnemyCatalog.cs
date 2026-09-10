@@ -37,10 +37,10 @@ namespace RelicRun.Core.Content
 
         public EnemyDef(int index, string key, int sheetRow, string lore)
         {
-            Lore = lore;
             Index = index;
             Key = key;
             SheetRow = sheetRow;
+            Lore = lore;
         }
     }
 

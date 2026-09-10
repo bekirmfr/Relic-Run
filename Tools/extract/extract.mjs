@@ -154,6 +154,29 @@ const relicText = (id) => {
   return { name: n.n, desc: n.d, flavor: n.fl, passive: n.pas, nativeText: n.nat, activeText: n.act, source: "NEWR" };
 };
 
+/* What a relic SAYS on its own card, which is a different table from what it is called.
+   RELIC_META is written by hand for 47 relics and then filled in from NEWR for anything it
+   missed — that fill-in is the source's own line and is repeated here rather than resolved,
+   because a relic that appears in both is described by RELIC_META and its NEWR text is dead.
+   AWAKE_TEXT is what awakening a relic DOES, which the card promises before it happens. */
+const RELIC_META = evalLiteral("RELIC_META");
+const AWAKE_TEXT = evalLiteral("AWAKE_TEXT");
+for (const k in NEWR) {
+  if (!RELIC_META[k]) RELIC_META[k] = { fl: NEWR[k].fl, pas: NEWR[k].pas, nat: NEWR[k].nat, act: NEWR[k].act };
+}
+
+const relicLore = (id) => {
+  const m = RELIC_META[id];
+  if (!m) { warn(`no card text for relic ${id}`); return null; }
+  return {
+    flavour: m.fl || null,
+    passive: m.pas || null,
+    native: m.nat || null,
+    activation: m.act || null,
+    awake: AWAKE_TEXT[id] || null,
+  };
+};
+
 const relics = Object.entries(ITEMS).map(([id, it]) => ({
   id,
   kind: it.kind,
@@ -166,6 +189,7 @@ const relics = Object.entries(ITEMS).map(([id, it]) => ({
   nativeTrigger: NATIVE_TRIGGER[id] || null,
   icon: RELIC_ICON[id] ? { col: RELIC_ICON[id][0], row: RELIC_ICON[id][1] } : null,
   text: relicText(id),
+  lore: relicLore(id),
 }));
 for (const r of relics) if (!r.icon) warn(`relic ${r.id} has no icon cell`);
 write("relics.json", relics);
