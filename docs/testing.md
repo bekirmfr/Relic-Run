@@ -1327,6 +1327,69 @@ The general rule this leaves: **before handing over a branch that touches a Unit
 `asmrefs.py`, and re-read any assertion for the NUnit dialect above.** Neither is a substitute for
 the compiler. Both are cheaper than the round trip.
 
+### Then the compiler arrived
+
+The Unity CLI can drive a running Editor once `com.unity.pipeline` is in the project. From a
+terminal: `unity command recompile`, `unity command console`, `unity command run_tests`,
+`unity command menu --path "Tools/Relic Run/Build Menu Scene"`, `unity command editor_play`,
+`unity command capture_game_view`, and `unity command eval` to ask the live game anything.
+
+That closes the gap the two tools above were built to paper over. It does not make them useless —
+`asmrefs.py` still answers in a second and catches the mistake before a domain reload — but the
+authority moved. Everything in Phase 10 from the mode picker onward was compiled, built and
+tested from here before it was handed over.
+
+Three failures showed up within an hour of gaining it, and none of them was findable in code:
+
+- **A MonoBehaviour must live in a file named after it.** Four panels were written into one
+  `ReadingPanels.cs`. It compiled perfectly. Unity gives a file ONE MonoScript, so `BoardPanel` —
+  the first class in it — could be added to a GameObject and the other three silently could not.
+  The built scene had four panels where seven were listed. Caught by the test asserting every
+  panel is listed exactly once, which found three nulls in the array.
+- **A hand-written `.meta` can register a script without adding it to the compilation set.**
+  `ProfileCard.cs` was imported, had a GUID Unity knew, reported `MonoImporter` as its importer,
+  and was absent from the 87 files the Core assembly compiles — so every reference to
+  `ProfileCards` failed while `BoardCards` beside it resolved. Deleting the meta and letting
+  Unity write its own fixed it. **Do not hand-write `.meta` files.** That habit only existed
+  because Unity could not be run.
+- **A screenshot is evidence of something, but not of what it looks like.** The first capture of
+  the title appeared to show enormous letter-spacing and a doubled screen. Both were artifacts —
+  a 433×873 portrait game view stretched into a 1280×720 frame, and a backbuffer still holding a
+  previous session's render. The font metrics were tight all along and only one `MetaScene` ever
+  existed. What the same capture DID show was real: the chosen hall's number was missing, and
+  `unity command eval` reported `ink=E3B240` on `bg=E3B240` — gold on gold. **Confirm what a
+  picture suggests by asking the running game.** The picture proposes; the Editor decides.
+
+## What is English and what is translated
+
+Phase 10 kept running into the same question and the answer is never guessable. The source
+translates some screens and writes others as literals in its markup, and two screens next to each
+other can differ:
+
+| Screen | Words |
+|---|---|
+| Title, mode picker | literals — English in all eight locales |
+| Dungeon list | literals, including all ten halls' lore |
+| Bestiary | heading and cards are literals; species NAMES are `en0`..`en12` |
+| Relic book | heading is a literal; 19 relics translated, 31 carry their own English |
+| Board | fully translated (`lbTitle`, `lbAnon`, `lbMeta`, `lbEmpty`) |
+| How to play | one translated paragraph the game splits itself |
+| End of run | literals, except "new best" |
+
+The only way to know is to read the markup. Three consequences fall out of it:
+
+- **A literal never passes through `Locale.Clean`**, so every character in one is really drawn.
+  That is how three undrawable characters were found — the title's star (U+2B50), the mode
+  picker's tick (U+2713), and neither is covered by either shipped face. All three are dropped,
+  which is also what the source's own cleaner would have done to them.
+- **Prose that is not translated is not in the locale tables**, so it was never ported. Three
+  captures now read it out of the source rather than transcribing it: `halls.mjs` (ten halls'
+  lore), `foes.mjs` (thirteen species' cards), `relics.mjs` (thirty-one relics' descriptions).
+  Prose is the one kind of content where a dropped word reads as intentional.
+- **A card carries keys, never words.** Core does not pick a language. `ReferenceCardTests` holds
+  every key those screens can produce against the shipped English, because `Locale` answers an
+  unknown key with the key — which is right, and is diagnosable only by somebody looking.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1393,3 +1456,8 @@ node Tools/extract/validate.mjs
 | Phase 10d — where the buttons go | none — ported by hand | passing, 3 routing rules · 13 mutants |
 | Phase 10e — what a delver chose | `strings.json` | passing, 2 codecs · 21 mutants · 8 languages |
 | Phase 10f — the title screen | `fonts.json` | passing, 4 inputs · **captions English-only** · no star |
+| Phase 10g — the dungeon list | `halls.json` | passing, ten halls' lore read · 23 mutants |
+| Phase 10h — the mode picker | `fonts.json` | passing, banners shared with the title · no tick |
+| Phase 10i — the reading screens | `foes.json`, `relics.json`, `strings.json` | passing, every key held against English |
+| Phase 10j — either side of a run | `strings.json` | passing, how-to split in 8 languages |
+| Phase 10k — the built menu | none — invariants | Editor; 11 panels listed once each |
