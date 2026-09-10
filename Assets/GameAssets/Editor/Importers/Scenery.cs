@@ -129,6 +129,11 @@ namespace RelicRun.Editor.Importers
             made.transform.SetParent(parent.transform, false);
             made.transform.localPosition = new Vector3(0f, 0f, -10f);
 
+            // Tagged, so Camera.main finds it. Anything reaching for the main camera at runtime
+            // gets this one; untagged, Camera.main stays null, which is the state that had a
+            // stray editor camera answering for the game.
+            made.tag = "MainCamera";
+
             Camera eye = made.GetComponent<Camera>();
 
             eye.orthographic = true;

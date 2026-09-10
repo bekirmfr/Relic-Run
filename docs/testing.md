@@ -1436,6 +1436,15 @@ Three things this left behind:
   `PixelCanvas` correctly refits to the new size, and a query caught mid-flight reported a screen
   of 395x1367 with a canvas still scaled for 1440x3040. That transient looked exactly like a bug
   in the scaler and was not one.
+- **Check which scene is playing before believing a symptom.** Moving to a camera looked like it
+  had introduced `Screen position out of view frustum (screen pos -nan(ind), -nan(ind))` at ERROR
+  level, a dozen times every ten seconds, from `EventSystem:Update`. It had not. Play had been
+  pressed on an unsaved default scene, which brings its own perspective `Main Camera` and none of
+  the bootstrap; the same build in `Corescene` logs none of it. `Input.mousePosition` really does
+  report `(-Infinity, -Infinity)` while the pointer has never entered the Game view, but nothing
+  in the shipped scene asks a camera to convert it. A guarded raycaster was written to swallow
+  the conversion and measured to make no difference — the scene did — so it was reverted rather
+  than kept as a fix for something it did not fix.
 
 ## The corpus
 
