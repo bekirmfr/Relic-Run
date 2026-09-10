@@ -162,6 +162,21 @@ const ADDED = {
     zh: "\u91CD\u65B0\u62BD\u53D6 \u2014 {n} \u91D1\u5E01",
     ar: "\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0633\u062D\u0628 \u2014 {n} \u0630\u0647\u0628",
   },
+
+  /* Under the numbers on the card a fight opens on. The source writes this one in
+   * English into its markup too, and it is the only sentence on that screen — the
+   * rest is a name and five numbers — so leaving it untranslated would leave the
+   * one readable line of the game's biggest moment in the wrong language. */
+  blocksWay: {
+    en: "It blocks the way.",
+    tr: "Yolu kap\u0131yor.",
+    fr: "Il barre le passage.",
+    es: "Bloquea el camino.",
+    ru: "\u041E\u043D\u043E \u043F\u0440\u0435\u0433\u0440\u0430\u0436\u0434\u0430\u0435\u0442 \u043F\u0443\u0442\u044C.",
+    ja: "\u884C\u304F\u624B\u3092\u962E\u3093\u3067\u3044\u308B\u3002",
+    zh: "\u5B83\u6321\u4F4F\u4E86\u53BB\u8DEF\u3002",
+    ar: "\u064A\u0633\u062F\u0651 \u0627\u0644\u0637\u0631\u064A\u0642.",
+  },
 };
 
 let added = 0;

@@ -152,5 +152,6 @@
   "en10": "Ghoolem",
   "en11": "Vault Eye",
   "en12": "Marrow Husk",
-  "reroll": "REROLL — {n} GOLD"
+  "reroll": "REROLL — {n} GOLD",
+  "blocksWay": "It blocks the way."
 }

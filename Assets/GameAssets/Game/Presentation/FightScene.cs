@@ -185,6 +185,10 @@ namespace RelicRun.Game.Presentation
 
             Lend();
 
+            // The fight speaks too. Its card names a foe and says one sentence under the
+            // numbers, which are the only words on the screen it covers.
+            if (_view != null) _view.Speaks(_speech != null ? _speech.Locale : null);
+
             var told = false;
 
             while (!delve.Finished)
@@ -254,7 +258,7 @@ namespace RelicRun.Game.Presentation
                 _content.Presentation.ToPacing());
 
             _view.Begin(fought.Result.Events, pacing, new CombatLog(_speech.Locale),
-                Shelf.Of(run.Hero), false, tier);
+                Shelf.Of(run.Hero), false, tier, fought.Pack);
 
             if (_showing == null) _showing = new CombatPlaybackController(_content.Presentation);
 

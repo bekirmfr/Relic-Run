@@ -152,5 +152,6 @@
   "en10": "Ghoolem",
   "en11": "Œil du Coffre",
   "en12": "Carcasse de Moelle",
-  "reroll": "RELANCER — {n} OR"
+  "reroll": "RELANCER — {n} OR",
+  "blocksWay": "Il barre le passage."
 }

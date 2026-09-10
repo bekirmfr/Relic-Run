@@ -35,6 +35,9 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private StatRow _heroStats;
         [SerializeField] private RectTransform _heroFliers;
 
+        [Tooltip("The delver, composed from the wardrobe rather than drawn off a sheet.")]
+        [SerializeField] private HeroView _heroArt;
+
         [Header("The foe")]
         [SerializeField] private Image _enemyHealth;
         [SerializeField] private Image _enemyGauge;
@@ -46,6 +49,12 @@ namespace RelicRun.Game.Presentation
         [Tooltip("What the foe is carrying. Icons only — the gauges would be the delver's.")]
         [SerializeField] private RelicTray _enemyRelics;
         [SerializeField] private Image _enemyArt;
+
+        [Tooltip("The card a fight opens on. Raised on the walk to meet whoever is arriving.")]
+        [SerializeField] private IntroBanner _intro;
+
+        [Tooltip("The row of foes on this floor. Hidden when there is only one.")]
+        [SerializeField] private FoeQueueView _queue;
         [SerializeField] private RectTransform _enemyFliers;
 
         [Header("The purse")]
@@ -108,8 +117,32 @@ namespace RelicRun.Game.Presentation
         private int _foeDrawn = -1;
         private int _foeVariant = -1;
 
+        /// <summary>
+        /// Who is on this floor, in the order they arrive.
+        /// </summary>
+        /// <remarks>
+        /// Passed in rather than read out of the events, because the events only ever show the
+        /// foe that has ARRIVED — a snapshot carries one enemy — and the row along the bottom is
+        /// about the ones who have not. Null on a screen nobody handed a pack to, which draws no
+        /// row at all rather than a wrong one.
+        /// </remarks>
+        private IReadOnlyList<EnemyState> _pack;
+
         /// <summary>Whether the delver has stopped to look at something.</summary>
         public bool Paused { get; set; }
+
+        /// <summary>
+        /// Hands the card a fight opens on the delver's language.
+        /// </summary>
+        /// <remarks>
+        /// Not fetched here. Fetching strings is asynchronous and everything on this screen is
+        /// drawn from a synchronous callback, so the scene that already waited for them hands
+        /// them over.
+        /// </remarks>
+        public void Speaks(Locale words)
+        {
+            if (_intro != null) _intro.Words = words;
+        }
 
         /// <summary>
         /// Takes a fight, before any of it is shown.
@@ -120,11 +153,13 @@ namespace RelicRun.Game.Presentation
         /// event at a time would make the bars guess.
         /// </remarks>
         public void Begin(IReadOnlyList<CombatEvent> events, Pacing pacing, CombatLog reading,
-            Shelf shelf = null, bool versus = false, int hall = 1)
+            Shelf shelf = null, bool versus = false, int hall = 1,
+            IReadOnlyList<EnemyState> pack = null)
         {
             _events = events;
             _pacing = pacing;
             _reading = reading;
+            _pack = pack;
 
             // Once, because the shelf does not change during a floor. Everything that DOES change
             // reaches the tray through the snapshot on each event.
@@ -150,6 +185,15 @@ namespace RelicRun.Game.Presentation
             _foeDrawn = -1;
             _foeVariant = -1;
 
+            // Down before the first event, because a floor can open on a card and this is the
+            // only place that knows a NEW fight has started. Left up, the card from the last
+            // floor's last foe would be the first thing the next floor showed.
+            if (_intro != null) _intro.Hide();
+
+            Dress();
+
+            Queue(-1);
+
             // Emptied, because a Filled image has to be authored full or there is nothing to see
             // while building the prefab. Left alone, both gauges would sit at full until the
             // first event moved them — and a full attack gauge means "about to strike", so the
@@ -171,6 +215,14 @@ namespace RelicRun.Game.Presentation
         /// <summary>Draws one event.</summary>
         public void Show(int index, CombatEvent shown)
         {
+            // The first thing anything does, so a blow is never struck behind the card that
+            // announced the foe taking it.
+            if (_intro != null && _intro.Showing) _intro.Hide();
+
+            Queue(index);
+
+            Acted(shown);
+
             Bars(shown.State);
 
             if (_events == null || index < 0 || index >= _events.Count) return;
@@ -219,6 +271,91 @@ namespace RelicRun.Game.Presentation
             if (_hall != null) _hall.Walk();
 
             Foe(_events[index].State);
+
+            // The row FIRST, so the foe about to be announced is already ringed behind the card
+            // when it comes down — rather than the row catching up a frame later.
+            Queue(index);
+
+            if (_intro != null) _intro.Show(IntroCards.Of(_events[index].State));
+        }
+
+        /// <summary>
+        /// Dresses the delver, once.
+        /// </summary>
+        /// <remarks>
+        /// Once per SCREEN rather than once per floor. Composing a state builds three textures
+        /// and a material that Unity will never collect on its own — see <see cref="HeroView"/> —
+        /// so redressing every floor would leak a wardrobe a run.
+        ///
+        /// A missing pack is a warning and a fight with no delver in it, which is ugly and
+        /// diagnosable. It is not worth stopping a run over.
+        /// </remarks>
+        private void Dress()
+        {
+            if (_heroArt == null || _heroArt.Dressed) return;
+
+            HeroPack pack = _content != null && _content.HeroPack != null
+                ? _content.HeroPack.Pack
+                : null;
+
+            if (pack == null)
+            {
+                Debug.LogWarning("no hero pack, so the delver is not drawn", this);
+                return;
+            }
+
+            _heroArt.Wear(pack, HeroPackReader.Plain(pack), HeroPalette.Build());
+        }
+
+        /// <summary>
+        /// What the delver is doing, which is whatever just happened to them.
+        /// </summary>
+        /// <remarks>
+        /// Read off the event rather than tracked, like everything else on this screen. The two
+        /// that matter are the two that are about the DELVER: a foe taking damage means the
+        /// delver swung, and the delver taking it means they were hit. Everything else — gold,
+        /// luck, a relic firing — leaves them standing, which is correct: a delver who lunged
+        /// every time a number appeared would be lunging at their own purse.
+        /// </remarks>
+        private void Acted(CombatEvent shown)
+        {
+            if (_heroArt == null) return;
+
+            switch (shown.Type)
+            {
+                case CombatEventType.EnemyDamage:
+                    _heroArt.Act(HeroView.Attack);
+                    break;
+
+                case CombatEventType.PlayerDamage:
+                    _heroArt.Act(HeroView.Hurt);
+                    break;
+
+                case CombatEventType.Death:
+                    _heroArt.Act(HeroView.Die);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// The row of foes, as far along as the fight is at this event.
+        /// </summary>
+        /// <remarks>
+        /// Counted out of the events every time rather than tracked, because playback can be
+        /// paused, sped up or skipped, and a counter walked along the way would be wrong in all
+        /// three. Minus one means nothing has been shown yet, which is a whole pack standing.
+        /// </remarks>
+        private void Queue(int index)
+        {
+            if (_queue == null) return;
+
+            if (_pack == null)
+            {
+                _queue.Hide();
+                return;
+            }
+
+            _queue.Show(FoeQueues.Of(_pack, FoeQueues.Fallen(_events, index)));
         }
 
         /* ---------- drawing ---------- */

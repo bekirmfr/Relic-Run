@@ -253,8 +253,36 @@ that label into its markup rather than its string table, so the port adds keys o
 (`ADDED` in `extract.mjs`), in all eight languages, gated by a test that finds them by difference
 rather than by a list anybody has to maintain.
 
-**4 · The delver in the fight.** A hero sprite from the compositor that already exists, the foe
-queue, the intro banner. This is the step that makes the fight look like the source's.
+**4 · The delver in the fight. — DONE.** Three things, and the fight looks like the source's now.
+
+*The delver.* `HeroView` composes the hero rather than drawing one off a sheet: eleven slots of
+pixel rows stacked back to front into an index grid, coloured on the GPU by a palette texture the
+shader looks the index up in. All of that machinery existed and was gated — `HeroCompositor`,
+`HeroIndex`, `HeroTextures`, `HeroMaterial`, the palette-swap shader — and **nothing in runtime
+code had ever called any of it**. What was missing was one piece: something that could turn the
+shipped `hero-pack.json` into a `HeroPack` outside a test. `HeroPackReader` is that, in Core,
+because both the tests and the game need it and both must get the same delver; `Corpus.HeroPack`
+now goes through it, so the parser under 500 KB of art has exactly one spelling. States are
+composed on first use and kept, and destroyed by hand — a `HideAndDontSave` texture is one Unity
+will never collect. A delver swings on `EnemyDamage`, flinches on `PlayerDamage`, and dies once.
+
+*The foe queue.* `FoeQueues` gives the pack as tiles: who has fallen, who is up, what each is
+ringed in. How far in is COUNTED FROM THE EVENTS rather than tracked, because playback can be
+paused, sped up or skipped and a counter walked along the way would be wrong in all three. Hidden
+on a floor with one foe, which is most of them.
+
+*The card a fight opens on.* `IntroCards` says what is blocking the way and what it is carrying.
+It is raised on the WALK step — the gap playback already reserves for setting off down the hall —
+so it costs no new timing and a delve watched with the intro skipped never builds one. The
+source's FIGHT button to dismiss it early is deliberately absent: the loop waits a fixed span for a
+walk, so a button would take the card away and leave a delver looking at an empty room. It wants
+the same gate `Paused` uses, which arrives with the pause screen in step 6.
+
+Two things worth writing down. The card says something DIFFERENT from the bestiary on purpose — a
+dungeon king is a `DUNGEON KING` in the book and a `FINAL BOSS` on the screen that opens the fight,
+because one is a reference and the other is a threat; the obvious tidy-up is to make them one
+function and there is a test standing in front of it. And the card's one sentence had no key
+either, so `blocksWay` joined `reroll` in the port's own `ADDED` table.
 
 **5 · The gate stages.** `travel` and `decide` — the breather, the floor rail advancing, cash out or
 descend. Done when a run can be walked out of with gold banked.

@@ -156,9 +156,9 @@ namespace RelicRun.Tests.Support
         /// </summary>
         /// <remarks>
         /// Read from the source drop rather than from a copy, so the tests compose the same art
-        /// the game ships. Core cannot parse JSON — it references nothing — so the reading
-        /// happens here and Core is handed a filled <see cref="HeroPack"/>. A Unity importer
-        /// will fill the same object from the same file.
+        /// the game ships. The PARSING is <see cref="HeroPackReader"/>'s, which is also what the
+        /// game runs: a second parser here would be a second answer to what the delver looks
+        /// like, and the one that shipped would be whichever nobody was testing.
         /// </remarks>
         public static HeroPack HeroPack()
         {
@@ -170,42 +170,7 @@ namespace RelicRun.Tests.Support
                 throw new FileNotFoundException("the shipped hero pack is missing: " + path);
             }
 
-            JObject json = JObject.Parse(File.ReadAllText(path));
-            var pack = new RelicRun.Core.Content.HeroPack { Size = json["size"].Value<int>() };
-
-            foreach (JToken slot in (JArray)json["stack"]) pack.Stack.Add(slot.Value<string>());
-
-            // The pack's own states are deliberately NOT read: they exist to validate the pack,
-            // and the rig is what the game animates from.
-
-            if (json["defaults"] != null)
-            {
-                foreach (JProperty pick in ((JObject)json["defaults"]).Properties())
-                {
-                    pack.Defaults[pick.Name] = pick.Value.Value<string>();
-                }
-            }
-
-            if (json["famHex"] != null)
-            {
-                foreach (JProperty pick in ((JObject)json["famHex"]).Properties())
-                {
-                    pack.FamilyColours[pick.Name[0]] = pick.Value.Value<string>();
-                }
-            }
-
-            if (json["base"] != null && json["base"]["frames"] != null)
-            {
-                pack.Add(PartFrom("base", "base", (JObject)json["base"]["frames"]));
-            }
-
-            foreach (JToken part in (JArray)json["parts"])
-            {
-                pack.Add(PartFrom(part["slot"].Value<string>(), part["id"].Value<string>(),
-                    (JObject)part["frames"]));
-            }
-
-            return pack;
+            return HeroPackReader.Read(File.ReadAllText(path));
         }
 
         /// <summary>One language's strings, from <c>Tools/out/locales/</c>.</summary>
@@ -228,24 +193,5 @@ namespace RelicRun.Tests.Support
             return table;
         }
 
-        private static HeroPart PartFrom(string slot, string id, JObject frames)
-        {
-            var part = new HeroPart(slot, id);
-
-            foreach (JProperty state in frames.Properties())
-            {
-                var list = new List<string[]>();
-                foreach (JToken frame in (JArray)state.Value)
-                {
-                    var rows = new List<string>();
-                    foreach (JToken row in (JArray)frame) rows.Add(row.Value<string>());
-                    list.Add(rows.ToArray());
-                }
-
-                part.Frames[state.Name] = list;
-            }
-
-            return part;
-        }
     }
 }

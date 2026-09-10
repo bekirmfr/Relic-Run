@@ -446,6 +446,8 @@ namespace RelicRun.Editor.Importers
                 new Vector2(0f, -44f));
             GameObject heroFliers = Anchor(delver, "Fliers", new Vector2(-130f, 60f));
 
+            HeroView delverArt = Delver(canvas);
+
             GameObject purse = Panel(canvas, "Purse", new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-90f, -40f), new Vector2(150f, 40f));
             GameObject gold = Say(purse, face, "0", Text(20), TextAlignmentOptions.Right,
@@ -455,6 +457,10 @@ namespace RelicRun.Editor.Importers
             GameObject log = Log(canvas);
             RelicTray tray = Tray(canvas, content, slot);
 
+            // The row of foes belongs to the FIGHT, so it is built before the stages: a draft
+            // covers the fight, and the row is part of what is being covered.
+            FoeQueueView queue = Queue(canvas, content, face);
+
             // The stages, and then the rail. Hierarchy order is paint order on a canvas: a stage
             // is a full-screen panel that covers the fight while it is up, and the rail is built
             // after it so that where the delver IS stays visible on top of whatever they are
@@ -462,12 +468,17 @@ namespace RelicRun.Editor.Importers
             DraftStage draft = Draft(canvas, content, face);
             FloorRailView railing = Rail(canvas, face);
 
+            // Last of all, over everything including the rail. The card a fight opens on is the
+            // one thing in this game that covers the whole screen on purpose.
+            IntroBanner intro = Intro(canvas, content, face);
+
             Wire(view, new[]
             {
                 Pair("_heroHealth", heroHealth.GetComponent<Image>()),
                 Pair("_heroGauge", heroGauge.GetComponent<Image>()),
                 Pair("_heroHealthText", heroText.GetComponent<TMP_Text>()),
                 Pair("_heroFliers", (RectTransform)heroFliers.transform),
+                Pair("_heroArt", delverArt),
                 Pair("_enemyHealth", foeHealth.GetComponent<Image>()),
                 Pair("_enemyGauge", foeGauge.GetComponent<Image>()),
                 Pair("_enemyName", foeName.GetComponent<TMP_Text>()),
@@ -485,6 +496,8 @@ namespace RelicRun.Editor.Importers
                 Pair("_hall", hall),
                 Pair("_tray", tray),
                 Pair("_content", content),
+                Pair("_intro", intro),
+                Pair("_queue", queue),
             });
 
             // The authored fight, which is now a FALLBACK rather than the fight. It carries the
@@ -517,6 +530,195 @@ namespace RelicRun.Editor.Importers
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>How big the delver is drawn.</summary>
+        /// <remarks>
+        /// The source's <c>120 / PACK.SIZE</c>, which for a thirty-two square is a shade under
+        /// four times. Point-filtered, so that is four screen pixels a source pixel and not a
+        /// blur — which is the whole reason this game keeps a pixel canvas.
+        /// </remarks>
+        private const float DelverSide = 120f;
+
+        /// <summary>
+        /// The delver, opposite the foe.
+        /// </summary>
+        /// <remarks>
+        /// Bottom right, where the foe is top left. That is the source's arrangement and it is
+        /// the readable one: the two bodies sit at opposite corners with the log running between
+        /// them, so a delver's eye goes from what is hitting them to what is happening to them
+        /// without crossing anything.
+        ///
+        /// Clear of the row of foes, which is bottom LEFT for the same reason — five tiles reach
+        /// a little over two hundred units and this starts past three hundred.
+        /// </remarks>
+        private static HeroView Delver(GameObject parent)
+        {
+            GameObject panel = Panel(parent, "Delver Art", new Vector2(1f, 0f), new Vector2(1f, 0f),
+                new Vector2(-90f, 320f), new Vector2(DelverSide, DelverSide));
+
+            var art = new GameObject("Art", typeof(RectTransform), typeof(RawImage));
+            var rect = (RectTransform)art.transform;
+
+            rect.SetParent(panel.transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.sizeDelta = Vector2.zero;
+            rect.anchoredPosition = Vector2.zero;
+
+            // Nothing to draw until a fight dresses it. Enabled with a null texture, a RawImage
+            // draws a white square — which is exactly what a delver should not look like.
+            RawImage drawn = art.GetComponent<RawImage>();
+            drawn.enabled = false;
+
+            var view = panel.AddComponent<HeroView>();
+
+            Wire(view, new[] { Pair("_art", drawn) });
+
+            return view;
+        }
+
+
+        /// <summary>
+        /// The row of foes on this floor, along the bottom of the fight.
+        /// </summary>
+        /// <remarks>
+        /// Under the shelf, because it is the same kind of fact one row down: what the delver has
+        /// and then what is left to spend it on. Left-aligned for the same reason the shelf is —
+        /// the tiles are struck out one at a time as a floor is fought, and a centred row would
+        /// shuffle the survivors sideways on every kill.
+        /// </remarks>
+        private static FoeQueueView Queue(GameObject parent, GameContent content, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Queue", new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 272f), new Vector2(-40f, FoeQueues.Side));
+
+            var row = panel.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childControlWidth = false;
+            row.childControlHeight = false;
+            row.spacing = 6f;
+
+            GameObject said = Say(panel, face, "NEXT", Text(9), TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(38f, FoeQueues.Side));
+
+            said.GetComponent<TMP_Text>().color = new Color(0.655f, 0.604f, 0.510f);
+
+            GameObject tile = Box(panel, "Foe", new Vector2(0.5f, 0.5f),
+                new Vector2(FoeQueues.Side, FoeQueues.Side), Vector2.zero);
+
+            Image ground = tile.GetComponent<Image>();
+            ground.sprite = White();
+            ground.enabled = true;
+
+            tile.AddComponent<Outline>();
+
+            // The foe, and then the line through it. The view finds them by index in this order.
+            GameObject art = Box(tile, "Art", new Vector2(0.5f, 0.5f),
+                new Vector2(FoeQueues.Glyph, FoeQueues.Glyph), Vector2.zero);
+
+            GameObject strike = Box(tile, "Strike", new Vector2(0.5f, 0.5f),
+                new Vector2(FoeQueues.Side - 4f, 2f), Vector2.zero);
+
+            Image line = strike.GetComponent<Image>();
+            line.sprite = White();
+            line.enabled = true;
+            line.preserveAspect = false;
+
+            // Struck through at an angle, which is what makes it read as crossed out rather than
+            // as an underline somebody left on.
+            strike.transform.localRotation = Quaternion.Euler(0f, 0f, 38f);
+
+            art.GetComponent<Image>().preserveAspect = true;
+
+            tile.SetActive(false);
+
+            var view = panel.AddComponent<FoeQueueView>();
+
+            Wire(view, new[]
+            {
+                Pair("_label", said),
+                Pair("_tiles", (RectTransform)panel.transform),
+                Pair("_tile", ground),
+                Pair("_content", content),
+            });
+
+            return view;
+        }
+
+        /// <summary>
+        /// The card a fight opens on.
+        /// </summary>
+        /// <remarks>
+        /// A full-screen overlay, opaque, because the point of it is that everything else stops.
+        /// It is the largest anything in this game is ever drawn — a 232-unit portrait on a
+        /// 390-wide shell — and that scale is the whole announcement.
+        /// </remarks>
+        private static IntroBanner Intro(GameObject parent, GameContent content, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Intro", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = panel.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.031f, 0.027f, 0.020f, 0.98f);
+
+            GameObject rank = Say(panel, face, "FLOOR BOSS", Text(9),
+                TextAlignmentOptions.Center, new Vector2(0f, 210f),
+                new Vector2(0f, 20f), true);
+
+            GameObject frame = Box(panel, "Frame", new Vector2(0.5f, 0.5f),
+                new Vector2(240f, 240f), new Vector2(0f, 60f));
+
+            Image walls = frame.GetComponent<Image>();
+            walls.sprite = White();
+            walls.color = new Color(0.098f, 0.082f, 0.063f);
+            walls.enabled = true;
+            walls.preserveAspect = false;
+
+            frame.AddComponent<Outline>();
+
+            // The glow, which only the bottom of a run wears. A Shadow spread evenly rather than
+            // offset is as close as a UI graphic gets to one without a second material.
+            var glow = frame.AddComponent<Shadow>();
+            glow.effectColor = new Color(0.890f, 0.702f, 0.255f, 0.5f);
+            glow.effectDistance = new Vector2(6f, -6f);
+            glow.enabled = false;
+
+            GameObject art = Box(frame, "Art", new Vector2(0.5f, 0.5f),
+                new Vector2(IntroBanner.Portrait, IntroBanner.Portrait), Vector2.zero);
+
+            art.GetComponent<Image>().preserveAspect = true;
+
+            GameObject named = Say(panel, face, "Foe", Text(28), TextAlignmentOptions.Center,
+                new Vector2(0f, -100f), new Vector2(0f, 40f), true);
+
+            GameObject stats = Say(panel, face, "0 HP", Text(11), TextAlignmentOptions.Center,
+                new Vector2(0f, -136f), new Vector2(0f, 24f), true);
+
+            GameObject blocks = Say(panel, face, "It blocks the way.", Text(12),
+                TextAlignmentOptions.Center, new Vector2(0f, -162f), new Vector2(0f, 24f), true);
+
+            var banner = panel.AddComponent<IntroBanner>();
+
+            Wire(banner, new[]
+            {
+                Pair("_rank", rank.GetComponent<TMP_Text>()),
+                Pair("_frame", walls),
+                Pair("_art", art.GetComponent<Image>()),
+                Pair("_name", named.GetComponent<TMP_Text>()),
+                Pair("_stats", stats.GetComponent<TMP_Text>()),
+                Pair("_blocks", blocks.GetComponent<TMP_Text>()),
+                Pair("_content", content),
+            });
+
+            // Off, like every overlay. A fight raises it; the prefab should open on the fight.
+            panel.SetActive(false);
+
+            return banner;
+        }
+
 
         /// <summary>How tall one relic on the draft table is.</summary>
         private const float CardHeight = 92f;

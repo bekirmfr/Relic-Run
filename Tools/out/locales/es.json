@@ -152,5 +152,6 @@
   "en10": "Ghoolem",
   "en11": "Ojo de la Cámara",
   "en12": "Cascarón de Médula",
-  "reroll": "RELANZAR — {n} ORO"
+  "reroll": "RELANZAR — {n} ORO",
+  "blocksWay": "Bloquea el camino."
 }
