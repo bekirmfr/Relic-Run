@@ -28,7 +28,7 @@
     {
       "name": "the two awakening lines swap prefixes",
       "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
-      "find": "        public const string PromisePrefix = \"✦ AWAKENED: \";",
+      "find": "        public const string PromisePrefix = \"* AWAKENED: \";",
       "replace": "        public const string PromisePrefix = AwokePrefix;"
     },
     {
@@ -46,7 +46,7 @@
     {
       "name": "ON ACTIVATION and IF RELAYED read the same",
       "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
-      "find": "                case RelicRowKind.Relayed: return \"▸ IF RELAYED\";",
+      "find": "                case RelicRowKind.Relayed: return \"› IF RELAYED\";",
       "replace": "                case RelicRowKind.Relayed: return \"ON ACTIVATION\";"
     },
     {

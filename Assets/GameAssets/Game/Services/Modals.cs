@@ -38,16 +38,20 @@ namespace RelicRun.Game.Services
         /// </remarks>
         private readonly Data.RelicIconBook _icons;
 
+        /// <summary>The foe pictures, or null. Optional for the same reason the relics are.</summary>
+        private readonly Data.EnemyBook _foes;
+
         /// <summary>Raised when something changed that the screen behind should redraw for.</summary>
         public event Action Changed;
 
         public Modals(IPopupService popups, SaveVault vault, Speech speech,
-            Data.RelicIconBook icons)
+            Data.RelicIconBook icons, Data.EnemyBook foes)
         {
             _popups = popups;
             _vault = vault;
             _speech = speech;
             _icons = icons;
+            _foes = foes;
         }
 
         /// <summary>Whether anything can be opened at all.</summary>
@@ -108,6 +112,95 @@ namespace RelicRun.Game.Services
             popup.Opened += family => Set(family);
 
             popup.Show(RelicCards.Of(relic, held), Words, Picture(relic));
+        }
+
+        /// <summary>
+        /// Opens a species dossier, as the bestiary opens it.
+        /// </summary>
+        /// <remarks>
+        /// Every number a question mark, which is the honest answer: a rat in the first hall and
+        /// a rat in the eighth are one species and not one fight.
+        /// </remarks>
+        public void Foe(int species)
+        {
+            Foe(EnemyCards.Dossier(species), species, 0);
+        }
+
+        /// <summary>Opens the card for THIS foe, as it stands in a fight.</summary>
+        public void Foe(Core.Combat.EnemyState foe, int left)
+        {
+            if (foe == null) return;
+
+            Foe(EnemyCards.Live(foe, left), foe.SpeciesIndex, foe.Variant);
+        }
+
+        private void Foe(EnemyCard card, int species, int variant)
+        {
+            EnemyPopup popup = Open<EnemyPopup>("foe card");
+
+            if (popup == null) return;
+
+            popup.Show(card, Words, _foes != null ? _foes.For(species, variant) : null);
+        }
+
+        /// <summary>
+        /// Opens the supporter pack.
+        /// </summary>
+        /// <remarks>
+        /// Reachable from the title, the profile and the result screen — three more places than
+        /// any other modal, which is the source saying what it is for.
+        ///
+        /// What the buy button does is deliberately NOT decided here yet. A purchase is a store
+        /// transaction with a receipt and a restore path, and the one thing this must never do is
+        /// grant the pack because a button was pressed: that is a game that hands out a paid
+        /// unlock to anybody who opens the modal. So the press is routed at the seam and says so
+        /// in the log until <c>IPurchasingService</c> is wired, which is its own piece of work.
+        /// </remarks>
+        public void Supporter()
+        {
+            SupporterPopup popup = Open<SupporterPopup>("supporter pack");
+
+            if (popup == null) return;
+
+            popup.Bought += Buy;
+
+            popup.Show(SupporterCards.Of(Chosen(), Earned()), Words);
+        }
+
+        /// <summary>
+        /// Asks the store for the pack.
+        /// </summary>
+        /// <remarks>
+        /// Nothing is granted here. The store answers a purchase asynchronously and its callback
+        /// is what applies <see cref="Keep"/> — pressing a button is a REQUEST, and treating it
+        /// as a receipt is how a paid unlock becomes free.
+        /// </remarks>
+        private void Buy()
+        {
+            Debug.LogWarning("the supporter pack cannot be bought yet: no purchasing service is " +
+                             "wired, so nothing was charged and nothing was granted");
+        }
+
+        /// <summary>
+        /// Grants the pack, once a store has actually said so.
+        /// </summary>
+        /// <remarks>
+        /// Public because the caller is a purchase callback that does not exist yet, and a
+        /// restore path that will call the same thing. Idempotent on purpose: a restore on a
+        /// device that already has it must not hand over another three hundred sparks.
+        /// </remarks>
+        public void Keep()
+        {
+            if (_vault == null) return;
+            if (_vault.Chosen.Supporter) return;
+
+            _vault.Chosen.Supporter = true;
+            _vault.Earned.Sparks += SupporterCards.Sparks;
+
+            _vault.CommitChoices();
+            _vault.CommitProgress();
+
+            Told();
         }
 
         /// <summary>Opens a family's set card, for a delver holding nothing.</summary>
@@ -263,11 +356,21 @@ namespace RelicRun.Game.Services
             Told();
         }
 
+        /// <summary>What the delver chose, or an empty set of choices.</summary>
+        private Preferences Chosen()
+        {
+            return _vault != null ? _vault.Chosen : new Preferences();
+        }
+
+        /// <summary>What the delver earned, or an empty save.</summary>
+        private Core.Meta.SaveState Earned()
+        {
+            return _vault != null ? _vault.Earned : new Core.Meta.SaveState();
+        }
+
         private void Dress(SettingsPopup popup)
         {
-            Preferences chosen = _vault != null ? _vault.Chosen : new Preferences();
-
-            popup.Show(SettingsCards.Of(chosen, Shipped(), Words.Language), Words);
+            popup.Show(SettingsCards.Of(Chosen(), Shipped(), Words.Language), Words);
             popup.Appear();
         }
 

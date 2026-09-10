@@ -65,6 +65,12 @@ namespace RelicRun.Editor.Importers
         public const string SetPrefab =
             "Assets/GameAssets/Game/Presentation/SetPopup.prefab";
 
+        public const string EnemyPrefab =
+            "Assets/GameAssets/Game/Presentation/EnemyPopup.prefab";
+
+        public const string SupporterPrefab =
+            "Assets/GameAssets/Game/Presentation/SupporterPopup.prefab";
+
         /// <summary>Where the popup service looks for what it may open. The sample's own.</summary>
         public const string PopupsPath = "Assets/Samples/Game Lift/1.0.0/Starter/" +
             "ScriptableObjects/Popups/PopupSettings.asset";
@@ -267,6 +273,7 @@ namespace RelicRun.Editor.Importers
 
             Wire(shell, new[] { Pair("_locales", content.Locales) });
             Wire(shell, new[] { Pair("_icons", content.RelicIcons) });
+            Wire(shell, new[] { Pair("_foes", content.Enemies) });
 
             var panels = new SerializedObject(shell).FindProperty("_panels");
 
@@ -808,6 +815,8 @@ namespace RelicRun.Editor.Importers
             WelcomePopup welcome = Welcome(face);
             RelicPopup relic = Relic(face);
             SetPopup set = Set(face);
+            EnemyPopup foe = Foe(face);
+            SupporterPopup pack = Supporter(face);
 
             var listed = AssetDatabase.LoadAssetAtPath<PopupSettings>(PopupsPath);
 
@@ -823,6 +832,8 @@ namespace RelicRun.Editor.Importers
             Listed(listed, welcome);
             Listed(listed, relic);
             Listed(listed, set);
+            Listed(listed, foe);
+            Listed(listed, pack);
 
             EditorUtility.SetDirty(listed);
         }
@@ -1101,6 +1112,159 @@ namespace RelicRun.Editor.Importers
             Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
 
             return Save(made, SetPrefab).GetComponent<SetPopup>();
+        }
+
+        /// <summary>
+        /// A foe's card.
+        /// </summary>
+        /// <remarks>
+        /// The picture is bigger than the relic card's, because a foe is the thing a delver is
+        /// looking AT while they read this and a relic is a thing they are holding. Everything
+        /// under it is a row: four numbers across, then two labelled lines.
+        /// </remarks>
+        private static EnemyPopup Foe(TMP_FontAsset face)
+        {
+            GameObject card;
+            GameObject made = Modal("EnemyPopup", typeof(EnemyPopup), 520f, out card);
+
+            GameObject kicker = Line(card, face, "", Small, TextAlignmentOptions.Center, 220f);
+
+            GameObject art = Panel(card, "Art", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, 150f), new Vector2(96f, 96f));
+
+            var picture = art.AddComponent<Image>();
+
+            picture.preserveAspect = true;
+
+            GameObject name = Line(card, face, "", 20, TextAlignmentOptions.Center, 76f);
+
+            GameObject lore = Wrapped(card, face, Small, TextAlignmentOptions.Center, 34f, 40f);
+
+            GameObject stats = Panel(card, "Stats", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, -14f), new Vector2(-Margin * 2f, 22f));
+
+            var across = stats.AddComponent<HorizontalLayoutGroup>();
+
+            across.childForceExpandWidth = true;
+            across.childForceExpandHeight = true;
+            across.childControlWidth = true;
+            across.childControlHeight = true;
+            across.spacing = 4f;
+
+            // The template, kept inactive: the popup spawns from it, and a live copy would be a
+            // number belonging to no foe.
+            GameObject stat = Say(stats, face, "", Small, TextAlignmentOptions.Center,
+                Vector2.zero, new Vector2(0f, 20f), true);
+
+            stat.name = "Stat";
+            stat.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.NoWrap;
+            stat.SetActive(false);
+
+            GameObject abilities = Wrapped(card, face, Small, TextAlignmentOptions.Left, -66f, 40f);
+
+            abilities.GetComponent<TMP_Text>().color = new Color(0.77f, 0.56f, 0.42f);
+
+            GameObject relics = Wrapped(card, face, Small, TextAlignmentOptions.Left, -114f, 40f);
+
+            relics.GetComponent<TMP_Text>().color = new Color(0.89f, 0.70f, 0.25f);
+
+            GameObject closePanel = Panel(card, "ClosePanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -200f), new Vector2(-Margin * 2f, 40f));
+            GameObject close = Press(closePanel, "Close", face, "CLOSE", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            var popup = made.GetComponent<EnemyPopup>();
+
+            Wire(popup, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_art", picture),
+                Pair("_name", name.GetComponent<TMP_Text>()),
+                Pair("_lore", lore.GetComponent<TMP_Text>()),
+                Pair("_stats", (RectTransform)stats.transform),
+                Pair("_stat", stat.GetComponent<TMP_Text>()),
+                Pair("_abilities", abilities.GetComponent<TMP_Text>()),
+                Pair("_relics", relics.GetComponent<TMP_Text>()),
+                Pair("_close", close.GetComponent<Button>()),
+            });
+
+            Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
+
+            return Save(made, EnemyPrefab).GetComponent<EnemyPopup>();
+        }
+
+        /// <summary>
+        /// The supporter pack.
+        /// </summary>
+        /// <remarks>
+        /// No picture. It is the one card that asks for money, and the source gives it words and
+        /// a price rather than art — which is the right instinct: a delver deciding whether to
+        /// pay is reading, not looking.
+        ///
+        /// Both endings are built and one is hidden at draw time, because which one shows is a
+        /// fact about the save rather than about the layout.
+        /// </remarks>
+        private static SupporterPopup Supporter(TMP_FontAsset face)
+        {
+            GameObject card;
+            GameObject made = Modal("SupporterPopup", typeof(SupporterPopup), 480f, out card);
+
+            GameObject title = Line(card, face, "", 20, TextAlignmentOptions.Center, 190f);
+
+            GameObject sub = Wrapped(card, face, Small, TextAlignmentOptions.Center, 150f, 34f);
+
+            GameObject perks = Panel(card, "Perks", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, 78f), new Vector2(-Margin * 2f, 84f));
+
+            var stack = perks.AddComponent<VerticalLayoutGroup>();
+
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = true;
+            stack.spacing = 6f;
+
+            GameObject perk = Say(perks, face, "", Small, TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(0f, 20f), true);
+
+            perk.name = "Perk";
+            perk.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
+            perk.SetActive(false);
+
+            GameObject price = Line(card, face, "", Text(12), TextAlignmentOptions.Center, 12f);
+
+            GameObject thanks = Wrapped(card, face, Small, TextAlignmentOptions.Center, -26f, 34f);
+
+            GameObject buyPanel = Panel(card, "BuyPanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -76f), new Vector2(-Margin * 2f, 44f));
+            GameObject buy = Press(buyPanel, "Buy", face, "", Text(14),
+                new Color(0.89f, 0.70f, 0.25f), new Color(0.08f, 0.07f, 0.06f), 44f);
+
+            GameObject fine = Wrapped(card, face, Small, TextAlignmentOptions.Center, -178f, 34f);
+
+            GameObject closePanel = Panel(card, "ClosePanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -130f), new Vector2(-Margin * 2f, 40f));
+            GameObject close = Press(closePanel, "Close", face, "", Text(14),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            var popup = made.GetComponent<SupporterPopup>();
+
+            Wire(popup, new[]
+            {
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_sub", sub.GetComponent<TMP_Text>()),
+                Pair("_perks", (RectTransform)perks.transform),
+                Pair("_perk", perk.GetComponent<TMP_Text>()),
+                Pair("_price", price.GetComponent<TMP_Text>()),
+                Pair("_thanks", thanks.GetComponent<TMP_Text>()),
+                Pair("_buy", buy.GetComponent<Button>()),
+                Pair("_fine", fine.GetComponent<TMP_Text>()),
+                Pair("_close", close.GetComponent<Button>()),
+            });
+
+            Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
+
+            return Save(made, SupporterPrefab).GetComponent<SupporterPopup>();
         }
 
         /// <summary>A line that is allowed to be several, in a box of a known height.</summary>

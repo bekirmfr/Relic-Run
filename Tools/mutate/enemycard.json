@@ -1,0 +1,113 @@
+{
+  "name": "the card a foe gets, in a fight and in the dark",
+  "mutants": [
+    {
+      "name": "a dossier claims to know a foe's numbers",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                Stats = Unknown(),",
+      "replace": "                Stats = Measured(new EnemyState { Hp = 10, MaxHp = 10 }, 10),"
+    },
+    {
+      "name": "a dossier is drawn as a boss",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                Variant = 0,\n\n                NameKey = NameKey(species),",
+      "replace": "                Variant = 2,\n\n                NameKey = NameKey(species),"
+    },
+    {
+      "name": "a dossier lists relics it cannot know about",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                Abilities = Varies,\n                Relics = new List<RelicId>(),\n                NoRelics = Varies,",
+      "replace": "                Abilities = Nothing,\n                Relics = new List<RelicId>(),\n                NoRelics = Nothing,"
+    },
+    {
+      "name": "a live card is marked as unmeasured",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                NoRelics = Nothing,\n                Measured = true,",
+      "replace": "                NoRelics = Nothing,\n                Measured = false,"
+    },
+    {
+      "name": "a dying foe is shown at less than nothing",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "            int now = left < 0 ? 0 : left;",
+      "replace": "            int now = left;"
+    },
+    {
+      "name": "the pool and the ceiling swap places",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                    Value = Number(now) + \" / \" + Number(most),",
+      "replace": "                    Value = Number(most) + \" / \" + Number(now),"
+    },
+    {
+      "name": "a foe with no ceiling is measured against nothing",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "            int most = foe.MaxHp > 0 ? foe.MaxHp : foe.Hp;",
+      "replace": "            int most = foe.MaxHp;"
+    },
+    {
+      "name": "armour is reported as speed",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                new FoeStat { Label = \"ARMOR\", Value = Number(foe.Armor) },",
+      "replace": "                new FoeStat { Label = \"ARMOR\", Value = Number(foe.Spd) },"
+    },
+    {
+      "name": "a king is announced as a guard",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                case EnemyRank.King: return \"DUNGEON KING\";",
+      "replace": "                case EnemyRank.King: return \"GUARD\";"
+    },
+    {
+      "name": "a boss reads like an elite",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                case EnemyRank.Boss: return \"FLOOR BOSS\";",
+      "replace": "                case EnemyRank.Boss: return \"ELITE GUARD\";"
+    },
+    {
+      "name": "an elite is coloured like a guard",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                case EnemyRank.Elite: return EliteHex;",
+      "replace": "                case EnemyRank.Elite: return PlainHex;"
+    },
+    {
+      "name": "a king loses its gold",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                case EnemyRank.King: return CrownHex;",
+      "replace": "                case EnemyRank.King: return PlainHex;"
+    },
+    {
+      "name": "the species keys are numbered from one",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "            return \"en\" + species.ToString(CultureInfo.InvariantCulture);",
+      "replace": "            return \"en\" + (species + 1).ToString(CultureInfo.InvariantCulture);"
+    },
+    {
+      "name": "every species is given the same line",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                Lore = Quoted(def != null ? def.Lore : null),\n                Stats = Unknown(),",
+      "replace": "                Lore = Quoted(EnemyCatalog.Get(0).Lore),\n                Stats = Unknown(),"
+    },
+    {
+      "name": "the lore line loses its quotes",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "            return \"“\" + line + \"”\";",
+      "replace": "            return line;"
+    },
+    {
+      "name": "a relic with no passive leaves an empty entry in the row",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "                if (lore == null || lore.Passive == null) continue;",
+      "replace": "                if (lore == null) continue;"
+    },
+    {
+      "name": "a foe carrying nothing says nothing at all",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "            return said.Length > 0 ? said.ToString() : Nothing;",
+      "replace": "            return said.ToString();"
+    },
+    {
+      "name": "what a foe carries is dropped on the way to the card",
+      "file": "Assets/GameAssets/Core/Presentation/EnemyCard.cs",
+      "find": "            if (foe.Relics != null) relics.AddRange(foe.Relics);",
+      "replace": "            if (foe.Relics != null && relics.Count > 0) relics.AddRange(foe.Relics);"
+    }
+  ]
+}

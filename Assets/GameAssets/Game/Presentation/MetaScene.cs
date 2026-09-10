@@ -66,6 +66,9 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         [SerializeField] private RelicIconBook _icons;
 
+        /// <summary>The foe pictures, wired the same way and wanted by the same one card.</summary>
+        [SerializeField] private EnemyBook _foes;
+
         /// <summary>
         /// How often a ticking panel is redrawn.
         /// </summary>
@@ -112,7 +115,7 @@ namespace RelicRun.Game.Presentation
                 panel.Showing = false;
             }
 
-            _modals = new Modals(Popups(), _vault, _speech, _icons);
+            _modals = new Modals(Popups(), _vault, _speech, _icons, _foes);
 
             Aim();
 

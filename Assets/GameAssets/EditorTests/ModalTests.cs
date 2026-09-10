@@ -32,6 +32,8 @@ namespace RelicRun.Tests.Editor
             { typeof(WelcomePopup), MetaSceneBuilder.WelcomePrefab },
             { typeof(RelicPopup), MetaSceneBuilder.RelicPrefab },
             { typeof(SetPopup), MetaSceneBuilder.SetPrefab },
+            { typeof(EnemyPopup), MetaSceneBuilder.EnemyPrefab },
+            { typeof(SupporterPopup), MetaSceneBuilder.SupporterPrefab },
         };
 
         private static IEnumerable<Type> Kinds

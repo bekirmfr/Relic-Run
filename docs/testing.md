@@ -1469,11 +1469,19 @@ The service calls `Appear` itself when it shows a popup, so nothing else should.
 
 **A glyph the browser had is a glyph this build may not.** The mode footer was ported with the
 source's pickaxe and crossed swords, U+26CF and U+2694. A browser always has an emoji font
-somewhere in the chain; this build bakes its own face, and both came out as empty boxes. Three
-marks the source uses — ✦, ◆, ▸ — are not in the pixel face either and DO draw, through the
-system fallback the CJK and Arabic faces are there for.
+somewhere in the chain; this build bakes its own face, and both came out as empty boxes.
 
-That difference is not guessable, so `RelicCardTests` lists the three and fails on a fourth.
+Three more marks — ✦, ◆, ▸ — are not in the pixel face either and DID draw, through whatever the
+device happened to have. That looked like a reprieve and was the same bug with a longer fuse,
+because this game already has a POLICY about that range: `Locale.Clean` strips U+2500–U+27BF out
+of every translated string it shows, which is why the supporter pack's own title arrives as
+"Supporter Pack" with the source's star already removed. The same character was being stripped
+on one path and borrowed on another.
+
+So the modal marks are characters the bundled face actually has — `*` awakened, `+` socketed,
+`›` for the arrow the relic book was already using — and `RelicCardTests` now asks the plain
+question with no exceptions: every character these cards can write, silkscreen can draw.
+
 A box looks like a font that has not loaded, never like a character nobody bundled.
 
 ## The corpus
@@ -1549,4 +1557,6 @@ node Tools/extract/validate.mjs
 | Phase 10k — the built menu | none — invariants | Editor; 11 panels listed once each |
 | Phase 10l — the relic dossier | none — invariants | passing, all 50 swept · 21 mutants · **English only** |
 | Phase 10m — what a family is worth | none — invariants | passing, 8 families × 0–8 held · 17 mutants |
-| Phase 10n — the modals themselves | none — invariants | Editor; 4 popups, listed once each |
+| Phase 10n — the modals themselves | none — invariants | Editor; 5 popups, listed once each |
+| Phase 10o — a foe's card | none — invariants | passing, 13 dossiers and 4 ranks · 18 mutants |
+| Phase 10p — the supporter pack | none — invariants | passing, the one modal that is fully translated |

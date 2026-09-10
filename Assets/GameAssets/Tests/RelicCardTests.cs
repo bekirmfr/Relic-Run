@@ -381,12 +381,12 @@ namespace RelicRun.Tests
         [Test]
         public void APromiseDoesNotReadLikeAReport()
         {
-            Assert.That(RelicCards.PromisePrefix, Is.EqualTo("✦ AWAKENED: "));
-            Assert.That(RelicCards.AwokePrefix, Is.EqualTo("✦ AWAKENED — "));
+            Assert.That(RelicCards.PromisePrefix, Is.EqualTo("* AWAKENED: "));
+            Assert.That(RelicCards.AwokePrefix, Is.EqualTo("* AWAKENED — "));
             Assert.That(RelicCards.PromisePrefix, Is.Not.EqualTo(RelicCards.AwokePrefix));
 
-            Assert.That(RelicCards.AwakenedMark, Is.EqualTo("✦ "));
-            Assert.That(RelicCards.SocketedMark, Is.EqualTo("◆ "));
+            Assert.That(RelicCards.AwakenedMark, Is.EqualTo("* "));
+            Assert.That(RelicCards.SocketedMark, Is.EqualTo("+ "));
             Assert.That(RelicCards.AwakenedMark, Is.Not.EqualTo(RelicCards.SocketedMark));
         }
 
@@ -411,7 +411,7 @@ namespace RelicRun.Tests
                 seen.Add(label);
             }
 
-            Assert.That(RelicCards.Label(RelicRowKind.Relayed), Is.EqualTo("▸ IF RELAYED"));
+            Assert.That(RelicCards.Label(RelicRowKind.Relayed), Is.EqualTo("› IF RELAYED"));
             Assert.That(RelicCards.Label(RelicRowKind.Activation), Is.EqualTo("ON ACTIVATION"));
         }
 
@@ -500,16 +500,15 @@ namespace RelicRun.Tests
         /// It was found the expensive way — the mode footer was ported with the source's pickaxe
         /// and crossed swords, which the browser drew from an emoji font and this build cannot.
         ///
-        /// Three marks are outside the pixel face and stay: they draw through the same system
-        /// fallback the CJK and Arabic faces are there for, and they are the source's own
-        /// characters rather than something chosen here. They are LISTED, so a fourth one cannot
-        /// be added without somebody deciding it in this file.
+        /// There are no exceptions and there should not be. Three marks were outside the face
+        /// for a while and drew anyway, through whatever the operating system had — which is not
+        /// a reprieve but the same bug with a longer fuse, since the game already STRIPS that
+        /// range out of every translated string it shows. The marks were moved to characters the
+        /// face has, and this now asks the simple question.
         /// </remarks>
         [Test]
         public void EveryCharacterTheCardWritesCanBeDrawn()
         {
-            var borrowed = new List<int> { 0x2726, 0x25C6, 0x25B8 };
-
             var covers = new List<int>();
 
             foreach (JToken face in (JArray)Corpus.Object("fonts.json")["faces"])
@@ -532,6 +531,15 @@ namespace RelicRun.Tests
                 SetCards.Between,
                 SetCards.Suffix,
                 SetCards.IdolNote,
+                EnemyCards.Encountered,
+                EnemyCards.Unmeasured,
+                EnemyCards.Varies,
+                EnemyCards.Nothing,
+                EnemyCards.Between,
+                EnemyCards.Called(Core.Stats.EnemyRank.King),
+                EnemyCards.Called(Core.Stats.EnemyRank.Boss),
+                EnemyCards.Called(Core.Stats.EnemyRank.Elite),
+                EnemyCards.Called(Core.Stats.EnemyRank.Guard),
             };
 
             foreach (RelicRowKind kind in System.Enum.GetValues(typeof(RelicRowKind)))
@@ -544,11 +552,10 @@ namespace RelicRun.Tests
                 foreach (char letter in line)
                 {
                     if (covers.Contains(letter)) continue;
-                    if (borrowed.Contains(letter)) continue;
 
                     Assert.Fail("the pixel face cannot draw U+" + ((int)letter).ToString("X4") +
-                                " in \"" + line + "\", and it is not one of the three marks " +
-                                "known to fall through to the system");
+                                " in \"" + line + "\", so it would come out as an empty box on " +
+                                "any device whose own fonts do not happen to have it");
                 }
             }
         }

@@ -129,7 +129,7 @@ namespace RelicRun.Game.Presentation
 
             if (card.Wheel != null)
             {
-                said.Append("   ").Append(card.Wheel[0]).Append(" → ").Append(card.Wheel[1]);
+                said.Append("   ").Append(card.Wheel[0]).Append(" › ").Append(card.Wheel[1]);
             }
 
             if (card.ShowsOwned && words != null)

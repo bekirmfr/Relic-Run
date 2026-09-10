@@ -6,7 +6,18 @@ using RelicRun.Game.Services;
 
 namespace RelicRun.Game.Presentation
 {
-public sealed class BestiaryPanel : SheetPanel
+    /// <summary>
+    /// Thirteen species, as much of each as the delver has earned.
+    /// </summary>
+    /// <remarks>
+    /// Fog of war, and the fog is the point: an unmet species shows neither its name nor its
+    /// card. What it does show is that it EXISTS, which is why the row stays in the list — a
+    /// delver should know how much they have not seen.
+    ///
+    /// A met species opens its dossier; an unmet one opens nothing, because there is nothing
+    /// behind it that is not the thing being withheld.
+    /// </remarks>
+    public sealed class BestiaryPanel : SheetPanel
     {
         public override Page Shows
         {
@@ -27,10 +38,24 @@ public sealed class BestiaryPanel : SheetPanel
                 string name = foe.Met ? Say(foe.NameKey) : BestiaryCards.Unknown;
                 string lore = foe.Met ? foe.Lore : Unmet;
 
-                rows.Add(new Row(name + "  " + lore, foe.Met ? Plain : Faint));
+                // Captured per row rather than read at press time: rows are recycled as the
+                // list scrolls, and a listener that asked which species this row was showing
+                // would open whatever it had drifted onto.
+                int which = foe.Species;
+
+                rows.Add(new Row(name + "  " + lore, foe.Met ? Plain : Faint,
+                    foe.Met ? (Action)(() => Card(which)) : null));
             }
 
             Sheet(BestiaryCards.Title, card.Count, rows);
+        }
+
+        /// <summary>Opens one species' dossier.</summary>
+        private void Card(int species)
+        {
+            if (Modals == null) return;
+
+            Modals.Foe(species);
         }
 
         /// <summary>What is written where an unmet species' card would be.</summary>

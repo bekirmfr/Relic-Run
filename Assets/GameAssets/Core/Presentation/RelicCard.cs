@@ -153,17 +153,31 @@ namespace RelicRun.Core.Presentation
     /// </remarks>
     public static class RelicCards
     {
-        /// <summary>The star in front of an awakened relic's name.</summary>
-        public const string AwakenedMark = "✦ ";
+        /// <summary>
+        /// The mark in front of an awakened relic's name.
+        /// </summary>
+        /// <remarks>
+        /// A star, not the source's ✦. That character is in a range this game deliberately does
+        /// not print: <see cref="Locale.Clean"/> strips U+2500–U+27BF out of every translated
+        /// string, because the pixel face has none of it — which is why the supporter pack's own
+        /// title arrives as "Supporter Pack" with the source's star already gone.
+        ///
+        /// It DID draw, through whatever the operating system had lying around, and that is the
+        /// problem rather than the reprieve: the same character was being removed on one path
+        /// and borrowed on another, and the borrowed one would come out as an empty box on the
+        /// first device without it. So these marks are characters the bundled face actually has,
+        /// and the modal now owes nothing to a font nobody shipped.
+        /// </remarks>
+        public const string AwakenedMark = "* ";
 
-        /// <summary>The lozenge in front of a socketed one's.</summary>
-        public const string SocketedMark = "◆ ";
+        /// <summary>The mark in front of a socketed one's — something is attached to it.</summary>
+        public const string SocketedMark = "+ ";
 
         /// <summary>What an already-awakened relic says before its description.</summary>
-        public const string AwokePrefix = "✦ AWAKENED — ";
+        public const string AwokePrefix = "* AWAKENED — ";
 
         /// <summary>What one that could awaken says instead.</summary>
-        public const string PromisePrefix = "✦ AWAKENED: ";
+        public const string PromisePrefix = "* AWAKENED: ";
 
         /// <summary>
         /// What the footer calls each mode.
@@ -175,10 +189,8 @@ namespace RelicRun.Core.Presentation
         /// bakes its own face. Neither the pixel face nor either borrowed one has U+26CF or
         /// U+2694, so both came out as empty boxes and said so in the log.
         ///
-        /// The three marks that stay — ✦, ◆ and ▸ — are not in the pixel face either and DO
-        /// draw, through the system fallback the CJK and Arabic faces are there for. They are
-        /// also the source's own characters rather than decoration chosen here, which is the
-        /// difference: dropping them would change what the card says.
+        /// Everything else on these cards was moved the same way, for the same reason — see
+        /// <see cref="AwakenedMark"/>.
         /// </remarks>
         public const string DelveWord = "DELVE";
 
@@ -252,9 +264,9 @@ namespace RelicRun.Core.Presentation
                 case RelicRowKind.Passive: return "PASSIVE";
                 case RelicRowKind.Trigger: return "TRIGGER";
                 case RelicRowKind.Activation: return "ON ACTIVATION";
-                case RelicRowKind.Relayed: return "▸ IF RELAYED";
-                case RelicRowKind.SocketTrigger: return "◆ SOCKETED TRIGGER";
-                case RelicRowKind.SocketEmitter: return "◆ SOCKETED EMITTER";
+                case RelicRowKind.Relayed: return "› IF RELAYED";
+                case RelicRowKind.SocketTrigger: return "+ SOCKETED TRIGGER";
+                case RelicRowKind.SocketEmitter: return "+ SOCKETED EMITTER";
                 default: return string.Empty;
             }
         }
