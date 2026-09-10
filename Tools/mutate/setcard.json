@@ -1,0 +1,107 @@
+{
+  "name": "what collecting a family is worth",
+  "mutants": [
+    {
+      "name": "a step lights one relic early",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                        On = total >= tier.Needs,",
+      "replace": "                        On = total >= tier.Needs - 1,"
+    },
+    {
+      "name": "a step needs one more than it says",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                        On = total >= tier.Needs,",
+      "replace": "                        On = total > tier.Needs,"
+    },
+    {
+      "name": "every step is lit",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                        On = total >= tier.Needs,",
+      "replace": "                        On = true,"
+    },
+    {
+      "name": "the tag names the step's position rather than its cost",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                        Tag = \"(\" + tier.Needs + \")\",",
+      "replace": "                        Tag = \"(\" + steps.Count + \")\","
+    },
+    {
+      "name": "a duplicate copy does not count",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                    kind++;\n                    if (!members.Contains(one)) members.Add(one);",
+      "replace": "                    if (members.Contains(one)) continue;\n                    kind++;\n                    members.Add(one);"
+    },
+    {
+      "name": "a duplicate copy is named twice",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                    if (!members.Contains(one)) members.Add(one);",
+      "replace": "                    members.Add(one);"
+    },
+    {
+      "name": "relics of every family count toward this one",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                    if (RelicCatalog.KindOf(one) != family) continue;",
+      "replace": "                    if (false) continue;"
+    },
+    {
+      "name": "the idol pads a duel too",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                    if (counts && one == RelicId.HollowIdol) idols++;",
+      "replace": "                    if (one == RelicId.HollowIdol) idols++;"
+    },
+    {
+      "name": "the idol pads nothing",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                    if (counts && one == RelicId.HollowIdol) idols++;",
+      "replace": "                    if (false) idols++;"
+    },
+    {
+      "name": "the idol is asked about in the wrong mode",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "            bool counts = RelicTuning.For(RelicId.HollowIdol, mode).CountsTowardEverySet;",
+      "replace": "            bool counts = RelicTuning.For(RelicId.HollowIdol, CombatMode.Delve).CountsTowardEverySet;"
+    },
+    {
+      "name": "the idol is left out of the count it is padding",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "            int total = kind + idols;",
+      "replace": "            int total = kind;"
+    },
+    {
+      "name": "the count line does not say an idol is propping it up",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                CountText = Counted(total, idols > 0),",
+      "replace": "                CountText = Counted(total, false),"
+    },
+    {
+      "name": "a card that has no idol claims one",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                Idol = idols > 0,",
+      "replace": "                Idol = true,"
+    },
+    {
+      "name": "one relic is pluralised",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "            string many = total == 1 ? \" relic\" : \" relics\";",
+      "replace": "            string many = \" relics\";"
+    },
+    {
+      "name": "nothing is ever pluralised",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "            string many = total == 1 ? \" relic\" : \" relics\";",
+      "replace": "            string many = \" relic\";"
+    },
+    {
+      "name": "the heading loses the word SET",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "        public const string Suffix = \" SET\";",
+      "replace": "        public const string Suffix = \"\";"
+    },
+    {
+      "name": "a family's colour comes from somewhere else",
+      "file": "Assets/GameAssets/Core/Presentation/SetCard.cs",
+      "find": "                Hex = def != null ? def.Hex : null,",
+      "replace": "                Hex = \"#8B8172\","
+    }
+  ]
+}

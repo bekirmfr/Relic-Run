@@ -6,6 +6,7 @@ using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using RelicRun.Game.Services;
 using UnityEngine;
+using UnityEngine.UI;
 using VContainer;
 using VContainer.Unity;
 
@@ -56,6 +57,16 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private LocaleBook _locales;
 
         /// <summary>
+        /// The relic pictures, wired by the builder from the same content as everything else.
+        /// </summary>
+        /// <remarks>
+        /// Only the relic card wants them, and it opens without them. Serialised here rather
+        /// than reached for inside the popup because the popup is spawned by a service and has
+        /// nowhere to reach from.
+        /// </remarks>
+        [SerializeField] private RelicIconBook _icons;
+
+        /// <summary>
         /// How often a ticking panel is redrawn.
         /// </summary>
         /// <remarks>
@@ -101,7 +112,7 @@ namespace RelicRun.Game.Presentation
                 panel.Showing = false;
             }
 
-            _modals = new Modals(Popups(), _vault, _speech);
+            _modals = new Modals(Popups(), _vault, _speech, _icons);
 
             Aim();
 
@@ -365,7 +376,33 @@ namespace RelicRun.Game.Presentation
                 canvas.renderMode = RenderMode.ScreenSpaceCamera;
                 canvas.worldCamera = eye;
                 canvas.planeDistance = 10f;
+
+                Grid(canvas);
             }
+        }
+
+        /// <summary>
+        /// Puts an inherited canvas on the same pixel grid as the game's own.
+        /// </summary>
+        /// <remarks>
+        /// The popup canvas belongs to the application's root prefab and arrives with the
+        /// sample's scaler: ScaleWithScreenSize against a 1080-unit reference, which on this
+        /// phone is 1.33 screen pixels per authored one. The game's canvas is a whole 3.
+        ///
+        /// So every modal was drawn at a third the size of the screen behind it and on a
+        /// fractional grid besides — which is the exact fault <see cref="PixelCanvas"/> exists
+        /// for, showing up on the one canvas no builder could reach. A modal is not fine print;
+        /// it is the same interface with the screen dimmed behind it.
+        ///
+        /// Adopted rather than configured, so there is one place that decides the factor. The
+        /// component finds its own scaler and refits itself whenever the screen changes.
+        /// </remarks>
+        private static void Grid(Canvas canvas)
+        {
+            if (canvas.GetComponent<PixelCanvas>() != null) return;
+            if (canvas.GetComponent<CanvasScaler>() == null) return;
+
+            canvas.gameObject.AddComponent<PixelCanvas>();
         }
 
         /// <summary>Finds whatever opens modals.</summary>

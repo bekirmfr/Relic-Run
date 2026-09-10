@@ -1446,6 +1446,36 @@ Three things this left behind:
   the conversion and measured to make no difference — the scene did — so it was reverted rather
   than kept as a fix for something it did not fix.
 
+## A modal is not fine print
+
+Three things about popups that only the running game says out loud.
+
+**The popup canvas is not the game's canvas.** It belongs to the application's root prefab, so no
+builder can reach it, and it arrives with the sample's `ScaleWithScreenSize` against a 1080-unit
+reference. On the phone this is developed against that is 1.33 screen pixels per authored one,
+where the game's own canvas is a whole 3. Every modal was therefore drawn at a THIRD the size of
+the screen behind it, on a fractional grid — the exact fault `PixelCanvas` exists to prevent,
+turning up on the one canvas nobody could author. `MetaScene.Aim` now adopts it: a `PixelCanvas`
+is added at run time and finds its own scaler.
+
+**`Create<T>()` queues; `Create<T>(true)` stacks.** Left to itself the service creates a second
+popup, hides it at zero alpha, puts it at the BOTTOM of the canvas, and shows it when the first
+one closes. Pressing the family chip on a relic card did nothing visible, and then produced a set
+card a moment after the delver dismissed the relic — an answer to a question they had stopped
+asking. `forceShow` suspends the card underneath and restores it afterwards, which is what a
+delver expects and is better than the source, whose single `modal` state can only swap.
+
+The service calls `Appear` itself when it shows a popup, so nothing else should.
+
+**A glyph the browser had is a glyph this build may not.** The mode footer was ported with the
+source's pickaxe and crossed swords, U+26CF and U+2694. A browser always has an emoji font
+somewhere in the chain; this build bakes its own face, and both came out as empty boxes. Three
+marks the source uses — ✦, ◆, ▸ — are not in the pixel face either and DO draw, through the
+system fallback the CJK and Arabic faces are there for.
+
+That difference is not guessable, so `RelicCardTests` lists the three and fails on a fourth.
+A box looks like a font that has not loaded, never like a character nobody bundled.
+
 ## The corpus
 
 Tests read `Tools/corpus/`. If it is missing or you have changed the JS source:
@@ -1517,3 +1547,6 @@ node Tools/extract/validate.mjs
 | Phase 10i — the reading screens | `foes.json`, `relics.json`, `strings.json` | passing, every key held against English |
 | Phase 10j — either side of a run | `strings.json` | passing, how-to split in 8 languages |
 | Phase 10k — the built menu | none — invariants | Editor; 11 panels listed once each |
+| Phase 10l — the relic dossier | none — invariants | passing, all 50 swept · 21 mutants · **English only** |
+| Phase 10m — what a family is worth | none — invariants | passing, 8 families × 0–8 held · 17 mutants |
+| Phase 10n — the modals themselves | none — invariants | Editor; 4 popups, listed once each |

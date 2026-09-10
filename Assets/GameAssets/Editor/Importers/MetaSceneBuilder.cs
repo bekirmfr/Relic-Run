@@ -52,12 +52,18 @@ namespace RelicRun.Editor.Importers
         /// <summary>One hall's square in the dungeon grid, as a prefab the panel spawns.</summary>
         public const string TilePrefab = "Assets/GameAssets/Game/Presentation/HallTile.prefab";
 
-        /// <summary>The two modals, which are prefabs the popup service instantiates.</summary>
+        /// <summary>The modals, which are prefabs the popup service instantiates.</summary>
         public const string SettingsPrefab =
             "Assets/GameAssets/Game/Presentation/SettingsPopup.prefab";
 
         public const string WelcomePrefab =
             "Assets/GameAssets/Game/Presentation/WelcomePopup.prefab";
+
+        public const string RelicPrefab =
+            "Assets/GameAssets/Game/Presentation/RelicPopup.prefab";
+
+        public const string SetPrefab =
+            "Assets/GameAssets/Game/Presentation/SetPopup.prefab";
 
         /// <summary>Where the popup service looks for what it may open. The sample's own.</summary>
         public const string PopupsPath = "Assets/Samples/Game Lift/1.0.0/Starter/" +
@@ -260,6 +266,7 @@ namespace RelicRun.Editor.Importers
             }
 
             Wire(shell, new[] { Pair("_locales", content.Locales) });
+            Wire(shell, new[] { Pair("_icons", content.RelicIcons) });
 
             var panels = new SerializedObject(shell).FindProperty("_panels");
 
@@ -456,6 +463,9 @@ namespace RelicRun.Editor.Importers
             GameObject row = Line(list, face, "", Small, TextAlignmentOptions.TopLeft, 0f);
             row.name = "Row";
             row.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
+
+            Pressable(row);
+
             row.SetActive(false);
 
             var view = panel.AddComponent<T>();
@@ -470,6 +480,45 @@ namespace RelicRun.Editor.Importers
             });
 
             return view;
+        }
+
+        /// <summary>
+        /// Makes a row answer a press, without looking like a button.
+        /// </summary>
+        /// <remarks>
+        /// Two of these four screens are indexes into something deeper and two are not, and the
+        /// panel decides which per row — so every row is BUILT pressable and the ones with
+        /// nothing behind them are switched off at draw time.
+        ///
+        /// The TEXT is what catches the press, and it is also what the button tints. Adding a
+        /// transparent Image for the purpose was the first attempt and it does not work: two
+        /// Graphics cannot share one CanvasRenderer, so AddComponent returned null and the
+        /// builder threw on the next line. The text was already a raycast target and already a
+        /// Graphic — it needed a button, not a plate.
+        ///
+        /// Tinting multiplies, so normal is white and leaves the row exactly the colour the
+        /// panel gave it. Disabled is white too: a row with nothing behind it should read as an
+        /// ordinary line rather than as one that has been greyed out.
+        /// </remarks>
+        private static void Pressable(GameObject row)
+        {
+            var ink = row.GetComponent<TMP_Text>();
+
+            ink.raycastTarget = true;
+
+            var press = row.AddComponent<Button>();
+
+            press.targetGraphic = ink;
+
+            ColorBlock tint = press.colors;
+
+            tint.normalColor = Color.white;
+            tint.highlightedColor = new Color(1f, 1f, 1f, 0.80f);
+            tint.pressedColor = new Color(1f, 1f, 1f, 0.55f);
+            tint.selectedColor = Color.white;
+            tint.disabledColor = Color.white;
+
+            press.colors = tint;
         }
 
         /* ---------- the mode picker ---------- */
@@ -757,6 +806,8 @@ namespace RelicRun.Editor.Importers
         {
             SettingsPopup settings = Settings(face);
             WelcomePopup welcome = Welcome(face);
+            RelicPopup relic = Relic(face);
+            SetPopup set = Set(face);
 
             var listed = AssetDatabase.LoadAssetAtPath<PopupSettings>(PopupsPath);
 
@@ -770,6 +821,8 @@ namespace RelicRun.Editor.Importers
 
             Listed(listed, settings);
             Listed(listed, welcome);
+            Listed(listed, relic);
+            Listed(listed, set);
 
             EditorUtility.SetDirty(listed);
         }
@@ -891,6 +944,186 @@ namespace RelicRun.Editor.Importers
             Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
 
             return Save(made, WelcomePrefab).GetComponent<WelcomePopup>();
+        }
+
+        /// <summary>
+        /// The relic dossier.
+        /// </summary>
+        /// <remarks>
+        /// The tallest card in the game, because it is the only one a decision is made on: a
+        /// picture, a name, a line of flavour, what it does, up to four labelled rule rows, what
+        /// awakening would buy, and a chip into the family's own card.
+        ///
+        /// Laid out at fixed heights rather than by a layout group, for the reason the nav row
+        /// learned the hard way — Scenery builds stretched rects and a group wants to size its
+        /// children, and the two disagree. The rows in the middle DO use a group, because that
+        /// is the one part whose length is not known until a relic is in it.
+        /// </remarks>
+        private static RelicPopup Relic(TMP_FontAsset face)
+        {
+            GameObject card;
+            GameObject made = Modal("RelicPopup", typeof(RelicPopup), 560f, out card);
+
+            GameObject icon = Panel(card, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, 220f), new Vector2(64f, 64f));
+
+            var picture = icon.AddComponent<Image>();
+
+            picture.preserveAspect = true;
+
+            GameObject name = Line(card, face, "", 20, TextAlignmentOptions.Center, 160f);
+
+            GameObject flavour = Wrapped(card, face, Small, TextAlignmentOptions.Center, 122f, 32f);
+
+            flavour.GetComponent<TMP_Text>().color = new Color(0.40f, 0.36f, 0.31f);
+
+            GameObject what = Wrapped(card, face, Text(12), TextAlignmentOptions.Center, 74f, 54f);
+
+            GameObject promise = Wrapped(card, face, Small, TextAlignmentOptions.Center, 26f, 28f);
+
+            promise.GetComponent<TMP_Text>().color = new Color(0.73f, 0.63f, 0.36f);
+
+            GameObject rows = Panel(card, "Rows", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, -48f), new Vector2(-Margin * 2f, 96f));
+
+            var stack = rows.AddComponent<VerticalLayoutGroup>();
+
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = true;
+            stack.spacing = 4f;
+
+            // The template, kept inactive: the popup spawns from it, and a live copy would be a
+            // rule row belonging to no relic.
+            GameObject row = Say(rows, face, "", Small, TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(0f, 18f), true);
+
+            row.name = "Row";
+            row.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
+            row.SetActive(false);
+
+            GameObject familyRow = Panel(card, "FamilyRow", new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -128f), new Vector2(120f, 26f));
+
+            GameObject family = Press(familyRow, "Family", face, "", Small,
+                new Color(0.11f, 0.10f, 0.09f), new Color(0.73f, 0.69f, 0.63f), 26f);
+
+            GameObject footer = Line(card, face, "", Small, TextAlignmentOptions.Center, -166f);
+
+            footer.GetComponent<TMP_Text>().color = new Color(0.55f, 0.52f, 0.46f);
+
+            GameObject closePanel = Panel(card, "ClosePanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -220f), new Vector2(-Margin * 2f, 40f));
+            GameObject close = Press(closePanel, "Close", face, "CLOSE", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            var popup = made.GetComponent<RelicPopup>();
+
+            Wire(popup, new[]
+            {
+                Pair("_icon", picture),
+                Pair("_name", name.GetComponent<TMP_Text>()),
+                Pair("_flavour", flavour.GetComponent<TMP_Text>()),
+                Pair("_what", what.GetComponent<TMP_Text>()),
+                Pair("_promise", promise.GetComponent<TMP_Text>()),
+                Pair("_rows", (RectTransform)rows.transform),
+                Pair("_row", row.GetComponent<TMP_Text>()),
+                Pair("_family", family.GetComponent<Button>()),
+                Pair("_footer", footer.GetComponent<TMP_Text>()),
+                Pair("_close", close.GetComponent<Button>()),
+            });
+
+            Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
+
+            return Save(made, RelicPrefab).GetComponent<RelicPopup>();
+        }
+
+        /// <summary>
+        /// What collecting a relic family is worth.
+        /// </summary>
+        /// <remarks>
+        /// Shorter than the relic card and the same shape: a kicker, a heading, a count, and one
+        /// line per step. The step list is spawned rather than laid out three times, because
+        /// seven families have three steps and CURSE has one.
+        /// </remarks>
+        private static SetPopup Set(TMP_FontAsset face)
+        {
+            GameObject card;
+            GameObject made = Modal("SetPopup", typeof(SetPopup), 340f, out card);
+
+            GameObject kicker = Line(card, face, "", Small, TextAlignmentOptions.Center, 130f);
+
+            kicker.GetComponent<TMP_Text>().color = new Color(0.55f, 0.52f, 0.46f);
+
+            GameObject name = Line(card, face, "", 20, TextAlignmentOptions.Center, 96f);
+
+            GameObject count = Line(card, face, "", Small, TextAlignmentOptions.Center, 68f);
+
+            GameObject steps = Panel(card, "Steps", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, 6f), new Vector2(-Margin * 2f, 84f));
+
+            var stack = steps.AddComponent<VerticalLayoutGroup>();
+
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = true;
+            stack.spacing = 4f;
+
+            GameObject step = Say(steps, face, "", Small, TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(0f, 18f), true);
+
+            step.name = "Step";
+            step.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
+            step.SetActive(false);
+
+            GameObject members = Wrapped(card, face, Small, TextAlignmentOptions.Center, -70f, 32f);
+
+            GameObject closePanel = Panel(card, "ClosePanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -118f), new Vector2(-Margin * 2f, 40f));
+            GameObject close = Press(closePanel, "Close", face, "CLOSE", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            var popup = made.GetComponent<SetPopup>();
+
+            Wire(popup, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_name", name.GetComponent<TMP_Text>()),
+                Pair("_count", count.GetComponent<TMP_Text>()),
+                Pair("_steps", (RectTransform)steps.transform),
+                Pair("_step", step.GetComponent<TMP_Text>()),
+                Pair("_members", members.GetComponent<TMP_Text>()),
+                Pair("_close", close.GetComponent<Button>()),
+            });
+
+            Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
+
+            return Save(made, SetPrefab).GetComponent<SetPopup>();
+        }
+
+        /// <summary>A line that is allowed to be several, in a box of a known height.</summary>
+        /// <remarks>
+        /// Line() sizes itself to one line of its own font, which is right for a heading and
+        /// wrong for a sentence. Prose needs the room reserved for it up front, because these
+        /// cards place their rows at fixed heights and a paragraph that grew downward would
+        /// print over whatever is under it.
+        /// </remarks>
+        private static GameObject Wrapped(GameObject parent, TMP_FontAsset face, int size,
+            TextAlignmentOptions how, float at, float tall)
+        {
+            GameObject said = Say(parent, face, "", size, how, new Vector2(0f, at),
+                new Vector2(0f, tall), true);
+
+            var text = said.GetComponent<TMP_Text>();
+
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Truncate;
+
+            ((RectTransform)said.transform).sizeDelta = new Vector2(-Margin * 2f, tall);
+
+            return said;
         }
 
         /// <summary>

@@ -91,13 +91,25 @@ namespace RelicRun.Game.Presentation
             Put(_languageTitle, words, "languageTitle");
             Put(_nameLabel, words, "nameLabel");
 
-            // The switch says what the sound IS, not what pressing it would do. That is the
-            // source's wording and it is the right way round for a control that shows its own
-            // state — a button reading "Sound off" while the game is loud is a button nobody
-            // can predict.
-            Put(_soundLabel, words, card.Muted ? "soundOff" : "soundOn");
+            // The caption says what the row is; the BUTTON says what the sound is. That split is
+            // the source's, and the port had it wrong: the state was written into the caption and
+            // the button was left with no text at all — an empty bar under a line reading "Sound
+            // off", which is a control nobody can predict and half a control besides.
+            //
+            // The switch says what the sound IS rather than what pressing it would do. Also the
+            // source's, and the right way round for a control that shows its own state.
+            Put(_soundLabel, words, "soundLabel");
 
-            if (_soundLabel != null) _soundLabel.color = card.Muted ? Plain : Chosen;
+            var state = _sound != null ? _sound.GetComponentInChildren<TMP_Text>(true) : null;
+
+            if (state != null)
+            {
+                state.text = words != null
+                    ? words.Get(card.Muted ? "soundOff" : "soundOn")
+                    : card.Muted ? "soundOff" : "soundOn";
+
+                state.color = card.Muted ? Plain : Chosen;
+            }
 
             if (_name != null) _name.SetTextWithoutNotify(card.Name);
 

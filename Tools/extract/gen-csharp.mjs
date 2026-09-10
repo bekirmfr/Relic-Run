@@ -147,6 +147,74 @@ ${emitList.map((e, i) => `        ${socketName(e)} = ${i + 1},`).join("\n")}
 }
 `);
 
+/* ---------- SocketText ---------- */
+
+/* What a socket is CALLED and what it claims to do. The enums above are what the engine passes
+   around; this is the pair of lines the bazaar shelf and the relic card print.
+
+   English, and it is this table the source is pointing at when its bestiary comment says "EN,
+   like the components" — the components ARE these. Two English tables excusing each other is
+   not a decision, but it is the source's behaviour, and it is generated so that translating
+   them later is a change to the generator rather than a hunt through the screens. */
+write("SocketText.cs", header(`${trigList.length} triggers, ${emitList.length} emitters, English only`) +
+`
+using System.Collections.Generic;
+
+namespace RelicRun.Core.Content
+{
+    /// <summary>What one socket is called, and what it does when it is fitted.</summary>
+    public sealed class SocketTextDef
+    {
+        /// <summary>The source game's id, e.g. "t_kill".</summary>
+        public readonly string Key;
+
+        public readonly string Name;
+
+        /// <summary>What fitting it changes, in English.</summary>
+        public readonly string What;
+
+        public SocketTextDef(string key, string name, string what)
+        {
+            Key = key;
+            Name = name;
+            What = what;
+        }
+    }
+
+    /// <summary>The socket catalogue, as far as reading it is concerned.</summary>
+    public static class SocketText
+    {
+        /// <summary>Indexed by <see cref="SocketTrigger"/>, so slot zero is None and is null.</summary>
+        public static readonly IReadOnlyList<SocketTextDef> Triggers = new[]
+        {
+            null,
+${trigList.map((k) => `            new SocketTextDef(${JSON.stringify(k)}, ${JSON.stringify(sockets.triggers[k].n)}, ${JSON.stringify(sockets.triggers[k].d)}),`).join("\n")}
+        };
+
+        /// <summary>Indexed by <see cref="SocketEmitter"/>, so slot zero is None and is null.</summary>
+        public static readonly IReadOnlyList<SocketTextDef> Emitters = new[]
+        {
+            null,
+${emitList.map((k) => `            new SocketTextDef(${JSON.stringify(k)}, ${JSON.stringify(sockets.emitters[k].n)}, ${JSON.stringify(sockets.emitters[k].d)}),`).join("\n")}
+        };
+
+        /// <summary>What a trigger says, or null for <see cref="SocketTrigger.None"/>.</summary>
+        public static SocketTextDef Of(SocketTrigger trigger)
+        {
+            var at = (int)trigger;
+            return at >= 0 && at < Triggers.Count ? Triggers[at] : null;
+        }
+
+        /// <summary>What an emitter says, or null for <see cref="SocketEmitter.None"/>.</summary>
+        public static SocketTextDef Of(SocketEmitter emitter)
+        {
+            var at = (int)emitter;
+            return at >= 0 && at < Emitters.Count ? Emitters[at] : null;
+        }
+    }
+}
+`);
+
 /* ---------- RelicId ---------- */
 
 write("RelicId.cs", header(`${relics.length} relics in the draft pool`) +

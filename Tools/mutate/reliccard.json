@@ -1,0 +1,131 @@
+{
+  "name": "the card a draft decision is made on",
+  "mutants": [
+    {
+      "name": "a socketed relic wears the star instead of the lozenge",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                Mark = held.Awakened ? AwakenedMark : socket != null ? SocketedMark : string.Empty,",
+      "replace": "                Mark = held.Awakened || socket != null ? AwakenedMark : string.Empty,"
+    },
+    {
+      "name": "the lozenge wins over the star",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                Mark = held.Awakened ? AwakenedMark : socket != null ? SocketedMark : string.Empty,",
+      "replace": "                Mark = socket != null ? SocketedMark : held.Awakened ? AwakenedMark : string.Empty,"
+    },
+    {
+      "name": "an awakened relic still promises what it already did",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                AwakeLine = !held.Awakened && lore != null && lore.Awake != null",
+      "replace": "                AwakeLine = lore != null && lore.Awake != null"
+    },
+    {
+      "name": "a relic reports an awakening it has not had",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                Awoke = held.Awakened && lore != null && lore.Awake != null",
+      "replace": "                Awoke = lore != null && lore.Awake != null"
+    },
+    {
+      "name": "the two awakening lines swap prefixes",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "        public const string PromisePrefix = \"✦ AWAKENED: \";",
+      "replace": "        public const string PromisePrefix = AwokePrefix;"
+    },
+    {
+      "name": "a relic with no trigger of its own still says ON ACTIVATION",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                    Kind = lore.Native != null ? RelicRowKind.Activation : RelicRowKind.Relayed,",
+      "replace": "                    Kind = RelicRowKind.Activation,"
+    },
+    {
+      "name": "every activation is labelled as relayed",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                    Kind = lore.Native != null ? RelicRowKind.Activation : RelicRowKind.Relayed,",
+      "replace": "                    Kind = RelicRowKind.Relayed,"
+    },
+    {
+      "name": "ON ACTIVATION and IF RELAYED read the same",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                case RelicRowKind.Relayed: return \"▸ IF RELAYED\";",
+      "replace": "                case RelicRowKind.Relayed: return \"ON ACTIVATION\";"
+    },
+    {
+      "name": "a row kind reaches the screen unlabelled",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                case RelicRowKind.Passive: return \"PASSIVE\";",
+      "replace": "                case RelicRowKind.Passive: return string.Empty;"
+    },
+    {
+      "name": "a row kind reaches the screen with no colour",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                case RelicRowKind.Passive: return \"#8FA8C4\";",
+      "replace": "                case RelicRowKind.Passive: return \"\";"
+    },
+    {
+      "name": "a fitted emitter is labelled as a trigger",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                    Kind = held.Trigger != SocketTrigger.None\n                        ? RelicRowKind.SocketTrigger\n                        : RelicRowKind.SocketEmitter,",
+      "replace": "                    Kind = RelicRowKind.SocketTrigger,"
+    },
+    {
+      "name": "the socket row is put above what the relic does by itself",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "            var rows = new List<RelicRow>(4);\n\n            if (lore == null) return rows;",
+      "replace": "            var rows = new List<RelicRow>(4);\n\n            if (socket != null) rows.Add(new RelicRow { Kind = RelicRowKind.SocketTrigger, Text = socket.Name });\n\n            if (lore == null) return rows;"
+    },
+    {
+      "name": "the emitter is preferred over the trigger when both are somehow set",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "            if (held.Trigger != SocketTrigger.None) return SocketText.Of(held.Trigger);\n            if (held.Emitter != SocketEmitter.None) return SocketText.Of(held.Emitter);",
+      "replace": "            if (held.Emitter != SocketEmitter.None) return SocketText.Of(held.Emitter);\n            if (held.Trigger != SocketTrigger.None) return SocketText.Of(held.Trigger);"
+    },
+    {
+      "name": "one copy is announced as if it were two",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                ShowsOwned = held.Owned > 1,",
+      "replace": "                ShowsOwned = held.Owned > 0,"
+    },
+    {
+      "name": "a second copy is never mentioned",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                ShowsOwned = held.Owned > 1,",
+      "replace": "                ShowsOwned = false,"
+    },
+    {
+      "name": "half a wheel is drawn for a relic that only reacts",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "            if (relic.Emits == null || relic.Emits.Length == 0) return null;\n\n            return new[] { relic.Reacts[0], relic.Emits[0] };",
+      "replace": "            if (relic.Emits == null || relic.Emits.Length == 0) return new[] { relic.Reacts[0], relic.Reacts[0] };\n\n            return new[] { relic.Reacts[0], relic.Emits[0] };"
+    },
+    {
+      "name": "the wheel points the wrong way",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "            return new[] { relic.Reacts[0], relic.Emits[0] };",
+      "replace": "            return new[] { relic.Emits[0], relic.Reacts[0] };"
+    },
+    {
+      "name": "the flavour line loses its quotes",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "            return \"“\" + line + \"”\";",
+      "replace": "            return line;"
+    },
+    {
+      "name": "the English description is shown for a relic that has a key",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                What = text != null ? text.What : null,",
+      "replace": "                What = text != null ? text.Name : null,"
+    },
+    {
+      "name": "every relic is treated as untranslated",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "                NameKey = text != null ? text.NameKey : null,",
+      "replace": "                NameKey = null,"
+    },
+    {
+      "name": "a mode label is written with a glyph no bundled face has",
+      "file": "Assets/GameAssets/Core/Presentation/RelicCard.cs",
+      "find": "        public const string DelveWord = \"DELVE\";",
+      "replace": "        public const string DelveWord = \"⛏ DELVE\";"
+    }
+  ]
+}

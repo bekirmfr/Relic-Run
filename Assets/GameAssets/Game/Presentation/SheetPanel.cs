@@ -39,16 +39,35 @@ namespace RelicRun.Game.Presentation
 
         private readonly List<TMP_Text> _rows = new List<TMP_Text>();
 
-        /// <summary>One line, and what colour it is.</summary>
+        /// <summary>One line, what colour it is, and what pressing it does.</summary>
         protected struct Row
         {
             public string Text;
             public Color Ink;
 
+            /// <summary>
+            /// What opens when a delver presses it, or null for a line that only reports.
+            /// </summary>
+            /// <remarks>
+            /// Two of these four screens are indexes into something deeper — the relic book into
+            /// a relic's card, the bestiary into a species dossier — and two are not. The board
+            /// and the profile are lists of things that HAPPENED, and there is nothing behind a
+            /// line that says a run scored 340.
+            /// </remarks>
+            public Action Press;
+
             public Row(string text, Color ink)
             {
                 Text = text;
                 Ink = ink;
+                Press = null;
+            }
+
+            public Row(string text, Color ink, Action press)
+            {
+                Text = text;
+                Ink = ink;
+                Press = press;
             }
         }
 
@@ -101,7 +120,35 @@ namespace RelicRun.Game.Presentation
 
                 _rows[i].text = rows[i].Text;
                 _rows[i].color = rows[i].Ink;
+
+                Pressing(_rows[i], rows[i].Press);
             }
+        }
+
+        /// <summary>
+        /// Wires one row's button, or takes it out of the way.
+        /// </summary>
+        /// <remarks>
+        /// Rows are recycled, so the listener from the LAST thing this row said has to go before
+        /// the new one is added — a book scrolled twice would otherwise open two relics at once,
+        /// and the second would be one nobody pressed.
+        ///
+        /// A row with nothing behind it is made non-interactable rather than left alone, so it
+        /// does not answer a press with a highlight and then nothing.
+        /// </remarks>
+        private static void Pressing(TMP_Text row, Action press)
+        {
+            // On the row ITSELF. GetComponentInParent walks upward, and a row with no button
+            // of its own would have found the panel's BACK button and rewired it — every line of
+            // the book quietly stealing the one control that leaves the screen.
+            var button = row.GetComponent<Button>();
+
+            if (button == null) return;
+
+            button.onClick.RemoveAllListeners();
+            button.interactable = press != null;
+
+            if (press != null) button.onClick.AddListener(() => press());
         }
 
         /// <summary>A word from the delver's own language, or the key when there is none.</summary>
