@@ -6,6 +6,7 @@ using RelicRun.Core.Meta;
 using RelicRun.Game.Data;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace RelicRun.Game.Services
 {
@@ -84,6 +85,23 @@ namespace RelicRun.Game.Services
         /// <remarks>
         /// A missing or unreadable language is a warning and an empty table rather than a throw.
         /// Every key then falls through to English, which is a game somebody can still play.
+        ///
+        /// It asks the reference for the handle it ALREADY has before asking for a new one, and
+        /// that is not an optimisation. An AssetReference caches its handle on the asset that
+        /// holds it, and loading one twice throws:
+        ///
+        ///     Attempting to load AssetReference that has already been loaded.
+        ///     Handle is exposed through getter OperationHandle
+        ///
+        /// Which used to be impossible to reach, because the menu was the only screen that ever
+        /// learned a language and the menu was loaded once. Now the fight learns one too, and
+        /// the menu is loaded again after it — so the same file is asked for three times in a
+        /// session, and the second and third came back as a game speaking in raw keys.
+        ///
+        /// And it lets go of what it loaded, which is the other half. The file is parsed into a
+        /// dictionary here and the asset itself is never wanted again, so holding it is holding
+        /// something for nobody — and a held handle is what makes the NEXT screen's load throw.
+        /// A handle somebody else took is left alone: this releases only what it acquired.
         /// </remarks>
         private static async Task<Dictionary<string, string>> Table(LocaleBook book,
             string language)
@@ -98,20 +116,35 @@ namespace RelicRun.Game.Services
                 return table;
             }
 
-            TextAsset asset = await address.LoadAssetAsync<TextAsset>().Task;
+            bool ours = !address.IsValid();
 
-            if (asset == null)
+            AsyncOperationHandle<TextAsset> fetching = ours
+                ? address.LoadAssetAsync<TextAsset>()
+                : address.OperationHandle.Convert<TextAsset>();
+
+            TextAsset asset = await fetching.Task;
+
+            try
             {
-                Debug.LogWarning("could not fetch the strings for " + language);
+                if (asset == null)
+                {
+                    Debug.LogWarning("could not fetch the strings for " + language);
+                    return table;
+                }
+
+                foreach (JProperty entry in JObject.Parse(asset.text).Properties())
+                {
+                    table[entry.Name] = entry.Value.Value<string>();
+                }
+
                 return table;
             }
-
-            foreach (JProperty entry in JObject.Parse(asset.text).Properties())
+            finally
             {
-                table[entry.Name] = entry.Value.Value<string>();
+                // In a finally, because a file that failed to parse was still loaded. Left
+                // held, the next screen to want the same language finds the reference busy.
+                if (ours && address.IsValid()) address.ReleaseAsset();
             }
-
-            return table;
         }
 
         /// <summary>

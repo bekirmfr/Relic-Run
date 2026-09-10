@@ -1500,13 +1500,23 @@ says nothing. Both callers now check the RESULT as well as the fault.
 
 **Nothing loads at all once the attribution SDK stalls.** `AppStartupOrchestrator` loads the
 default scene first — which is why the menu appears — then awaits `IAttributionService`, which on
-this machine begins `FB.Init` and never returns. Everything Addressables after that point sits at
-`AsyncOperationStatus.None` forever, including a direct
-`Addressables.LoadAssetAsync<GameObject>("TitleScene")` asked from a probe. The play mode script
-is Fast Mode, so there is no build to be stale.
+this machine begins `FB.Init` and never returns. The comment above that line says the call is
+"non-blocking: if it fails the game still starts", and its try/catch cannot help: a task that
+hangs never throws. Everything Addressables after that point sits at `AsyncOperationStatus.None`,
+including a direct `Addressables.LoadAssetAsync<GameObject>("TitleScene")` from a probe.
 
-It is worth knowing the shape of it: the menu works, every screen in it works, and the ONE thing
-that cannot happen is loading another scene. Which reads exactly like a broken PLAY button.
+It is skipped in the editor now. There is nothing to attribute an editor session to, and a build
+runs it exactly as before.
+
+**And a scene load takes MINUTES in an unfocused editor.** With attribution out of the way the
+same load still sat at `None` for two minutes at a time — then completed, correctly, with the
+whole round trip behind it. `runInBackground` was off, so an editor without focus barely ticks
+the player loop, and Addressables completes its operations from that loop. Turning it on took the
+menu-to-fight handoff from two minutes to the same SECOND.
+
+Which is a trap with a second edge: it looks exactly like a hang, and it answers a probe the same
+way a hang does. `AsyncOperationStatus.None` on a handle does not mean stuck — it means not
+started yet, and "yet" is measured in frames the editor may not be running.
 
 ## The corpus
 

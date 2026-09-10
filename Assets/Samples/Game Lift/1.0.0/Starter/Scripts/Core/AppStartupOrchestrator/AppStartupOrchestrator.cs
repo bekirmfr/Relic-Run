@@ -39,6 +39,23 @@ namespace GameLift.AppStartup
             await _privacyConsentService.RequestConsentAsync();
 
             // 2. Initialize attribution — non-blocking: if it fails the game still starts
+#if UNITY_EDITOR
+            // Except that it is not non-blocking, and the try/catch below cannot help: a task
+            // that never completes never throws. In the editor on Windows, FB.Init starts and
+            // does not come back — the SDK logs "The SDK is in an invalid state" every frame —
+            // and this await sits here for the rest of the session.
+            //
+            // That would be tolerable if it only cost attribution. It does not: every Addressables
+            // operation asked for afterwards stays at AsyncOperationStatus.None forever, so no
+            // scene can be loaded again once startup reaches this line. The default scene is
+            // already up by then, which is what makes it so hard to see — the menu works, every
+            // screen in it works, and the only thing that cannot happen is going anywhere else.
+            // A delver pressing PLAY gets nothing and no message.
+            //
+            // There is nothing to attribute an editor session to, so it is skipped rather than
+            // worked around. A build runs it exactly as before.
+            Debug.Log("[AppStartupOrchestrator] Attribution is skipped in the editor.");
+#else
             try
             {
                 await _attributionService.InitializeAsync();
@@ -47,6 +64,7 @@ namespace GameLift.AppStartup
             {
                 Debug.LogError($"[AppStartupOrchestrator] Attribution init failed, continuing without attribution: {e.Message}");
             }
+#endif
         }
     }
 }
