@@ -51,12 +51,81 @@ namespace RelicRun.Editor.Importers
                 made.Add(Bind(blip, clip));
             }
 
+            Register(made);
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             Debug.Log("rendered " + made.Count + " sounds into " + Folder +
                       ". They are synthesised from the source's own numbers, so there is nothing " +
                       "to redraw and nothing to keep in step.");
+        }
+
+        /// <summary>Where the audio service looks for what it may play. The sample's own.</summary>
+        public const string SettingsPath = "Assets/Samples/Game Lift/1.0.0/Starter/" +
+            "ScriptableObjects/Audio/AudioServiceSettings.asset";
+
+        /// <summary>
+        /// Lists the rendered sounds where the audio service will find them.
+        /// </summary>
+        /// <remarks>
+        /// The step that was missing, and the failure was exactly the shape this port keeps
+        /// meeting: everything was correct except the last link, and nothing said so. The clips
+        /// rendered, the SoundData assets were written, the fight asked for them by name — and
+        /// AudioService searches THIS list and nowhere else, so every blow of every fight logged
+        /// "Sound 'hit' not found" and the game played in silence.
+        ///
+        /// Nothing found it until the game was run and its console read. No test could: the
+        /// clips exist, the names match, and the only thing wrong is a list in an asset nobody
+        /// had reason to open.
+        ///
+        /// Merged by NAME rather than appended, so a re-import replaces its own entries and
+        /// leaves anybody else's — the sample ships a button click in here.
+        /// </remarks>
+        private static void Register(List<SoundData> made)
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<AudioServiceSettings>(SettingsPath);
+
+            if (settings == null)
+            {
+                Debug.LogError("no audio settings at " + SettingsPath + ", so nothing can be " +
+                               "played by name");
+                return;
+            }
+
+            var listed = new SerializedObject(settings);
+            SerializedProperty sounds = listed.FindProperty("sounds");
+
+            if (sounds == null)
+            {
+                Debug.LogError("the audio settings have no sound list — this importer and the " +
+                               "package have drifted apart");
+                return;
+            }
+
+            var kept = new List<SoundData>();
+
+            for (var i = 0; i < sounds.arraySize; i++)
+            {
+                var one = sounds.GetArrayElementAtIndex(i).objectReferenceValue as SoundData;
+
+                if (one == null) continue;
+                if (made.Exists(mine => mine.soundName == one.soundName)) continue;
+
+                kept.Add(one);
+            }
+
+            kept.AddRange(made);
+
+            sounds.arraySize = kept.Count;
+
+            for (var i = 0; i < kept.Count; i++)
+            {
+                sounds.GetArrayElementAtIndex(i).objectReferenceValue = kept[i];
+            }
+
+            listed.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(settings);
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using GameLift.Popup;
 using GameLift.Scene;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
@@ -67,6 +68,7 @@ namespace RelicRun.Game.Presentation
         private SaveVault _vault;
         private ISceneService _scenes;
         private Speech _speech;
+        private Modals _modals;
         private MetaPanel _showing;
         private float _due;
 
@@ -99,9 +101,33 @@ namespace RelicRun.Game.Presentation
                 panel.Showing = false;
             }
 
+            _modals = new Modals(Popups(), _vault, _speech);
+
+            // Redraw whatever is showing when a modal changes something. A settings modal that
+            // altered the language and left the screen behind it in the old one would be the
+            // change appearing to have failed.
+            _modals.Changed += () =>
+            {
+                foreach (MetaPanel panel in _panels)
+                {
+                    if (panel != null) panel.Words = _speech.Locale;
+                }
+
+                if (_showing != null) Draw(_showing);
+            };
+
+            foreach (MetaPanel panel in _panels)
+            {
+                if (panel != null) panel.Modals = _modals;
+            }
+
             await Learn();
 
             Go(Page.Title);
+
+            // After the title is up, so the delver sees what they are being welcomed to rather
+            // than a modal over an empty screen.
+            _modals.WelcomeIfNew(UnityEngine.Random.Range(0, 10000));
         }
 
         /// <summary>Fetches the language and hands it to every panel.</summary>
@@ -301,6 +327,22 @@ namespace RelicRun.Game.Presentation
             }
 
             return vault;
+        }
+
+        /// <summary>Finds whatever opens modals.</summary>
+        /// <remarks>
+        /// Missing the same way the save is, and survivable the same way: a menu that cannot open
+        /// its settings is still a menu, and one warning beats a button that does nothing.
+        /// </remarks>
+        private IPopupService Popups()
+        {
+            var scope = GetComponent<LifetimeScope>();
+
+            if (scope == null || scope.Container == null) return null;
+
+            IPopupService popups;
+
+            return scope.Container.TryResolve(out popups) ? popups : null;
         }
 
         /// <summary>Finds whatever loads scenes, so the menu can hand over to a run.</summary>

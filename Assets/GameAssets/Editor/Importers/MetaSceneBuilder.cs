@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GameLift.Popup;
 using GameLift.Scene;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
@@ -50,6 +51,17 @@ namespace RelicRun.Editor.Importers
 
         /// <summary>One hall's square in the dungeon grid, as a prefab the panel spawns.</summary>
         public const string TilePrefab = "Assets/GameAssets/Game/Presentation/HallTile.prefab";
+
+        /// <summary>The two modals, which are prefabs the popup service instantiates.</summary>
+        public const string SettingsPrefab =
+            "Assets/GameAssets/Game/Presentation/SettingsPopup.prefab";
+
+        public const string WelcomePrefab =
+            "Assets/GameAssets/Game/Presentation/WelcomePopup.prefab";
+
+        /// <summary>Where the popup service looks for what it may open. The sample's own.</summary>
+        public const string PopupsPath = "Assets/Samples/Game Lift/1.0.0/Starter/" +
+            "ScriptableObjects/Popups/PopupSettings.asset";
 
         /// <summary>
         /// How far every row is inset from the canvas edges.
@@ -125,6 +137,8 @@ namespace RelicRun.Editor.Importers
                 White();
 
                 HallTileView tile = HallTile(face);
+
+                Modals(face);
 
                 Replace(scene);
                 Fit(scene, content, face, tile);
@@ -300,20 +314,20 @@ namespace RelicRun.Editor.Importers
             // row of icons; this is the same row with words on it, because an icon nobody has
             // drawn yet is a button that says nothing at all.
             GameObject nav = Strip(panel, "Nav", 0f, 104f, 36f);
-            var navRow = nav.AddComponent<HorizontalLayoutGroup>();
 
-            navRow.childForceExpandWidth = true;
-            navRow.childForceExpandHeight = true;
-            navRow.spacing = 6f;
+            // Five buttons across, placed by fraction rather than by a layout group. A group
+            // sizes its children, and Scenery.Press builds a rect that is STRETCHED to its
+            // parent — the two disagree, and what a screenshot showed was five buttons about ten
+            // units wide with their labels running one letter per line.
+            GameObject board = Slot(nav, face, "Board", "RUNS", 0, 5);
+            GameObject relics = Slot(nav, face, "Relics", "RELICS", 1, 5);
+            GameObject bestiary = Slot(nav, face, "Bestiary", "FOES", 2, 5);
+            GameObject profile = Slot(nav, face, "Profile", "DELVER", 3, 5);
 
-            GameObject board = Press(nav, "Board", face, "RUNS", Small,
-                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
-            GameObject relics = Press(nav, "Relics", face, "RELICS", Small,
-                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
-            GameObject bestiary = Press(nav, "Bestiary", face, "FOES", Small,
-                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
-            GameObject profile = Press(nav, "Profile", face, "DELVER", Small,
-                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 36f);
+            // The odd one in the row: it opens a modal rather than going to a screen. It sits
+            // here because that is where a delver looks for it, not because it is the same kind
+            // of thing as the four beside it.
+            GameObject settings = Slot(nav, face, "Settings", "SETTINGS", 4, 5);
 
             GameObject howPanel = Strip(panel, "HowPanel", 0f, 56f, 40f);
             GameObject how = Press(howPanel, "How", face, "HOW TO PLAY", Text(16),
@@ -342,6 +356,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_relics", relics.GetComponent<Button>()),
                 Pair("_bestiary", bestiary.GetComponent<Button>()),
                 Pair("_profile", profile.GetComponent<Button>()),
+                Pair("_settings", settings.GetComponent<Button>()),
             });
 
             return view;
@@ -725,6 +740,239 @@ namespace RelicRun.Editor.Importers
             return view;
         }
 
+        /* ---------- the modals ---------- */
+
+        /// <summary>
+        /// Builds both popup prefabs and lists them where the popup service looks.
+        /// </summary>
+        /// <remarks>
+        /// The same three-part rule the scenes live under, in a different spelling: a popup has to
+        /// BE a prefab, has to name itself with a PopupId, and has to be listed in PopupSettings —
+        /// because <c>Create&lt;T&gt;</c> searches that list and silently returns null otherwise.
+        /// A modal that opens nothing and says nothing is the failure this exists to prevent.
+        /// </remarks>
+        private static void Modals(TMP_FontAsset face)
+        {
+            SettingsPopup settings = Settings(face);
+            WelcomePopup welcome = Welcome(face);
+
+            var listed = AssetDatabase.LoadAssetAtPath<PopupSettings>(PopupsPath);
+
+            if (listed == null)
+            {
+                Debug.LogError("no popup settings at " + PopupsPath + ", so no modal can open");
+                return;
+            }
+
+            if (listed.popupBases == null) listed.popupBases = new List<PopupBase>();
+
+            Listed(listed, settings);
+            Listed(listed, welcome);
+
+            EditorUtility.SetDirty(listed);
+        }
+
+        /// <summary>Puts one popup on the list, replacing an older build of the same one.</summary>
+        /// <remarks>
+        /// By TYPE rather than by reference, because a rebuild writes a new prefab and the entry
+        /// pointing at the old one would still be there — first match wins, so the list would
+        /// keep opening the popup somebody built yesterday.
+        /// </remarks>
+        private static void Listed(PopupSettings settings, PopupBase popup)
+        {
+            if (popup == null) return;
+
+            for (int i = settings.popupBases.Count - 1; i >= 0; i--)
+            {
+                PopupBase other = settings.popupBases[i];
+
+                if (other == null || other.GetType() == popup.GetType())
+                {
+                    settings.popupBases.RemoveAt(i);
+                }
+            }
+
+            settings.popupBases.Add(popup);
+        }
+
+        private static SettingsPopup Settings(TMP_FontAsset face)
+        {
+            GameObject card;
+            GameObject made = Modal("SettingsPopup", typeof(SettingsPopup), 470f, out card);
+
+            GameObject title = Line(card, face, "", 24, TextAlignmentOptions.Center, 210f);
+
+            GameObject languageTitle = Line(card, face, "", Small, TextAlignmentOptions.Left, 170f);
+
+            GameObject tongues = Panel(card, "Tongues", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, 96f), new Vector2(-Margin * 2f, 120f));
+
+            var grid = tongues.AddComponent<GridLayoutGroup>();
+
+            grid.cellSize = new Vector2(88f, 32f);
+            grid.spacing = new Vector2(6f, 6f);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 3;
+            grid.childAlignment = TextAnchor.UpperCenter;
+
+            // The template, kept inactive: the popup spawns from it, and a live copy sitting in
+            // the grid would be a language nobody shipped.
+            GameObject tongue = Press(tongues, "Tongue", face, "", Small,
+                new Color(0.13f, 0.12f, 0.10f), new Color(0.73f, 0.69f, 0.63f), 32f);
+
+            tongue.SetActive(false);
+
+            GameObject soundLabel = Line(card, face, "", Small, TextAlignmentOptions.Left, 24f);
+
+            GameObject soundPanel = Panel(card, "SoundPanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -8f), new Vector2(-Margin * 2f, 40f));
+            GameObject sound = Press(soundPanel, "Sound", face, "", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.90f, 0.87f, 0.80f), 40f);
+
+            GameObject nameLabel = Line(card, face, "", Small, TextAlignmentOptions.Left, -56f);
+
+            TMP_InputField typed = Box(card, face, "Name", -88f);
+
+            GameObject closePanel = Panel(card, "ClosePanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -150f), new Vector2(-Margin * 2f, 40f));
+            GameObject close = Press(closePanel, "Close", face, "CLOSE", Text(16),
+                new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
+
+            var popup = made.GetComponent<SettingsPopup>();
+
+            Wire(popup, new[]
+            {
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_languageTitle", languageTitle.GetComponent<TMP_Text>()),
+                Pair("_tongues", (RectTransform)tongues.transform),
+                Pair("_tongue", tongue.GetComponent<Button>()),
+                Pair("_soundLabel", soundLabel.GetComponent<TMP_Text>()),
+                Pair("_sound", sound.GetComponent<Button>()),
+                Pair("_nameLabel", nameLabel.GetComponent<TMP_Text>()),
+                Pair("_name", typed),
+                Pair("_close", close.GetComponent<Button>()),
+            });
+
+            Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
+
+            return Save(made, SettingsPrefab).GetComponent<SettingsPopup>();
+        }
+
+        private static WelcomePopup Welcome(TMP_FontAsset face)
+        {
+            GameObject card;
+            GameObject made = Modal("WelcomePopup", typeof(WelcomePopup), 300f, out card);
+
+            GameObject title = Line(card, face, "", 24, TextAlignmentOptions.Center, 120f);
+
+            GameObject sub = Line(card, face, "", Small, TextAlignmentOptions.Center, 64f);
+            sub.GetComponent<TMP_Text>().textWrappingMode = TextWrappingModes.Normal;
+            ((RectTransform)sub.transform).sizeDelta = new Vector2(-Margin * 2f, 64f);
+
+            TMP_InputField typed = Box(card, face, "Name", -8f);
+
+            GameObject beginPanel = Panel(card, "BeginPanel", new Vector2(0f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(0f, -80f), new Vector2(-Margin * 2f, 48f));
+            GameObject begin = Press(beginPanel, "Begin", face, "", Text(16),
+                new Color(0.89f, 0.70f, 0.25f), new Color(0.08f, 0.07f, 0.06f), 48f);
+
+            var popup = made.GetComponent<WelcomePopup>();
+
+            Wire(popup, new[]
+            {
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_sub", sub.GetComponent<TMP_Text>()),
+                Pair("_name", typed),
+                Pair("_begin", begin.GetComponent<Button>()),
+            });
+
+            Wire(popup, new[] { Pair("canvasGroup", made.GetComponent<CanvasGroup>()) });
+
+            return Save(made, WelcomePrefab).GetComponent<WelcomePopup>();
+        }
+
+        /// <summary>
+        /// A modal's shell: a full-screen dimmer with a card on it.
+        /// </summary>
+        /// <remarks>
+        /// The dimmer is what makes it modal. It fills the popup canvas and takes raycasts, so a
+        /// press outside the card lands on nothing rather than on the screen behind — which is the
+        /// difference between a modal and a floating panel.
+        /// </remarks>
+        private static GameObject Modal(string name, System.Type popup, float tall,
+            out GameObject card)
+        {
+            var made = new GameObject(name, typeof(RectTransform), typeof(CanvasGroup),
+                typeof(Image), popup);
+
+            var rect = (RectTransform)made.transform;
+
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.sizeDelta = Vector2.zero;
+            rect.anchoredPosition = Vector2.zero;
+
+            Image dim = made.GetComponent<Image>();
+            dim.sprite = White();
+            dim.color = new Color(0.03f, 0.03f, 0.02f, 0.92f);
+
+            // The card. Without it every line sat on the raw dimmer at the canvas edge, and the
+            // screen behind showed through between them — which is a floating list of labels
+            // rather than a modal. It is inset, opaque, and the thing everything else hangs on.
+            card = Panel(made, "Card", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                Vector2.zero, new Vector2(-Margin * 2f, tall));
+
+            var back = card.AddComponent<Image>();
+
+            back.sprite = White();
+            back.color = new Color(0.09f, 0.08f, 0.07f);
+
+            return made;
+        }
+
+        /// <summary>
+        /// A box a delver types a name into.
+        /// </summary>
+        /// <remarks>
+        /// Built by hand rather than from Unity's own prefab, because that one arrives with its
+        /// own font, its own colours and a nine-sliced rounded background — three things this
+        /// game would have to undo.
+        ///
+        /// The character limit is Core's, so the box refuses the seventeenth letter rather than
+        /// accepting it and having the cleaner drop it. Both still happen: this is a courtesy,
+        /// and Naming.Clean is the rule.
+        /// </remarks>
+        private static TMP_InputField Box(GameObject parent, TMP_FontAsset face, string name,
+            float at)
+        {
+            GameObject panel = Panel(parent, name, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(0f, at), new Vector2(-Margin * 2f, 40f));
+
+            var back = panel.AddComponent<Image>();
+            back.sprite = White();
+            back.color = new Color(0.11f, 0.10f, 0.08f);
+
+            var field = panel.AddComponent<TMP_InputField>();
+
+            GameObject area = Panel(panel, "TextArea", Vector2.zero, Vector2.one,
+                Vector2.zero, new Vector2(-16f, -8f));
+
+            area.AddComponent<RectMask2D>();
+
+            GameObject shown = Say(area, face, "", Text(16), TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(0f, 24f), true);
+
+            var text = shown.GetComponent<TextMeshProUGUI>();
+
+            field.textViewport = (RectTransform)area.transform;
+            field.textComponent = text;
+            field.targetGraphic = back;
+            field.characterLimit = Naming.Longest;
+            field.lineType = TMP_InputField.LineType.SingleLine;
+
+            return field;
+        }
+
         /// <summary>One hall's square, saved as a prefab because the panel spawns ten of them.</summary>
         private static HallTileView HallTile(TMP_FontAsset face)
         {
@@ -778,6 +1026,56 @@ namespace RelicRun.Editor.Importers
         {
             return Panel(canvas, name, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         }
+
+        /// <summary>
+        /// One button of a row of equal buttons, placed by fraction of the row.
+        /// </summary>
+        /// <remarks>
+        /// Anchored to a share of its parent's width rather than sized by a layout group, so the
+        /// row works out on any canvas and nothing has to agree with anything about who controls
+        /// the rect. The gap is taken out of each button's own width, which is why the row has no
+        /// spacing setting to keep in step.
+        /// </remarks>
+        private static GameObject Slot(GameObject row, TMP_FontAsset face, string name,
+            string label, int index, int across)
+        {
+            var made = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            var rect = (RectTransform)made.transform;
+
+            rect.SetParent(row.transform, false);
+
+            float share = 1f / across;
+
+            rect.anchorMin = new Vector2(index * share, 0f);
+            rect.anchorMax = new Vector2((index + 1) * share, 1f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.offsetMin = new Vector2(NavGap * 0.5f, 0f);
+            rect.offsetMax = new Vector2(-NavGap * 0.5f, 0f);
+
+            Image face_ = made.GetComponent<Image>();
+            face_.sprite = White();
+            face_.color = new Color(0.16f, 0.15f, 0.12f);
+
+            made.GetComponent<Button>().targetGraphic = face_;
+
+            GameObject said = Say(made, face, label, Text(Small), TextAlignmentOptions.Center,
+                Vector2.zero, new Vector2(0f, 20f), true);
+
+            var text = said.GetComponent<TextMeshProUGUI>();
+
+            text.color = new Color(0.70f, 0.67f, 0.60f);
+
+            // A nav label is one word and must never wrap. Wrapping is what turned this row into
+            // five columns of single letters, and a word that does not fit should overflow
+            // visibly rather than rearrange itself into something unreadable.
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Overflow;
+
+            return made;
+        }
+
+        /// <summary>The gap between two buttons in a row, split between them.</summary>
+        private const float NavGap = 6f;
 
         /// <summary>A full-width row, inset from both edges.</summary>
         private static GameObject Strip(GameObject parent, string name, float vertical, float at,

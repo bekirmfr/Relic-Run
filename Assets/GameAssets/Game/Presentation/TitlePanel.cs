@@ -53,6 +53,9 @@ namespace RelicRun.Game.Presentation
 
         [SerializeField] private Button _profile;
 
+        /// <summary>The gear, which opens a modal rather than going anywhere.</summary>
+        [SerializeField] private Button _settings;
+
         /// <summary>
         /// What an open mode's captions look like, and what a shut one's do.
         /// </summary>
@@ -101,6 +104,10 @@ namespace RelicRun.Game.Presentation
             Press(_relics, () => Go(Page.RelicBook));
             Press(_bestiary, () => Go(Page.Bestiary));
             Press(_profile, () => Go(Page.Profile));
+
+            // A modal, not a screen: settings are reachable from anywhere, and a screen would
+            // have to remember where "anywhere" was in order to go back.
+            Press(_settings, () => { if (Modals != null) Modals.Settings(); });
         }
 
         private static void Press(Button button, Action what)

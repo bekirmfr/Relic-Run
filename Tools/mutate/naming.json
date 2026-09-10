@@ -1,0 +1,95 @@
+{
+  "name": "the one field a person types",
+  "mutants": [
+    {
+      "name": "the control range is left in a name",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "                if (letter <= '\\u001f') continue;",
+      "replace": "                if (letter <= '\\u0000') continue;"
+    },
+    {
+      "name": "the space is stripped along with the control range",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "                if (letter <= '\\u001f') continue;",
+      "replace": "                if (letter <= '\\u0020') continue;"
+    },
+    {
+      "name": "the angle brackets are left in a name",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "                if (letter == '<' || letter == '>') continue;",
+      "replace": "                if (letter == '\\u0000') continue;"
+    },
+    {
+      "name": "only the opening bracket is stripped",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "                if (letter == '<' || letter == '>') continue;",
+      "replace": "                if (letter == '<') continue;"
+    },
+    {
+      "name": "the ends are not trimmed",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            string trimmed = kept.ToString().Trim();",
+      "replace": "            string trimmed = kept.ToString();"
+    },
+    {
+      "name": "a name is never cut at all",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            if (trimmed.Length <= Longest) return trimmed;",
+      "replace": "            return trimmed;"
+    },
+    {
+      "name": "the limit is a round twenty rather than the source's sixteen",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "        public const int Longest = 16;",
+      "replace": "        public const int Longest = 20;"
+    },
+    {
+      "name": "the cut leaves half a character behind",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            if (char.IsHighSurrogate(cut[cut.Length - 1])) cut = cut.Substring(0, cut.Length - 1);",
+      "replace": "            if (char.IsLowSurrogate(cut[cut.Length - 1])) cut = cut.Substring(0, cut.Length - 1);"
+    },
+    {
+      "name": "an empty name is not recognised as missing",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            return string.IsNullOrEmpty(cleaned);",
+      "replace": "            return cleaned == null;"
+    },
+    {
+      "name": "a made-up name is not padded to four digits",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            return word + Tally + within.ToString(\"0000\", CultureInfo.InvariantCulture);",
+      "replace": "            return word + Tally + within.ToString(CultureInfo.InvariantCulture);"
+    },
+    {
+      "name": "a made-up name has no separator",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "        public const char Tally = '#';",
+      "replace": "        public const char Tally = '-';"
+    },
+    {
+      "name": "a roll past the range is not folded",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            int within = number % 10000;",
+      "replace": "            int within = number;"
+    },
+    {
+      "name": "a negative roll keeps its sign",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "            if (within < 0) within = -within;",
+      "replace": "            if (within < -99999) within = -within;"
+    },
+    {
+      "name": "an orphaned surrogate a delver pasted in is kept",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "                if (char.IsLowSurrogate(letter)) continue;",
+      "replace": "                if (char.IsLowSurrogate(letter) && kept.Length < 0) continue;"
+    },
+    {
+      "name": "a high surrogate is kept without checking for its partner",
+      "file": "Assets/GameAssets/Core/Presentation/Naming.cs",
+      "find": "                    if (i + 1 >= typed.Length || !char.IsLowSurrogate(typed[i + 1])) continue;",
+      "replace": "                    if (i + 1 >= typed.Length) continue;"
+    }
+  ]
+}

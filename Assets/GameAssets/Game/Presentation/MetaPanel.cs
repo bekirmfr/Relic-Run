@@ -80,6 +80,15 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         public Locale Words { get; set; }
 
+        /// <summary>
+        /// What opens the modals, for the screens that have a button for one.
+        /// </summary>
+        /// <remarks>
+        /// Handed down like the words are. A panel that resolved its own would need the container,
+        /// and a panel that knew about the container would be a panel that could reach anything.
+        /// </remarks>
+        public Modals Modals { get; set; }
+
         /// <summary>Puts the delver's current state on the screen.</summary>
         /// <param name="vault">Never null: the scene substitutes an empty save if it has none.</param>
         /// <param name="now">

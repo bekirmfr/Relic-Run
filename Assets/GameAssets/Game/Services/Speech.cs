@@ -31,6 +31,16 @@ namespace RelicRun.Game.Services
         /// <summary>What the game reads in. Never null: English until told otherwise.</summary>
         public Locale Locale { get; private set; }
 
+        /// <summary>
+        /// The book the last fetch came from, kept so a later one need not be handed it again.
+        /// </summary>
+        /// <remarks>
+        /// Changing language is the one thing that happens AFTER startup, and it happens in a
+        /// modal that has no business knowing where the game's languages are listed. Remembering
+        /// the book here is what lets the modal ask for a language rather than for a file.
+        /// </remarks>
+        public LocaleBook Book { get; private set; }
+
         public Speech()
         {
             // Something legible before anything is fetched. A screen drawn during startup shows
@@ -52,6 +62,8 @@ namespace RelicRun.Game.Services
                 Debug.LogWarning("no locale book, so the game speaks in keys");
                 return;
             }
+
+            Book = book;
 
             var shipped = new List<string>();
             foreach (LocaleBook.Translation one in book.Languages) shipped.Add(one.Language);
