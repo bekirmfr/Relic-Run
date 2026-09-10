@@ -171,7 +171,7 @@ down before leaning on them:
 | event | 1,459 |
 | shop | 515 |
 | revive | 122 |
-| **cash out** | **none** |
+| **cash out** | **none** — now covered by `RunCashOutTests` |
 
 Every recorded run descends until it dies or clears — the chooser that made them returns `false` to
 `CashOut`, and so does every other chooser in the test suite. `RunEnding.CashedOut` is tested where
@@ -189,8 +189,16 @@ restructure that is verified and one that is merely careful.
 
 Each step is meant to leave the game in a state somebody can press.
 
-**0 · Cover the cash-out branch.** See above: no recorded run ever walks out at a gate, so that
-path has no oracle. An hour, and it has to come first.
+**0 · Cover the cash-out branch. — DONE.** `RunCashOutTests`, five cases: leaving ends the run
+where it stood, the question comes after every fight and nowhere else, leaving skips the gate it
+stands at, the bazaar is behind that gate, and a Piggy Bank pays a quarter more on the way out.
+
+It found something on the way, which is the argument for having written it: **the bazaar floor is
+never fought.** The gate loop walks through floor seven and out the other side without rolling a
+pack, so there is no fight there, no cash-out question, and a delver who means to leave "after
+seven" leaves after eight. A cleared run fights twelve floors, not thirteen. That is load-bearing
+ordering nothing had written down, and it is exactly what a restructure would have broken while
+still looking like a game.
 
 **1 · The engine turns inside out.** `Ask`, `Delve`, `Resolve` as a driver over it. No UI. Done when
 the corpus replays through both front doors identically. *This is the risky step and it is first,
