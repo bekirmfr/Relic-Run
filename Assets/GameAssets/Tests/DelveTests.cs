@@ -190,6 +190,62 @@ namespace RelicRun.Tests
             Assert.Throws<System.InvalidOperationException>(() => delve.Answer());
         }
 
+        /// <summary>
+        /// A delve starts the delver a run setup describes, and drops nothing on the way.
+        /// </summary>
+        /// <remarks>
+        /// Reflected rather than listed, so a field added to <see cref="RunSetup"/> and forgotten
+        /// here fails without anybody remembering to come back. The three that are deliberately
+        /// NOT carried onto the hero are named: they shape the run AROUND the fights rather than
+        /// the delver in them.
+        ///
+        /// This is the one thing about starting a run that the corpus cannot notice. Every
+        /// recorded run starts from the same statline, so a setup field quietly stopping being
+        /// read would replay all 516 of them perfectly.
+        /// </remarks>
+        [Test]
+        public void NoStatlineIsLeftBehind()
+        {
+            RunSetup setup = RunSetup.ForLevel(7);
+
+            setup.Dungeon = DungeonConfig.ForTier(1);
+            setup.StartKit = new List<RelicId> { RelicId.Whetstone, RelicId.IronSkin };
+
+            RunState run = new Delve(1u, setup).State;
+
+            Assert.That(run.Php, Is.EqualTo(setup.Hp));
+            Assert.That(run.Pmax, Is.EqualTo(setup.Hp));
+            Assert.That(run.Gold, Is.EqualTo(setup.Gold));
+            Assert.That(run.Hero.BaseAtk, Is.EqualTo(setup.Atk));
+            Assert.That(run.Hero.BaseDef, Is.EqualTo(setup.Def));
+            Assert.That(run.Hero.BaseSpd, Is.EqualTo(setup.Spd));
+            Assert.That(run.Hero.BaseLck, Is.EqualTo(setup.Lck));
+            Assert.That(run.Floor, Is.EqualTo(1));
+
+            Assert.That(run.Items.Count, Is.EqualTo(2), "the start kit did not arrive");
+            Assert.That(run.Items[0], Is.EqualTo(RelicId.Whetstone));
+
+            // The list is COPIED. A run holding the setup's own would have the bazaar writing
+            // into a table every later run reads from.
+            Assert.That(ReferenceEquals(run.Items, setup.StartKit), Is.False);
+
+            var elsewhere = new List<string>
+            {
+                "Breath", "DraftChoices", "BazaarDeals", "Dungeon", "StartKit",
+            };
+
+            var carried = new List<string> { "Hp", "Gold", "Atk", "Def", "Spd", "Lck" };
+
+            foreach (System.Reflection.FieldInfo field in typeof(RunSetup).GetFields(
+                         System.Reflection.BindingFlags.Public |
+                         System.Reflection.BindingFlags.Instance))
+            {
+                Assert.That(carried.Contains(field.Name) || elsewhere.Contains(field.Name), Is.True,
+                    "RunSetup." + field.Name + " is neither carried onto the delver nor named as " +
+                    "something that shapes the run instead — decide which in DelveTests");
+            }
+        }
+
         /// <summary>Answers the pending stop the way a plain delver would.</summary>
         private static void Decide(Delve delve)
         {

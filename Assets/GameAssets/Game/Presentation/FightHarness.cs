@@ -1,6 +1,3 @@
-using RelicRun.Core.Combat;
-using RelicRun.Core.Determinism;
-using RelicRun.Core.Run;
 using RelicRun.Game.Data;
 using UnityEngine;
 
@@ -17,8 +14,12 @@ namespace RelicRun.Game.Presentation
     ///
     /// So it is a fallback rather than the main road, and that is the point of keeping it. A
     /// fight that only exists when a run reaches it is a fight nobody can sit and stare at, and
-    /// the ability to open the scene on a chosen floor of a chosen hall with a chosen shelf is
-    /// most of how anything in the combat layer has ever been looked at.
+    /// the ability to open the scene on a chosen hall from a chosen seed is most of how anything
+    /// in the combat layer has ever been looked at.
+    ///
+    /// It carries settings and nothing else now. Building a fight out of them was its job until
+    /// the run loop could be walked a stop at a time; a delve rolls its own, so what is left here
+    /// is a seed, a hall, and how fast to read it out.
     /// </remarks>
     public sealed class FightHarness : MonoBehaviour
     {
@@ -44,46 +45,6 @@ namespace RelicRun.Game.Presentation
         public FightSettings Watching
         {
             get { return _fight; }
-        }
-
-        /// <summary>
-        /// The authored fight, as a plan.
-        /// </summary>
-        /// <remarks>
-        /// The pack is built HERE rather than left to <see cref="Bout"/>, because the asset may
-        /// override it — an authored pack is most of what this exists for. Building it costs the
-        /// same draws the generator would have cost, from a generator seeded the same way, so an
-        /// asset that overrides nothing produces exactly the fight the plan would have rolled.
-        ///
-        /// The hall it is scaled for is the hall it SAYS, which it was not before: the harness
-        /// used to scale by whatever <c>RunSetup.ForLevel</c> carried, which is nothing at all,
-        /// so every authored fight was fought at the first hall's difficulty whichever backdrop
-        /// it was watched against. Authored fights therefore hit harder from the second hall
-        /// down — which is what the setting always claimed.
-        /// </remarks>
-        public FightPlan Plan(out int ceiling)
-        {
-            ceiling = 0;
-
-            if (_fight == null) return null;
-
-            HeroState hero = _fight.Delver.Build(_fight.Floor);
-
-            ceiling = hero.Pmax;
-
-            // One stream for the pack and the fight, which is why an authored pack changes the
-            // whole fight and not just who is standing in it: generating one CONSUMES draws, so
-            // skipping that leaves every later roll reading a different part of the sequence.
-            var rng = new Mulberry32(_fight.Seed);
-
-            return new FightPlan
-            {
-                Seed = _fight.Seed,
-                Floor = _fight.Floor,
-                Tier = _fight.Hall,
-                Delver = hero,
-                Pack = _fight.Foes.Build(_fight.Floor, rng, DungeonConfig.ForTier(_fight.Hall)),
-            };
         }
 
         /// <summary>What this fight is, in one line, for the log.</summary>

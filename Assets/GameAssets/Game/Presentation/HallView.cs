@@ -2,6 +2,8 @@ using Cysharp.Threading.Tasks;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 
 namespace RelicRun.Game.Presentation
@@ -37,6 +39,21 @@ namespace RelicRun.Game.Presentation
         private double _to;
         private float _started;
         private float _over;
+
+        /// <summary>
+        /// The hall this view loaded, so it can be let go of.
+        /// </summary>
+        /// <remarks>
+        /// An AssetReference caches its handle on the ASSET, so loading one twice throws — which
+        /// nothing noticed while a screen showed one fight and then went away. A delve shows
+        /// thirteen, and the second floor came back as "Attempting to load AssetReference that
+        /// has already been loaded" with no backdrop behind it.
+        ///
+        /// Kept rather than released after use, unlike a locale: a hall is four and a half
+        /// megabytes and every floor of the run is in it, so letting go between floors would be
+        /// paying for the fetch twelve more times.
+        /// </remarks>
+        private AssetReferenceSprite _held;
 
         /// <summary>
         /// Opens a floor at its left door.
@@ -157,11 +174,22 @@ namespace RelicRun.Game.Presentation
             var address = _content.Halls.For(tier);
             if (address == null) return;
 
+            // A hall already in hand is not fetched again — see _held.
+            if (!ReferenceEquals(address, _held)) Drop();
+
             // Through .Task rather than awaiting the handle. An AsyncOperationHandle<T> converts
             // implicitly to the non-generic handle, and UniTask's awaiter for THAT one yields
             // void — so awaiting the handle directly compiles the sprite away and then complains
             // it cannot turn void into one. The scene service loads its prefabs the same way.
-            Sprite drawn = await address.LoadAssetAsync<Sprite>().Task;
+            bool ours = !address.IsValid();
+
+            AsyncOperationHandle<Sprite> fetching = ours
+                ? address.LoadAssetAsync<Sprite>()
+                : address.OperationHandle.Convert<Sprite>();
+
+            Sprite drawn = await fetching.Task;
+
+            if (ours) _held = address;
 
             // The fight may have ended, or moved on to another hall, while this was in flight.
             if (this == null || _picture == null) return;
@@ -170,6 +198,26 @@ namespace RelicRun.Game.Presentation
             _picture.enabled = drawn != null;
 
             Place(Showing());
+        }
+
+        /// <summary>Lets go of whatever hall this view fetched.</summary>
+        /// <remarks>
+        /// Only what it fetched ITSELF. A reference somebody else loaded is somebody else's to
+        /// release, and taking it out from under them would leave them holding a sprite that has
+        /// been unloaded.
+        /// </remarks>
+        private void Drop()
+        {
+            if (_held == null) return;
+
+            if (_held.IsValid()) _held.ReleaseAsset();
+
+            _held = null;
+        }
+
+        private void OnDestroy()
+        {
+            Drop();
         }
     }
 }

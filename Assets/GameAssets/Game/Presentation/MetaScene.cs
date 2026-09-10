@@ -145,11 +145,53 @@ namespace RelicRun.Game.Presentation
 
             await Learn();
 
-            Go(Page.Title);
+            if (!Reading())
+            {
+                Go(Page.Title);
 
-            // After the title is up, so the delver sees what they are being welcomed to rather
-            // than a modal over an empty screen.
-            _modals.WelcomeIfNew(UnityEngine.Random.Range(0, 10000));
+                // After the title is up, so the delver sees what they are being welcomed to
+                // rather than a modal over an empty screen.
+                _modals.WelcomeIfNew(UnityEngine.Random.Range(0, 10000));
+            }
+        }
+
+        /// <summary>
+        /// Opens on the end of a run, when one has just finished.
+        /// </summary>
+        /// <remarks>
+        /// The menu is reloaded by the delve scene when a run ends, so this is how the delver
+        /// gets to read what happened rather than being dropped back on the title with a
+        /// silently larger number in their profile.
+        ///
+        /// The report is FORGOTTEN once it has been shown. Left standing, every later return to
+        /// the menu would open on a run that finished an hour ago.
+        ///
+        /// No welcome modal on this path either: somebody who has just finished a delve has
+        /// been asked their name.
+        /// </remarks>
+        private bool Reading()
+        {
+            if (_orders == null || !_orders.Reported) return false;
+
+            RunReport report = _orders.Last;
+
+            _orders.Shown();
+
+            var over = Find(Page.Over) as OverPanel;
+            var xp = Find(Page.Xp) as XpPanel;
+
+            if (over == null) return false;
+
+            over.Show(report.Over);
+
+            if (xp != null)
+            {
+                xp.Show(report.Over.Xp, report.Level, report.Progress, true, report.Gains);
+            }
+
+            Go(Page.Over);
+
+            return true;
         }
 
         /// <summary>Fetches the language and hands it to every panel.</summary>
@@ -306,10 +348,9 @@ namespace RelicRun.Game.Presentation
         /// Says what the fight is to be.
         /// </summary>
         /// <remarks>
-        /// The delver is built by <see cref="Bout.Delver"/> rather than here, so a fight started
-        /// from this screen and a floor of a real run seed the same hero from the same table. It
-        /// is the sort of drift that produces perfectly plausible numbers and shows up only as a
-        /// first floor that plays differently depending on which button started it.
+        /// Nothing about the delver is worked out here. The order is a seed, a hall and a day;
+        /// who walks it is <c>Career.SetupFor</c>'s business and the delve's, which is what stops
+        /// a run started from this screen differing from one started anywhere else.
         ///
         /// A failure leaves NO order, deliberately. The fight scene falls back to its authored
         /// fight and says so, which is a screen showing the wrong fight loudly rather than a
@@ -319,39 +360,32 @@ namespace RelicRun.Game.Presentation
         {
             if (_orders == null)
             {
-                Debug.LogWarning("nothing is holding the order, so the fight will show whatever " +
+                Debug.LogWarning("nothing is holding the order, so the delve will be whatever " +
                                  "is authored rather than this delver's own", this);
                 return;
             }
 
-            SaveState earned = _vault != null ? _vault.Earned : new SaveState();
             Preferences chosen = _vault != null ? _vault.Chosen : new Preferences();
 
-            int tier = chosen.Tier;
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            uint day = DailySeed.For(now);
 
-            RunSetup setup = RunSetup.ForLevel(earned.Level);
-
-            setup.Dungeon = DungeonConfig.ForTier(tier);
-
-            HeroState delver = Bout.Delver(setup);
-
-            var plan = new FightPlan
+            var order = new RunOrder
             {
-                // The Daily's seed is the day's. Everything else is a number nobody has seen,
-                // which is what makes a practice delve practice.
-                Seed = daily
-                    ? DailySeed.For(DateTimeOffset.UtcNow)
-                    : (uint)UnityEngine.Random.Range(int.MinValue, int.MaxValue),
+                // The Daily's seed is the day's, which is what makes it the same delve for
+                // everybody. Everything else is a number nobody has seen, which is what makes a
+                // practice delve practice.
+                Seed = daily ? day : (uint)UnityEngine.Random.Range(int.MinValue, int.MaxValue),
 
-                Floor = 1,
-                Tier = tier,
-                Delver = delver,
+                Tier = chosen.Tier,
+                Daily = daily,
+                Day = day,
             };
 
-            _orders.Place(plan, delver.Pmax);
+            _orders.Place(order);
 
-            Debug.Log((daily ? "the Daily" : "a delve") + " into hall " + tier +
-                      ", seed " + plan.Seed, this);
+            Debug.Log((daily ? "the Daily" : "a delve") + " into hall " + order.Tier +
+                      ", seed " + order.Seed, this);
         }
 
         /// <summary>

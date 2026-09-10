@@ -6,7 +6,9 @@ using GameLift.Audio;
 using GameLift.Scene;
 using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
+using RelicRun.Core.Meta;
 using RelicRun.Core.Presentation;
+using RelicRun.Core.Run;
 using RelicRun.Game.Data;
 using RelicRun.Game.Services;
 using VContainer;
@@ -16,24 +18,26 @@ using UnityEngine;
 namespace RelicRun.Game.Presentation
 {
     /// <summary>
-    /// The fight, as a scene: it fights what it is ordered to and says how it went.
+    /// The delve, as a scene: it walks the run it was ordered to and says what it came to.
     /// </summary>
     /// <remarks>
     /// A scene in this project is a PREFAB under <c>Assets/Scenes/</c>, not a <c>.unity</c> file.
     /// <c>Corescene.unity</c> is empty and stays empty; <see cref="ISceneObject"/>
     /// implementations are loaded into it by <c>SceneService</c> through a <c>SceneConfig</c>
-    /// that addresses the prefab and names it with a key.
+    /// that addresses the prefab and names it with a key. It also means a screen cannot be handed
+    /// its subject — <c>LoadScene</c> takes a key and <c>Initialize</c> takes nothing — which is
+    /// what <see cref="FightOrder"/> is for.
     ///
-    /// What it means in practice is that a screen has a lifecycle rather than an Awake: it is
-    /// built when somebody asks for it and taken down when somebody asks for the next one. It
-    /// also means a screen cannot be handed its subject — <c>LoadScene</c> takes a key and
-    /// <c>Initialize</c> takes nothing — which is what <see cref="FightOrder"/> is for.
+    /// It walks a whole <see cref="Delve"/>, floor after floor, and plays every fight it is
+    /// handed. What it does NOT have yet is a screen for any of the other stops, so it answers
+    /// them itself and says so once: the first relic of every offer, the first choice of every
+    /// event, no rerolls, no deals, no revive. That is a scaffold and it is labelled as one —
+    /// but it is a scaffold around the REAL run loop, so replacing an answer with a screen is a
+    /// stage at a time rather than a rewrite.
     ///
-    /// Three things it now does that the harness never did. It fights the fight the MENU asked
-    /// for rather than one written into an asset. It reads the log in the delver's own language,
-    /// where the harness read English through an editor-only path and would have shown a build
-    /// nothing at all. And it ENDS: the fight finishes, the result is reported, and the delver is
-    /// returned to the menu instead of left staring at a still frame.
+    /// When the run ends it is settled into the save through <c>Career.Settle</c>, which is the
+    /// same scoring and banking the corpus gates, and the delver is handed back to the menu with
+    /// an end screen to read.
     /// </remarks>
     [RequireComponent(typeof(LifetimeScope))]
     public sealed class FightScene : MonoBehaviour, ISceneObject
@@ -41,7 +45,7 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private CombatView _view;
         [SerializeField] private GameContent _content;
 
-        [Tooltip("The authored fight, used when nobody has ordered one.")]
+        [Tooltip("The authored fight, used when nobody has ordered a delve.")]
         [SerializeField] private FightHarness _harness;
 
         private CombatPlaybackController _showing;
@@ -49,30 +53,24 @@ namespace RelicRun.Game.Presentation
         private ISceneService _scenes;
         private SaveVault _vault;
         private Speech _speech;
-        private bool _fighting;
+        private bool _walking;
         private bool _abandoned;
 
-        /// <summary>
-        /// Built. Starts the fight without waiting for it to finish.
-        /// </summary>
+        /// <summary>Built. Starts the delve without waiting for it to finish.</summary>
         /// <remarks>
-        /// Not awaited, and that is a change: the harness ran the whole fight inside this call,
-        /// which meant the service's own transition did not finish until the delver had died. A
-        /// screen is BUILT when its widgets exist; what happens on it afterwards is the screen's
-        /// business, and the service has a <see cref="Clear"/> for taking it away mid-sentence.
+        /// Everything from the container is fetched HERE, while this object is certainly alive.
+        /// Asking for it later cost a MissingReferenceException the first time a fight outlived
+        /// its screen: the playback finished, the scene had already been taken away, and the line
+        /// that wanted to go back to the menu was a GetComponent on a corpse.
         /// </remarks>
         public Task Initialize()
         {
-            // Everything from the container is fetched HERE, while this object is certainly
-            // alive. Asking for it later cost a MissingReferenceException the first time a fight
-            // outlived its screen: the playback finished, the scene had already been taken away,
-            // and the line that wanted to go back to the menu was a GetComponent on a corpse.
-            _order = Resolve<FightOrder>("an order to fight");
+            _order = Resolve<FightOrder>("an order to delve");
             _scenes = Resolve<ISceneService>("anything that loads scenes");
             _vault = Resolve<SaveVault>("a save");
 
             Hear();
-            Watch();
+            Walk();
 
             return Task.CompletedTask;
         }
@@ -84,21 +82,14 @@ namespace RelicRun.Game.Presentation
         /// Two ways it might not be, and they are not the same. <see cref="Clear"/> is the
         /// service saying so, politely, before it takes the scene away; being DESTROYED is the
         /// same thing having already happened, which is what a Unity object's null comparison
-        /// answers. A fight is several seconds long and the game can move on during it.
+        /// answers. A delve is minutes long and the game can move on during it.
         /// </remarks>
         private bool Gone
         {
             get { return _abandoned || this == null; }
         }
 
-        /// <summary>
-        /// Taken down. Stops the fight rather than leaving it running into the next screen.
-        /// </summary>
-        /// <remarks>
-        /// The one thing a scene owes the service. A playback loop that outlived its screen would
-        /// go on drawing into destroyed widgets, which is a null reference per beat and reads as
-        /// the next screen being broken.
-        /// </remarks>
+        /// <summary>Taken down. Stops the run rather than leaving it playing into the next screen.</summary>
         public Task Clear()
         {
             _abandoned = true;
@@ -112,43 +103,43 @@ namespace RelicRun.Game.Presentation
         public CombatView View { get { return _view; } }
 
         /// <summary>
-        /// Fights whatever was ordered, then hands back.
+        /// Walks the delve that was ordered, then hands back.
         /// </summary>
         /// <remarks>
         /// Void because nothing awaits it: this is the screen living its life, not a task
         /// somebody is holding. Everything that can go wrong inside it is caught, because an
         /// exception escaping here would be swallowed by the runtime and the screen would simply
-        /// stop with no fight and no message.
+        /// stop with no run and no message.
         /// </remarks>
-        private async void Watch()
+        private async void Walk()
         {
-            if (_fighting)
+            if (_walking)
             {
-                Debug.LogWarning("a fight is already on screen; ignoring the second", this);
+                Debug.LogWarning("a delve is already on screen; ignoring the second", this);
                 return;
             }
 
-            _fighting = true;
+            _walking = true;
 
             try
             {
-                await Fight();
+                await Delving();
             }
             catch (Exception broken)
             {
-                Debug.LogError("the fight ended badly: " + broken, this);
+                Debug.LogError("the delve ended badly: " + broken, this);
             }
             finally
             {
-                _fighting = false;
+                _walking = false;
             }
         }
 
-        private async UniTask Fight()
+        private async UniTask Delving()
         {
             if (_view == null || _content == null)
             {
-                Debug.LogError("the fight has nothing to show or nothing to show it with", this);
+                Debug.LogError("the delve has nothing to show or nothing to show it with", this);
                 return;
             }
 
@@ -161,107 +152,207 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
-            int ceiling;
-            FightPlan plan = Ordered(out ceiling);
+            RunOrder order;
 
-            if (plan == null) return;
+            if (!Ordered(out order)) return;
 
-            // Before a single frame is drawn. Nothing in the presentation layer computes combat;
-            // its whole job afterwards is to read out a finished list.
-            CombatResult result = Bout.Fight(plan);
+            SaveState earned = _vault != null ? _vault.Earned : new SaveState();
 
-            Debug.Log("floor " + plan.Floor + " of hall " + plan.Tier + ", seed " + plan.Seed +
-                      ": " + result.Events.Count + " events", this);
+            var delve = new Delve(order.Seed, Career.SetupFor(earned, order.Tier));
+
+            Debug.Log("delving into hall " + order.Tier + ", seed " + order.Seed +
+                      (order.Daily ? " (today's Daily)" : string.Empty), this);
 
             await Say();
 
-            Pacing pacing = Pacing.For(result.Events.Count, Reduced(), Speed(),
-                _content.Presentation.ToPacing());
+            var told = false;
 
-            // The screen can go away while the words are being fetched, which is a network
-            // round trip in a build. Drawing into it afterwards is a null reference per widget.
-            if (Gone) return;
-
-            _view.Begin(result.Events, pacing, new CombatLog(_speech.Locale),
-                Shelf.Of(plan.Delver), false, plan.Tier);
-
-            _showing = new CombatPlaybackController(_content.Presentation);
-
-            await _showing.Show(result.Events, _view, SkipsIntro());
-
-            Done(plan, result, ceiling);
-        }
-
-        /// <summary>
-        /// What was ordered, or the authored fight, or nothing.
-        /// </summary>
-        /// <remarks>
-        /// The fallback is the whole reason the harness still exists: opening this scene on its
-        /// own — pressing Play with the fight prefab as the startup scene — has to show a fight,
-        /// or the combat layer becomes something you can only reach by playing the game up to
-        /// it. It says which one it took, because a scene showing the wrong fight is otherwise a
-        /// silent mystery.
-        /// </remarks>
-        private FightPlan Ordered(out int ceiling)
-        {
-            ceiling = 0;
-
-            FightPlan plan;
-
-            if (_order != null && _order.Take(out plan, out ceiling)) return plan;
-
-            if (_harness == null || !_harness.Ready)
+            while (!delve.Finished)
             {
-                Debug.LogError("nothing ordered a fight and there is no authored one to fall " +
-                               "back on — run Tools > Relic Run > Build Fight Scene", this);
-                return null;
+                if (Gone) return;
+
+                if (delve.Pending.Kind == AskKind.Fought)
+                {
+                    Met(earned, delve.Pending.Pack);
+
+                    await Read(delve.Pending, order.Tier, delve.State);
+
+                    if (Gone) return;
+                }
+                else if (!told)
+                {
+                    told = true;
+
+                    Debug.Log("no screen answers a " + delve.Pending.Kind + " yet, so this delve " +
+                              "answers its own — the first relic, the first choice, and no deals",
+                        this);
+                }
+
+                delve.Pending.Answer = Plainly(delve.Pending);
+                delve.Answer();
             }
 
-            Debug.Log("nothing ordered a fight, so the authored one is being shown: " +
-                      _harness.Describe(), this);
-
-            return _harness.Plan(out ceiling);
+            Settle(delve, order, earned);
         }
 
         /// <summary>
-        /// Reports the result and hands the delver back to the menu.
+        /// Reads one floor's fight out, at the pace the content says.
         /// </summary>
         /// <remarks>
-        /// Not when the screen was taken away underneath it. A fight abandoned halfway through
-        /// has no result worth reporting, and loading the menu from here would be loading it
-        /// twice — once for whoever abandoned this, and once for a fight that has not noticed.
+        /// The whole reason the engine stops for a fought floor. Everything about the fight is
+        /// already decided — the port's second invariant — and this is the part that takes
+        /// twelve seconds.
         /// </remarks>
-        private void Done(FightPlan plan, CombatResult result, int ceiling)
+        private async UniTask Read(Ask fought, int tier, RunState run)
+        {
+            Pacing pacing = Pacing.For(fought.Result.Events.Count, Reduced(), Speed(),
+                _content.Presentation.ToPacing());
+
+            _view.Begin(fought.Result.Events, pacing, new CombatLog(_speech.Locale),
+                Shelf.Of(run.Hero), false, tier);
+
+            if (_showing == null) _showing = new CombatPlaybackController(_content.Presentation);
+
+            await _showing.Show(fought.Result.Events, _view, SkipsIntro());
+        }
+
+        /// <summary>
+        /// Writes down every species the delver has now met.
+        /// </summary>
+        /// <remarks>
+        /// The bestiary's fog is lifted here rather than by the run layer, because meeting
+        /// something is a fact about the DELVER and not about the run: it survives the run
+        /// ending badly, which is most of the point of a bestiary.
+        /// </remarks>
+        private static void Met(SaveState earned, IReadOnlyList<EnemyState> pack)
+        {
+            if (earned == null || pack == null) return;
+
+            foreach (EnemyState foe in pack)
+            {
+                if (!earned.Seen.Contains(foe.SpeciesIndex)) earned.Seen.Add(foe.SpeciesIndex);
+            }
+        }
+
+        /// <summary>
+        /// What a delver with no screen to press would do.
+        /// </summary>
+        /// <remarks>
+        /// One answer per stop, and every one of them is the dullest available: it takes what it
+        /// is shown, spends nothing, and does not ask to be brought back. That is deliberate — a
+        /// scaffold that made INTERESTING choices would be a scaffold somebody mistook for the
+        /// game, and every one of these is a line that a screen will delete.
+        /// </remarks>
+        private static Answer Plainly(Ask ask)
+        {
+            switch (ask.Kind)
+            {
+                case AskKind.Draft:
+                    return new Answer { Pick = ask.Offer[0] };
+
+                case AskKind.Event:
+                    return new Answer { Choice = 0 };
+
+                case AskKind.Bazaar:
+                    return new Answer { Deal = BazaarDeal.Walk };
+
+                default:
+                    return new Answer();
+            }
+        }
+
+        /// <summary>
+        /// Puts the finished run into the save, and works out what to tell the delver.
+        /// </summary>
+        /// <remarks>
+        /// The level and the progress are read BEFORE settling, because they are what the
+        /// experience bar opens on: reading them afterwards would fill a bar that is already
+        /// full. Everything else the end screen shows comes out of <c>Settled</c>, which is the
+        /// same scoring and banking the corpus gates.
+        /// </remarks>
+        private void Settle(Delve delve, RunOrder order, SaveState earned)
         {
             if (Gone) return;
 
-            FightSummary summary = Bout.Read(plan, result, ceiling);
+            int level = earned.Level;
+            double progress = Progression.Progress(earned.Xp);
+            List<string> before = Career.NewlyEarned(new List<string>(), earned);
 
-            if (_order != null) _order.Report(summary);
+            double rate = Progression.RewardMultiplier(order.Tier, Career.Frontier(earned));
 
-            Debug.Log(summary.Won
-                ? "the delver walked out with " + summary.Left + " of " + summary.Most
-                : "the delver fell on floor " + plan.Floor, this);
+            string name = _vault != null && _vault.Chosen != null ? _vault.Chosen.Name : null;
+
+            Settled settled = Career.Settle(earned, delve.State, delve.Ending, order.Tier,
+                order.Daily, order.Day, name, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
+            if (_vault != null) _vault.CommitProgress();
+
+            Debug.Log("the delve ended on floor " + delve.EndedOn + " (" + delve.Ending +
+                      "): " + settled.Reward.Score + " points, " + settled.Reward.Xp +
+                      " experience, " + settled.Reward.Banked + " banked", this);
+
+            if (_order != null)
+            {
+                _order.Report(new RunReport
+                {
+                    Over = OverCards.Of(settled.Reward, delve.Ending, delve.EndedOn,
+                        delve.State.Hero.Kills, settled.Banked.NewBest, null, rate),
+
+                    Level = level,
+                    Progress = progress,
+                    Gains = Career.NewlyEarned(before, earned),
+                });
+            }
 
             Leave();
         }
 
         /// <summary>
-        /// Back to the menu.
+        /// What was ordered, or the authored fight's hall, or nothing.
         /// </summary>
         /// <remarks>
-        /// The run layer will put a result screen here, and then a draft, and then the next
-        /// floor. Until it does, a fight that ends has to go SOMEWHERE — a screen that stops on
-        /// its last frame and stays there is indistinguishable from one that crashed.
-        ///
-        /// Not awaited: the service tears this scene down as part of loading, so awaiting would
-        /// be awaiting on an object being destroyed.
+        /// The fallback is the whole reason the harness still exists: opening this scene on its
+        /// own — pressing Play with the fight prefab as the startup scene — has to show
+        /// something, or the combat layer becomes a place you can only reach by playing the game
+        /// up to it. It says which one it took, because a scene showing the wrong run is
+        /// otherwise a silent mystery.
+        /// </remarks>
+        private bool Ordered(out RunOrder order)
+        {
+            if (_order != null && _order.Take(out order)) return true;
+
+            order = new RunOrder { Seed = 1u, Tier = 1, Daily = false };
+
+            if (_harness == null || !_harness.Ready)
+            {
+                Debug.LogError("nothing ordered a delve and there is no authored fight to fall " +
+                               "back on — run Tools > Relic Run > Build Fight Scene", this);
+                return false;
+            }
+
+            FightSettings watching = _harness.Watching;
+
+            order.Seed = watching.Seed;
+            order.Tier = watching.Hall;
+
+            Debug.Log("nothing ordered a delve, so the authored fight's seed and hall are being " +
+                      "walked instead: " + _harness.Describe(), this);
+
+            return true;
+        }
+
+        /// <summary>Back to the menu, which opens on the end of the run.</summary>
+        /// <remarks>
+        /// The run layer will put a draft and a floor rail in this scene rather than sending the
+        /// delver away between floors. What a FINISHED run does is go home, and it has to go
+        /// somewhere — a screen that stops on its last frame is indistinguishable from one that
+        /// crashed.
         /// </remarks>
         private void Leave()
         {
             if (_scenes == null)
             {
-                Debug.LogWarning("the fight is over and nothing can load the menu");
+                Debug.LogWarning("the delve is over and nothing can load the menu");
                 return;
             }
 
@@ -283,7 +374,7 @@ namespace RelicRun.Game.Presentation
 
                 if (done.Result == null)
                 {
-                    Debug.LogError("the fight is over and nothing loaded for the menu — the " +
+                    Debug.LogError("the delve is over and nothing loaded for the menu — the " +
                                    "scene service logged the reason as an ordinary message.");
                 }
             }, TaskContinuationOptions.ExecuteSynchronously);
@@ -294,12 +385,7 @@ namespace RelicRun.Game.Presentation
         /// </summary>
         /// <remarks>
         /// The fight's log is the one place in the game a delver reads sentences rather than
-        /// labels, and until now it read them in English — through the editor's asset database,
-        /// behind a <c>UNITY_EDITOR</c> guard, which in a build returned nothing at all. A
-        /// shipped fight would have narrated itself in raw keys.
-        ///
-        /// Awaited, because a fight drawn before its words arrive spends its first beats saying
-        /// nothing. A failure is a warning and a fight narrated in keys, which is ugly and
+        /// labels. A failure is a warning and a run narrated in keys, which is ugly and
         /// diagnosable — where a blank log is neither.
         /// </remarks>
         private async UniTask Say()
@@ -308,7 +394,7 @@ namespace RelicRun.Game.Presentation
 
             if (_content.Locales == null)
             {
-                Debug.LogWarning("no locale book, so the fight is narrated in keys", this);
+                Debug.LogWarning("no locale book, so the delve is narrated in keys", this);
                 return;
             }
 
@@ -319,14 +405,14 @@ namespace RelicRun.Game.Presentation
             }
             catch (Exception broken)
             {
-                Debug.LogWarning("could not fetch the strings, so the fight speaks in keys: " +
+                Debug.LogWarning("could not fetch the strings, so the delve speaks in keys: " +
                                  broken.Message, this);
             }
         }
 
         /// <summary>How fast to read it out, from the authored settings when there are any.</summary>
         /// <remarks>
-        /// Watching preferences, not fight ones — how fast and how still are about the person
+        /// Watching preferences, not run ones — how fast and how still are about the person
         /// holding the phone. They live on the authored asset today because that is where the
         /// only dial is; when there is a settings screen for them, this is the line that changes.
         /// </remarks>
@@ -351,11 +437,9 @@ namespace RelicRun.Game.Presentation
             return watching != null && watching.SkipIntro;
         }
 
-        /// <summary>
-        /// Finds whoever makes the noises and hands them to the screen.
-        /// </summary>
+        /// <summary>Finds whoever makes the noises and hands them to the screen.</summary>
         /// <remarks>
-        /// A fight with no sound is still a fight, so a missing service is said once and stepped
+        /// A delve with no sound is still a delve, so a missing service is said once and stepped
         /// over. It is the sort of thing that goes missing in a build and should not take the
         /// screen with it.
         /// </remarks>
@@ -375,11 +459,8 @@ namespace RelicRun.Game.Presentation
         /// </summary>
         /// <remarks>
         /// Asked for rather than injected. Injection into a plain component only happens once a
-        /// scope has been told to register it, and the fight has no installer doing that, so an
+        /// scope has been told to register it, and this scene has no installer doing that, so an
         /// attribute would have looked like wiring and done nothing at all.
-        ///
-        /// The scope on this object is parented to the application's, which is what makes
-        /// everything registered up there reachable from down here.
         /// </remarks>
         private T Resolve<T>(string what) where T : class
         {
@@ -387,7 +468,7 @@ namespace RelicRun.Game.Presentation
 
             if (scope == null || scope.Container == null)
             {
-                Debug.LogWarning("no lifetime scope on the fight, so there is no " + what, this);
+                Debug.LogWarning("no lifetime scope on the delve, so there is no " + what, this);
                 return null;
             }
 

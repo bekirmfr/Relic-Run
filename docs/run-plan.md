@@ -211,13 +211,28 @@ fight, so playback owns the clock.
 `DelveRun` kept the arithmetic and lost the walk — 698 lines to 415. What is left there is what a
 floor DOES; what moved is only the order, which is the part that had to become interruptible.
 
-**2 · A fight that counts.** The summary reaches the save — runs, kills, gold banked, XP, species
-seen — and routes to the `Over` and `Xp` screens, which already exist with cards behind them. No run
-loop yet. Done when a fight changes the profile.
+**2 · A fight that counts. — DONE, and it turned out to be a whole run.** With `Delve` in place the
+cheap version was cheaper than the planned one: the scene walks the REAL run loop and answers the
+stops it has no screen for — the first relic, the first choice, no deals, no revive — saying so
+once in the log. So PLAY now walks a delve floor by floor, settles it through `Career.Settle`, and
+returns the delver to an end screen.
+
+Measured, first try: nine floors over three and a half minutes, `405 points, 405 experience, 0
+banked`, died on floor nine. The profile went from `runs=0 best=0 xp=0 seen=0` to `runs=2 best=505
+xp=910 seen=10`, and the menu opened on THE DARK KEPT YOU with the experience screen behind it.
+
+The auto-answers are the scaffold, and every one of them is a line a screen deletes. What is NOT a
+scaffold is anything under them: it is the gated run loop, the gated scoring, and the gated
+banking.
+
+Two things fell out of it. `Bout` is gone — it was a one-floor fight built two commits earlier, and
+once `Delve` seeded its own delver the two were a second spelling of the same thing, which is the
+fault this plan was written to avoid. And `HallView` was loading its four-and-a-half-megabyte
+backdrop once per FLOOR, which nothing noticed while a screen only ever showed one fight.
 
 **3 · The run scene, with two stages.** One scene, a stage machine, a floor rail, and `draft` and
-`combat`. `Delve` drives it. Done when PLAY drafts a relic, fights floor one, drafts again and
-fights floor two.
+`combat`. `Delve` already drives it; what this adds is a screen for the draft, which means deleting
+the first of the auto-answers. Done when a delver picks their own relic.
 
 **4 · The delver in the fight.** A hero sprite from the compositor that already exists, the foe
 queue, the intro banner. This is the step that makes the fight look like the source's.
