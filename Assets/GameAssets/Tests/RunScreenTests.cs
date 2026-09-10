@@ -238,6 +238,121 @@ namespace RelicRun.Tests
             Assert.That(card.Rerolls, Is.EqualTo(1));
         }
 
+        /// <summary>
+        /// A delver with gold is asked TWICE for one relic, and the first answer is not a pick.
+        /// </summary>
+        /// <remarks>
+        /// The fact the draft screen is built around, pinned here because the screen cannot say
+        /// it. Once the purse can cover a reroll the engine asks about the reroll FIRST, with the
+        /// same offer on the table, and only then asks which one to take. Both stops carry the
+        /// same relics, so a screen showing them is showing one table and answering two
+        /// questions.
+        ///
+        /// Reaching for a relic on the first of them sets <c>Pick</c>, and the engine does not
+        /// read it — it reads <c>Yes</c>. Which is exactly how this reached a delver: the first
+        /// press declined the reroll, the same two relics came straight back, and the press
+        /// looked like it had done nothing at all.
+        /// </remarks>
+        [Test]
+        public void ADelverWithGoldIsAskedTwiceForOneRelic()
+        {
+            var delve = new Delve(20260911u, new RunSetup());
+
+            IReadOnlyList<RelicId> rerolled = null;
+            var pairs = 0;
+
+            while (!delve.Finished)
+            {
+                Ask stop = delve.Pending;
+
+                if (stop.Kind == AskKind.Reroll)
+                {
+                    rerolled = new List<RelicId>(stop.Offer);
+
+                    // Reaching for a relic here. The engine reads Yes, not Pick.
+                    delve.Answer(new Answer { Pick = stop.Offer[0] });
+                    continue;
+                }
+
+                if (stop.Kind == AskKind.Draft && rerolled != null)
+                {
+                    pairs++;
+
+                    Assert.That(stop.Offer, Is.EqualTo(rerolled),
+                        "declining a reroll changed the offer");
+
+                    int held = delve.State.Items.Count;
+
+                    delve.Answer(new Answer { Pick = stop.Offer[0] });
+
+                    Assert.That(delve.State.Items.Count, Is.EqualTo(held + 1),
+                        "the second answer is the one that takes a relic");
+
+                    rerolled = null;
+                    continue;
+                }
+
+                delve.Answer(Dully(stop));
+            }
+
+            Assert.That(pairs, Is.GreaterThan(0),
+                "the run never had gold enough to be asked about a reroll");
+        }
+
+        /// <summary>Taking a relic on a reroll stop takes nothing.</summary>
+        /// <remarks>
+        /// The same fact stated as the failure it caused, so that a future engine that DID read
+        /// <c>Pick</c> on a reroll would fail here loudly rather than quietly hand out two relics
+        /// where the screen expects one.
+        /// </remarks>
+        [Test]
+        public void ARerollStopIgnoresWhateverWasPicked()
+        {
+            var delve = new Delve(20260911u, new RunSetup());
+
+            while (!delve.Finished)
+            {
+                Ask stop = delve.Pending;
+
+                if (stop.Kind == AskKind.Reroll)
+                {
+                    int held = delve.State.Items.Count;
+                    int purse = delve.State.Gold;
+
+                    delve.Answer(new Answer { Pick = stop.Offer[0] });
+
+                    Assert.That(delve.State.Items.Count, Is.EqualTo(held),
+                        "a reroll stop handed over a relic");
+
+                    Assert.That(delve.State.Gold, Is.EqualTo(purse),
+                        "declining a reroll cost gold");
+
+                    return;
+                }
+
+                delve.Answer(Dully(stop));
+            }
+
+            Assert.Fail("the run never reached a reroll");
+        }
+
+        /// <summary>What a delver with no screen would answer, taking the first of everything.</summary>
+        private static Answer Dully(Ask stop)
+        {
+            switch (stop.Kind)
+            {
+                case AskKind.Draft:
+                case AskKind.Reroll:
+                    return new Answer { Pick = stop.Offer[0] };
+
+                case AskKind.Bazaar:
+                    return new Answer { Deal = BazaarDeal.Walk };
+
+                default:
+                    return new Answer();
+            }
+        }
+
         /// <summary>The draft and the relic book describe a relic the same way.</summary>
         /// <remarks>
         /// Two screens a delver moves between in one press, both carrying the translated/English

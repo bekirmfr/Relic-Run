@@ -48,6 +48,29 @@ namespace RelicRun.Game.Presentation
 
         private readonly List<Button> _spawned = new List<Button>();
 
+        /// <summary>Which stop is on the table, so a press knows what it is answering.</summary>
+        private AskKind _asking;
+
+        private int _floor;
+
+        /// <summary>
+        /// What the delver reached for while the run was still asking about rerolls.
+        /// </summary>
+        /// <remarks>
+        /// The whole reason this exists. One table answers TWO of the engine's questions — pay
+        /// for two more? and then take one — and a delver looking at it only ever asked itself
+        /// one. So reaching for a relic during the first question answers it (no) and is
+        /// remembered, and the second question is answered with the same reach.
+        ///
+        /// Without this the first press appeared to do nothing at all: it declined the reroll,
+        /// the same two relics came straight back for the draft, and the delver pressed again.
+        /// </remarks>
+        private RelicId _reaching;
+
+        private bool _reached;
+
+        private int _reachedOn;
+
         public override AskKind Answers
         {
             get { return AskKind.Draft; }
@@ -70,7 +93,13 @@ namespace RelicRun.Game.Presentation
         {
             if (_reroll != null)
             {
-                _reroll.onClick.AddListener(() => Decide(new Answer { Yes = true }));
+                // Paying for a fresh offer throws away whatever was being reached for: the
+                // relics it was reaching AT are about to be replaced.
+                _reroll.onClick.AddListener(() =>
+                {
+                    _reached = false;
+                    Decide(new Answer { Yes = true });
+                });
             }
         }
 
@@ -84,6 +113,9 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         public override void Draw(Ask ask, RunState run)
         {
+            _asking = ask.Kind;
+            _floor = ask.Floor;
+
             int price = DelveRun.RerollPrice(run);
 
             DraftCard card = DraftCards.Of(ask.Offer, run.Items, run.Gold, price, run.Rerolls);
@@ -112,6 +144,65 @@ namespace RelicRun.Game.Presentation
                         price.ToString(CultureInfo.InvariantCulture));
                 }
             }
+
+            Settle(ask);
+        }
+
+        /// <summary>
+        /// Answers the draft with the relic the delver already reached for, if they did.
+        /// </summary>
+        /// <remarks>
+        /// Last, after the table has been drawn, so that a reach nobody can honour leaves a
+        /// screen somebody can still press. It can only be honoured while the relic is still on
+        /// the table — a reroll replaces the offer, and taking something out of the old one would
+        /// hand the delver a relic they never saw.
+        /// </remarks>
+        private void Settle(Ask ask)
+        {
+            if (ask.Kind != AskKind.Draft || !_reached || _reachedOn != ask.Floor) return;
+
+            if (!Offered(ask, _reaching)) return;
+
+            _reached = false;
+
+            Decide(new Answer { Pick = _reaching });
+        }
+
+        /// <summary>Whether a relic is still one of the ones on the table.</summary>
+        private static bool Offered(Ask ask, RelicId relic)
+        {
+            if (ask.Offer == null) return false;
+
+            foreach (RelicId one in ask.Offer)
+            {
+                if (one == relic) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// What reaching for a relic means, which depends on what is being asked.
+        /// </summary>
+        /// <remarks>
+        /// On a draft it is the answer. On a reroll it is TWO answers — no, and this one — of
+        /// which the engine will take the first now and the second in a moment.
+        /// </remarks>
+        private void Take(RelicId relic)
+        {
+            if (_asking == AskKind.Reroll)
+            {
+                _reaching = relic;
+                _reached = true;
+                _reachedOn = _floor;
+
+                Decide(new Answer { Yes = false });
+                return;
+            }
+
+            _reached = false;
+
+            Decide(new Answer { Pick = relic });
         }
 
         /// <summary>The cards, spawned once and redressed.</summary>
@@ -150,7 +241,7 @@ namespace RelicRun.Game.Presentation
                 RelicId taking = offered.Relic;
 
                 _spawned[i].onClick.RemoveAllListeners();
-                _spawned[i].onClick.AddListener(() => Decide(new Answer { Pick = taking }));
+                _spawned[i].onClick.AddListener(() => Take(taking));
             }
 
             // Measured NOW, not at the end of the frame. A card is as tall as the words on it,
