@@ -146,11 +146,18 @@ namespace RelicRun.Editor.Importers
             // nothing else, which looks exactly like a screen that failed to build.
             eye.cullingMask = ~0;
 
-            // Somewhere for the sound to arrive. Unity warns ONCE PER FRAME that a scene has no
-            // listener, which on a scene that is up for a minute is thousands of lines — enough
-            // to bury everything else in the console and, in one session, enough to make the
-            // editor look hung while it wrote them all to disk.
-            if (made.GetComponent<AudioListener>() == null) made.AddComponent<AudioListener>();
+            // No ear here. One used to hang off this camera, because Unity warns ONCE PER FRAME
+            // that a scene has no listener and a screen that is up for a minute writes thousands
+            // of those. But an ear per SCREEN is one ear too many at every moment where the
+            // number of screens is not one: none at all between the boot and the first screen,
+            // and none again for the frames where a delve has been torn down and the menu has
+            // not arrived. Both moments are the warning, in the other direction.
+            //
+            // So the ear moved to GameLift_LifetimeScope, which is the app rather than a screen
+            // and outlives every one of them. Nothing is lost by the move: every sound this game
+            // makes comes from the AudioService's own DontDestroyOnLoad object with a default
+            // spatialBlend, which is to say in 2D, which is to say from nowhere in particular.
+            // Where the ear stands cannot matter to a sound that has no position.
 
             return eye;
         }

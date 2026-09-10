@@ -402,10 +402,11 @@ namespace RelicRun.Editor.Importers
                 Debug.Log("the fight scene had no camera, so one was made for it");
             }
 
-            // The inherited camera predates Eye() and has none. Unity warns once per FRAME that
-            // a scene has no listener, which is thousands of lines over a fight — enough to bury
-            // the console and, in one session, enough to make the editor look hung.
-            if (eye.GetComponent<AudioListener>() == null) eye.gameObject.AddComponent<AudioListener>();
+            // The inherited camera came with an ear on it, from back when every screen carried
+            // its own. It is taken off here rather than left alone: the app's root scope holds
+            // the only one now, and a second would be a second — see Scenery.Eye.
+            AudioListener stale = eye.GetComponent<AudioListener>();
+            if (stale != null) Object.DestroyImmediate(stale, true);
 
             GameObject canvas = Canvas(eye);
             canvas.transform.SetParent(root.transform, false);

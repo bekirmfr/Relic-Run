@@ -179,6 +179,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7280504762795130339}
   - component: {fileID: 3446148067791544686}
+  - component: {fileID: 3220108525079289649}
   m_Layer: 0
   m_Name: GameLift_LifetimeScope
   m_TagString: Untagged
@@ -231,3 +232,11 @@ MonoBehaviour:
   _uiFlowAnimatorSettings: {fileID: 11400000, guid: 23e0c74aa1fb34c47a9fab2fed6f0388, type: 2}
   _flowCanvas: {fileID: 97459488154110057}
   _reviveSettings: {fileID: 11400000, guid: 90bbe7dbb68977b40ab15d05fda7ff0b, type: 2}
+--- !u!81 &3220108525079289649
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9095942637061900500}
+  m_Enabled: 1
