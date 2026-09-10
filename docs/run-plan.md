@@ -200,9 +200,16 @@ seven" leaves after eight. A cleared run fights twelve floors, not thirteen. Tha
 ordering nothing had written down, and it is exactly what a restructure would have broken while
 still looking like a game.
 
-**1 · The engine turns inside out.** `Ask`, `Delve`, `Resolve` as a driver over it. No UI. Done when
-the corpus replays through both front doors identically. *This is the risky step and it is first,
-because everything after it is shaped by it.*
+**1 · The engine turns inside out. — DONE.** `Ask`, `Answer`, `Delve`, and `Resolve` reduced to
+three lines over it. The corpus replays through it unchanged — 516 runs, event for event — which is
+the whole gate, because `Resolve` now IS a caller of the interactive path rather than a rival to it.
+
+Two things the corpus could not cover, so `DelveTests` does: a run is resumed by replaying its
+answers, from EVERY stop and not just one; and a fought floor stops the run holding the resolved
+fight, so playback owns the clock.
+
+`DelveRun` kept the arithmetic and lost the walk — 698 lines to 415. What is left there is what a
+floor DOES; what moved is only the order, which is the part that had to become interruptible.
 
 **2 · A fight that counts.** The summary reaches the save — runs, kills, gold banked, XP, species
 seen — and routes to the `Over` and `Xp` screens, which already exist with cards behind them. No run
@@ -231,14 +238,13 @@ against an engine that already answers.
 
 ## 8. What needs deciding
 
-1. **Iterator or thread** — §4C or §4B. My recommendation is the iterator, and the argument that
-   decides it is not elegance but blast radius: a threading mistake here is a hang, and a hang in
-   this project has twice cost more than the feature it was in.
-2. **Is WebGL ever a target?** If yes, §4B is out entirely and there is nothing to discuss. The
-   source game is a web build; the port has been aimed at a phone.
-3. **Should a run in progress survive the app closing?** The source cannot do this — a delve lives
-   in memory and closing the tab ends it. The iterator makes it possible; whether it is wanted
-   changes what `Delve` has to be able to write down.
-4. **How much of the fight screen is in scope for step 4** — the hero sprite alone, or the queue and
-   intro banner with it. The first is an afternoon; all three is closer to the fight screen the
-   source actually has.
+1. ~~**Iterator or thread**~~ **Iterator.** Done.
+2. ~~**Is WebGL ever a target?**~~ **Not currently** — and the iterator keeps the door open anyway.
+3. ~~**Should a run in progress survive the app closing?**~~ **Yes** — and it costs almost nothing.
+   A C# iterator's state cannot be serialised, so a run is not SAVED, it is REPLAYED: the whole of
+   a run in progress is its seed and its list of answers, a few dozen bytes, and resuming is
+   feeding them back. A whole run replays in about four milliseconds. There is no engine state to
+   write down and so no save format to version, which is the rarest kind of answer to this
+   question.
+4. ~~**How much of the fight screen is in scope for step 4**~~ **All of it** — the hero sprite, the
+   queue and the intro banner.

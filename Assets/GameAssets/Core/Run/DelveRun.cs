@@ -192,7 +192,7 @@ namespace RelicRun.Core.Run
         /// asserts that is still true, so adding an event that costs defence says so rather
         /// than quietly removing a guard that used to be there.
         /// </remarks>
-        private const int MinSpdBonus = -10;
+        internal const int MinSpdBonus = -10;
 
         /// <summary>Derives the event stream's seed from the run's. Knuth's golden ratio.</summary>
         public const uint EventSeedMix = 0x9E3779B9;
@@ -208,75 +208,14 @@ namespace RelicRun.Core.Run
             if (setup == null) throw new ArgumentNullException(nameof(setup));
             if (choices == null) throw new ArgumentNullException(nameof(choices));
 
-            var run = new RunState();
-            run.Rules = rules ?? RunRules.Shipped();
-            combat = combat ?? CombatRules.Delve();
-            run.Hero.Php = setup.Hp;
-            run.Hero.Pmax = setup.Hp;
-            run.Hero.Gold = setup.Gold;
-            run.Hero.BaseAtk = setup.Atk;
-            run.Hero.BaseDef = setup.Def;
-            run.Hero.BaseSpd = setup.Spd;
-            run.Hero.BaseLck = setup.Lck;
-            run.Items.AddRange(setup.StartKit);
-            run.Floor = 1;
+            var delve = new Delve(seed, setup, observer, rules, combat);
 
-            var rng = new Mulberry32(seed);
-            var events = new Mulberry32(seed ^ EventSeedMix);
-            Dictionary<int, int> placed = PlaceEvents(events);
-            var seen = new HashSet<int>();
-
-            // The opening offer is drawn before the first floor is walked, as the run is made.
-            List<RelicId> offer = RollOffer(run, setup.DraftChoices, rng);
-            List<EnemyState> nextPack = null;
-            RunEnding ending = RunEnding.Died;
-
-            while (true)
+            while (!delve.Finished)
             {
-                Draft(run, setup, offer, rng, events, choices, observer);
-
-                IReadOnlyList<EnemyState> pack =
-                    nextPack ?? EnemyPackGenerator.Build(run.Floor, rng, setup.Dungeon);
-                nextPack = null;
-
-                bool fell = Fight(run, pack, rng, choices, observer, setup, combat);
-                if (fell) break;
-
-                if (run.Floor >= MaxFloor)
-                {
-                    ending = RunEnding.Cleared;
-                    break;
-                }
-
-                nextPack = EnemyPackGenerator.Build(run.Floor + 1, rng, setup.Dungeon);
-
-                if (choices.CashOut(run, run.Floor))
-                {
-                    ending = RunEnding.CashedOut;
-                    break;
-                }
-
-                // Walking out of a floor: the event in the gap, the gate's breather, and the
-                // bazaar, which is a gate of its own and is walked out of the same way.
-                while (true)
-                {
-                    Gap(run, placed, seen, events, choices, observer);
-                    Gate(run, setup);
-
-                    if (run.Floor != BazaarFloor) break;
-
-                    Bazaar(run, rng, choices, observer, setup);
-                    if (run.Rules.BazaarRollsItsOwnPack)
-                    {
-                        nextPack = EnemyPackGenerator.Build(run.Floor + 1, rng, setup.Dungeon);
-                    }
-                }
-
-                offer = RollOffer(run, setup.DraftChoices, rng);
+                delve.Answer(delve.Pending.AskedOf(choices, delve.State));
             }
 
-            if (observer != null) observer.End(run, ending, run.Floor);
-            return run;
+            return delve.State;
         }
 
         /// <summary>
@@ -371,45 +310,15 @@ namespace RelicRun.Core.Run
             return a;
         }
 
-        private static List<RelicId> RollOffer(RunState run, int choices, Mulberry32 rng)
+        internal static List<RelicId> RollOffer(RunState run, int choices, Mulberry32 rng)
         {
             return RelicDraft.RollOffer(run.Items, choices, rng, run.Rules, GameModes.Delve);
-        }
-
-        /// <summary>The event waiting in the gap beyond a floor, if one was placed there.</summary>
-        private static void Gap(RunState run, Dictionary<int, int> placed, HashSet<int> seen,
-            Mulberry32 events, IRunChoices choices, IRunObserver observer)
-        {
-            int index;
-            if (!placed.TryGetValue(run.Floor, out index) || !seen.Add(run.Floor)) return;
-
-            DungeonEvent ev = DungeonEvents.Get(index);
-            int choice = choices.Event(run, ev);
-
-            // A counter is a counter: an outcome that costs gold pays the Debt of Flesh, the
-            // same as the bazaar and the reroll ladder do.
-            int purse = run.Gold;
-            ev.Choices[choice].Resolve(run, events);
-            if (run.Gold < purse) PayTheDebt(run);
-
-            // An event can hurt, but never kill: the floor at one is what makes the Spike Trap
-            // a scare rather than an ending, and it is why the run loop asks nothing about
-            // health here. Only a fight can end a delve.
-            //
-            // The source floors the purse at zero here too. That is not ported: an outcome that
-            // costs gold declares the cost, and a choice whose cost the purse cannot cover is
-            // never offered, so nothing can spend a delver into the red.
-            // NoEventCanSpendMoreGoldThanItAsksFor asserts that is still true.
-            run.Php = Math.Max(1, Math.Min(run.Pmax, run.Php));
-            run.Hero.SpdBonus = Math.Max(MinSpdBonus, run.Hero.SpdBonus);
-
-            if (observer != null) observer.Event(run, run.Floor, index, choice);
         }
 
         /// <summary>
         /// The gate at the end of a floor: an oath spent, a breather taken, and the next floor.
         /// </summary>
-        private static void Gate(RunState run, RunSetup setup)
+        internal static void Gate(RunState run, RunSetup setup)
         {
             // Read once, before the oath shatters. Slots are positional, so losing a relic out
             // of the middle of the tray moves every awakening behind it — and the source reads
@@ -454,121 +363,11 @@ namespace RelicRun.Core.Run
             }
         }
 
-        /// <summary>
-        /// The bazaar: a shelf of five, a list of copies that could be woken, and as many
-        /// pieces of business as the visit allows. No fight happens on this floor.
-        /// </summary>
-        /// <remarks>
-        /// One deal a visit, two with an AWAKENED Merchant's Thumb — the unawakened one only
-        /// discounts — and one more again for a delver past level fifteen. A discount is read
-        /// from merely holding a Thumb, and both prices take it.
-        /// </remarks>
-        private static void Bazaar(RunState run, Mulberry32 rng, IRunChoices choices,
-            IRunObserver observer, RunSetup setup)
-        {
-            List<RelicId> offer = RelicDraft.RollOffer(
-                run.Items, BazaarChoices, rng, run.Rules, GameModes.Delve);
-
-            // Which copies could be woken is settled on the way in, and stays settled: buying
-            // something on the first deal does not put it on the awakening shelf.
-            List<int> awakenable = run.Awakenable();
-            int done = 0;
-
-            while (true)
-            {
-                BazaarDeal deal = choices.Bazaar(run, offer, awakenable);
-                if (deal.Kind == DealKind.None) break;
-
-                int allowed = DealsAllowed(run, setup);
-
-                if (deal.Kind == DealKind.Awaken)
-                {
-                    // Only a copy the shelf actually carried. The source checks the slot holds
-                    // something and is not already awake, and leans on the UI for the rest —
-                    // which is fine until something that is not the UI asks.
-                    if (!awakenable.Contains(deal.Slot)) break;
-
-                    int price = PriceOf(run, AwakenPrice);
-                    if (run.Gold < price) break;
-
-                    RelicId woken = run.Items[deal.Slot];
-                    done++;
-                    run.Gold -= price;
-                    PayTheDebt(run);
-                    run.Awaken(deal.Slot);
-
-                    // The shelf closes: one awakening a visit, whatever else the visit allows.
-                    awakenable = new List<int>();
-
-                    // The idol fills: it gave up fifteen of the pool to join every set, and
-                    // waking it hands them back. Unreachable in the source for the same reason
-                    // as the Thumb and the Stomach above — a Hollow Idol does not stack.
-                    if (woken == RelicId.HollowIdol)
-                    {
-                        run.Pmax += 15;
-                        run.Php = Math.Min(run.Pmax, run.Php + 15);
-                    }
-                }
-                else
-                {
-                    int price = PriceOf(run, BuyPrice);
-                    if (run.Gold < price || !offer.Contains(deal.Relic)) break;
-
-                    done++;
-                    run.Gold -= price;
-                    PayTheDebt(run);
-                    Pickup.Take(run, deal.Relic);
-
-                    // A relic that does not stack leaves the shelf; one that does stays.
-                    if (!run.Rules.Stacks(deal.Relic)) offer.RemoveAll(id => id == deal.Relic);
-                }
-
-                if (observer != null) observer.Deal(run, run.Floor, offer, awakenable, deal);
-                if (done >= allowed) break;
-            }
-
-            // The walk-out closes the visit, so a watcher sees where the delver left it — the
-            // shelf they did not clear as much as the deals they took.
-            if (observer != null)
-            {
-                observer.Deal(run, run.Floor, offer, awakenable, BazaarDeal.Walk);
-            }
-        }
-
         /// <summary>What a counter charges. A Merchant's Thumb shaves a fifth off it.</summary>
         public static int PriceOf(RunState run, int list)
         {
             double price = list * (run.Has(RelicId.MerchantsThumb) ? run.Rules.ThumbDiscount : 1.0);
             return JsMath.RoundToInt(price);
-        }
-
-        /// <summary>The draft, and however many rerolls are paid for.</summary>
-        private static void Draft(RunState run, RunSetup setup, List<RelicId> offer,
-            Mulberry32 rng, Mulberry32 events, IRunChoices choices, IRunObserver observer)
-        {
-            int rerolls = 0;
-            int floor = run.Floor;
-
-            while (true)
-            {
-                int price = RerollPrice(run);
-                if (run.Gold < price || !choices.Reroll(run, offer, price)) break;
-
-                run.Gold -= price;
-                run.Rerolls++;
-                rerolls++;
-                PayTheDebt(run);
-
-                // Not a slip: the shipped reroll draws its replacement from the EVENT stream.
-                offer.Clear();
-                offer.AddRange(RelicDraft.RollOffer(
-                    run.Items, setup.DraftChoices, events, run.Rules, GameModes.Delve));
-            }
-
-            RelicId pick = choices.Draft(run, offer);
-            Pickup.Take(run, pick);
-
-            if (observer != null) observer.Draft(run, floor, offer, rerolls, pick);
         }
 
         /// <summary>What the next reroll costs: it doubles each time, and a Thumb shaves a fifth.</summary>
@@ -602,97 +401,14 @@ namespace RelicRun.Core.Run
         /// floor thirteen and is brought back still collects it: the crown is paid for clearing
         /// the floor, not for the manner of it.
         /// </remarks>
-        private static void Crown(RunState run)
+        internal static void Crown(RunState run)
         {
             if (run.Php > 0 && run.Floor >= MaxFloor) run.Gold += ClearPurse;
         }
 
-        private static void PayTheDebt(RunState run)
+        internal static void PayTheDebt(RunState run)
         {
             run.Php = Math.Min(run.Pmax, run.Php + DebtPayment(run));
-        }
-
-        /// <summary>
-        /// The floor's fight, and the one chance to be brought back. True if the hero stayed down.
-        /// </summary>
-        private static bool Fight(RunState run, IReadOnlyList<EnemyState> pack, Mulberry32 rng,
-            IRunChoices choices, IRunObserver observer, RunSetup setup, CombatRules combat)
-        {
-            // Gold an earlier event promised for this floor arrives as the fight opens.
-            if (run.Pending.HasValue && run.Pending.Value.Floor == run.Floor)
-            {
-                run.Gold += run.Pending.Value.Gold;
-                run.Pending = null;
-            }
-
-            int ceiling = run.Pmax;
-
-            // A floor may get its own copy of the Flesh set's flag, and never hand it back.
-            bool fleshSet = run.Hero.FleshSetApplied;
-            if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = false;
-
-            CombatResult result = new CombatEngine(combat).ResolveFloor(run.Hero, pack, rng);
-            run.BreathHealed = 0;
-            if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = fleshSet;
-
-            // Health is clamped to the ceiling the floor OPENED with. A Chalice that grew the
-            // pool mid-fight raises the ceiling only once the fight is over, so the health it
-            // bought does not arrive with it. That is the source's order, and it costs a
-            // Bottomless Chalice its first floor of growth every time.
-            run.Php = Math.Min(run.Php, ceiling);
-            Crown(run);
-
-            if (observer != null) observer.Fight(run, run.Floor, pack, result);
-            if (run.Php > 0) return false;
-
-            if (!run.Revived && choices.Revive(run, run.Floor))
-            {
-                Revive(run, pack, result, rng, observer, setup, combat);
-                if (run.Php > 0) return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Brought back on half a pool, once per run, and set straight back into the fight that
-        /// ended it.
-        /// </summary>
-        /// <remarks>
-        /// The floor does not start again. The hero resumes against the foe that felled them,
-        /// still carrying the wounds it took, and against whatever was behind it — with the
-        /// floor's own carried state intact, so an Anvil Heart's bonus and a Sentinel's defence
-        /// survive the death that interrupted them. A hero who fell to the last foe of the pack
-        /// as it died gets a fresh pack instead, rolled for the same floor.
-        /// </remarks>
-        private static void Revive(RunState run, IReadOnlyList<EnemyState> pack,
-            CombatResult fell, Mulberry32 rng, IRunObserver observer, RunSetup setup,
-            CombatRules combat)
-        {
-            run.Revived = true;
-            run.Php = Math.Max(1, (int)Math.Floor(run.Pmax / 2.0));
-
-            var remaining = new List<EnemyState>();
-            for (int i = fell.FoeIndex; i < pack.Count; i++) remaining.Add(pack[i]);
-
-            // The foe that killed the hero keeps the wounds it took getting there.
-            if (remaining.Count > 0) remaining[0].Hp = Math.Max(1, fell.FoeHp);
-            else remaining.AddRange(EnemyPackGenerator.Build(run.Floor, rng, setup.Dungeon));
-
-            if (observer != null) observer.Revived(run, run.Floor);
-
-            int ceiling = run.Pmax;
-            bool fleshSet = run.Hero.FleshSetApplied;
-            if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = false;
-
-            run.Hero.Carry = fell.Carry;
-            CombatResult result = new CombatEngine(combat).ResolveFloor(run.Hero, remaining, rng);
-            run.Hero.Carry = null;
-            if (!run.Rules.FleshSetSurvivesTheFloor) run.Hero.FleshSetApplied = fleshSet;
-            run.Php = Math.Min(run.Php, ceiling);
-            Crown(run);
-
-            if (observer != null) observer.Fight(run, run.Floor, remaining, result);
         }
     }
 }

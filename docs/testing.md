@@ -1596,3 +1596,4 @@ node Tools/extract/validate.mjs
 | Phase 10p — the supporter pack | none — invariants | passing, the one modal that is fully translated |
 | Phase 11a — one floor, resolved | none — invariants | passing, the plan, the clamp and the delver's statline |
 | Phase 11b — walking out of a delve | none — invariants | passing, 5 cases · the branch no recorded run takes |
+| Phase 11c — a delve, a stop at a time | `delve.json` | passing, 516 runs through the iterator · resume by replay |
