@@ -169,12 +169,45 @@ namespace RelicRun.Editor.Importers
                 if (!Copy(cut.File, ttf)) continue;
 
                 TMP_FontAsset face = Bake(cut, ttf, wanted);
-                if (face != null) face.fallbackFontAssetTable = new List<TMP_FontAsset>(fallbacks);
+                if (face != null) Bind(face, fallbacks);
 
                 bound.Add(new FontBook.Face(cut.Role, face));
             }
 
             return bound;
+        }
+
+        /// <summary>
+        /// Hands a face the borrowed chain, and only writes when it is a different chain.
+        /// </summary>
+        /// <remarks>
+        /// Assigning it unconditionally and marking the asset dirty was fine while every import
+        /// rebuilt the face anyway. Now that an unchanged face is left alone, an unconditional
+        /// write would put it straight back in the diff — same list, same order, newly dirty.
+        /// The chain does depend on the machine, though: it is made of whichever system families
+        /// the importer could actually see, so it can legitimately differ between two people's
+        /// runs, and when it does it has to be recorded.
+        /// </remarks>
+        private static void Bind(TMP_FontAsset face, List<TMP_FontAsset> fallbacks)
+        {
+            List<TMP_FontAsset> already = face.fallbackFontAssetTable;
+
+            if (already != null && already.Count == fallbacks.Count)
+            {
+                bool same = true;
+                for (int i = 0; i < fallbacks.Count; i++)
+                {
+                    if (already[i] == fallbacks[i]) continue;
+
+                    same = false;
+                    break;
+                }
+
+                if (same) return;
+            }
+
+            face.fallbackFontAssetTable = new List<TMP_FontAsset>(fallbacks);
+            EditorUtility.SetDirty(face);
         }
 
         /// <summary>
@@ -329,14 +362,124 @@ namespace RelicRun.Editor.Importers
             EditorUtility.SetDirty(face);
         }
 
+        /// <summary>How much room a cut wants around each glyph.</summary>
+        /// <remarks>Asked rather than repeated, so the recipe cannot disagree with the bake.</remarks>
+        private static int Padding(Cut cut)
+        {
+            return cut.Pixels ? PixelPadding : FieldPadding;
+        }
+
+        /// <summary>How a cut wants its glyphs drawn.</summary>
+        private static GlyphRenderMode Mode(Cut cut)
+        {
+            return cut.Pixels ? GlyphRenderMode.RASTER : GlyphRenderMode.SDFAA;
+        }
+
         /// <summary>
-        /// Bakes one face.
+        /// Everything a bake was made from, written down so the next run can tell whether to
+        /// bother doing it again.
+        /// </summary>
+        /// <remarks>
+        /// This is the whole of a defect that had to be worked around twice. A font asset is
+        /// three objects in one file — the face, its atlas texture and its material — and only
+        /// the face has a fixed local id. The other two get whatever id Unity hands out when
+        /// <see cref="Seal"/> puts them there, and every label in the game points at the material
+        /// by that id. Deleting the asset and making a new one, which is what an import used to
+        /// do unconditionally, hands out fresh ids and quietly unhooks forty-odd prefabs. Nothing
+        /// errors: TMP falls back to its default material, and the game renders in a face nobody
+        /// chose until somebody looks at a screenshot. Both times it was patched afterwards by
+        /// regenerating the scenes, which worked only because every affected prefab happened to
+        /// be generated.
+        ///
+        /// So the bake is skipped when nothing feeding it has moved, and the ids stay put because
+        /// nothing has been deleted. The recipe is everything that feeds it: the face's own bytes,
+        /// how it is sampled, how it is packed, and exactly which characters were asked for. The
+        /// bytes rather than the timestamp, because a fresh clone's timestamps are all the moment
+        /// of checkout and in no useful order — trusting them would re-bake on every machine that
+        /// ever checks the project out, which is the same defect wearing a hat.
+        ///
+        /// It is kept in the importer's <c>userData</c>, a string Unity holds in the <c>.meta</c>
+        /// for exactly this sort of thing. The .meta is committed, so the knowledge that these
+        /// fonts are already baked travels with them.
+        /// </remarks>
+        private static string Recipe(Cut cut, string ttf, string wanted)
+        {
+            string absolute = System.IO.Path.Combine(ContentPaths.ProjectRoot,
+                ttf.Replace('/', System.IO.Path.DirectorySeparatorChar));
+
+            return "FontImporter 1" +
+                   "; " + cut.File + " " + Fingerprint(System.IO.File.ReadAllBytes(absolute)) +
+                   "; " + cut.SamplingSize + "px" +
+                   "; padding " + Padding(cut) +
+                   "; " + Mode(cut) +
+                   "; " + cut.Atlas + "x" + cut.Atlas +
+                   "; " + Legibility.Needed(new[] { wanted }).Count + " characters " +
+                   Fingerprint(Encoding.UTF8.GetBytes(wanted));
+        }
+
+        /// <summary>A digest of some bytes, the same on every machine that reads them.</summary>
+        private static string Fingerprint(byte[] bytes)
+        {
+            var said = new StringBuilder();
+
+            using (var digest = System.Security.Cryptography.SHA256.Create())
+            {
+                foreach (byte one in digest.ComputeHash(bytes)) said.Append(one.ToString("x2"));
+            }
+
+            return said.ToString();
+        }
+
+        /// <summary>The recipe the asset at this path was last baked from, or null.</summary>
+        private static string Baked(string path)
+        {
+            AssetImporter importer = AssetImporter.GetAtPath(path);
+            return importer == null ? null : importer.userData;
+        }
+
+        /// <summary>Records what a bake was made from, without reimporting the thing it made.</summary>
+        private static void Stamp(string path, string recipe)
+        {
+            AssetImporter importer = AssetImporter.GetAtPath(path);
+            if (importer == null) return;
+
+            importer.userData = recipe;
+            AssetDatabase.WriteImportSettingsIfDirty(path);
+        }
+
+        /// <summary>
+        /// Whether the asset on disk actually came out the shape this cut asks for.
+        /// </summary>
+        /// <remarks>
+        /// Asked beside the recipe, not instead of it. The recipe says what went in; this says
+        /// what came out, and it is what catches a face somebody edited by hand or an import that
+        /// died halfway through and left a stamp behind. What it cannot catch is a sub-asset that
+        /// went missing after the fact — <c>Tools/check/fontrefs.py</c> is the tripwire for that.
+        /// </remarks>
+        private static bool Matches(TMP_FontAsset face, Cut cut)
+        {
+            return face.faceInfo.pointSize == cut.SamplingSize &&
+                   face.atlasWidth == cut.Atlas &&
+                   face.atlasHeight == cut.Atlas &&
+                   face.atlasPadding == Padding(cut) &&
+                   face.atlasRenderMode == Mode(cut) &&
+                   face.atlasPopulationMode == AtlasPopulationMode.Static &&
+                   face.atlasTexture != null &&
+                   face.material != null;
+        }
+
+        /// <summary>
+        /// Bakes one face, unless the one already there was baked from the same things.
         /// </summary>
         /// <remarks>
         /// TMP's own recipe, in TMP's own order, and the order is not negotiable: a font asset
         /// refuses to add characters once its atlas is Static, so it is created Dynamic, filled,
         /// and only then sealed. Sealing matters — a Dynamic asset in a build rasterises glyphs
         /// at runtime from font data that has to ship alongside it.
+        ///
+        /// The delete is still here and is still what randomises the sub-asset ids. It is reached
+        /// only when the face genuinely has to be rebuilt, which is a thing worth knowing about
+        /// when it happens — see <see cref="Recipe"/> for why, and run the reference check after.
         /// </remarks>
         private static TMP_FontAsset Bake(Cut cut, string ttf, string wanted)
         {
@@ -349,6 +492,16 @@ namespace RelicRun.Editor.Importers
                 importer.SaveAndReimport();
             }
 
+            string path = ContentPaths.Fonts + "/" + cut.Role + ".asset";
+            string recipe = Recipe(cut, ttf, wanted);
+
+            var already = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
+            if (already != null && Baked(path) == recipe && Matches(already, cut))
+            {
+                Report(cut, already, wanted, false);
+                return already;
+            }
+
             var font = AssetDatabase.LoadAssetAtPath<Font>(ttf);
             if (font == null)
             {
@@ -356,13 +509,10 @@ namespace RelicRun.Editor.Importers
                 return null;
             }
 
-            string path = ContentPaths.Fonts + "/" + cut.Role + ".asset";
             AssetDatabase.DeleteAsset(path);
 
             TMP_FontAsset face = TMP_FontAsset.CreateFontAsset(
-                font, cut.SamplingSize,
-                cut.Pixels ? PixelPadding : FieldPadding,
-                cut.Pixels ? GlyphRenderMode.RASTER : GlyphRenderMode.SDFAA,
+                font, cut.SamplingSize, Padding(cut), Mode(cut),
                 cut.Atlas, cut.Atlas, AtlasPopulationMode.Dynamic, false);
 
             if (face == null)
@@ -374,14 +524,31 @@ namespace RelicRun.Editor.Importers
             face.name = cut.Role;
             AssetDatabase.CreateAsset(face, path);
 
-            string missing;
-            face.TryAddCharacters(wanted, out missing);
+            face.TryAddCharacters(wanted);
 
             face.atlasPopulationMode = AtlasPopulationMode.Static;
             Seal(face, path, cut.Role, cut.Pixels);
-            Report(cut, face, wanted, missing);
+            Stamp(path, recipe);
+            Report(cut, face, wanted, true);
 
             return face;
+        }
+
+        /// <summary>The code points the game asks for that this face has no glyph for.</summary>
+        /// <remarks>
+        /// Read off the face rather than off what a bake reported it could not add, so the same
+        /// question can be asked of a face this run did not touch.
+        /// </remarks>
+        private static List<int> Absent(TMP_FontAsset face, string wanted)
+        {
+            var gone = new List<int>();
+
+            foreach (int point in Legibility.Needed(new[] { wanted }))
+            {
+                if (!face.HasCharacter(point)) gone.Add(point);
+            }
+
+            return gone;
         }
 
         /// <summary>
@@ -393,14 +560,15 @@ namespace RelicRun.Editor.Importers
         /// same three languages <c>LegibilityTests</c> asserts as unreadable, so this cannot
         /// quietly become true or quietly stop being true.
         /// </remarks>
-        private static void Report(Cut cut, TMP_FontAsset face, string wanted, string missing)
+        private static void Report(Cut cut, TMP_FontAsset face, string wanted, bool baked)
         {
             int asked = Legibility.Needed(new[] { wanted }).Count;
-            int absent = missing == null ? 0 : Legibility.Needed(new[] { missing }).Count;
+            int absent = Absent(face, wanted).Count;
 
             string said = cut.Role + " — " + cut.File + " at " + cut.SamplingSize + "px, " +
-                          face.characterTable.Count + " glyphs baked into a " +
-                          cut.Atlas + "x" + cut.Atlas + " atlas";
+                          face.characterTable.Count + " glyphs in a " +
+                          cut.Atlas + "x" + cut.Atlas + " atlas" +
+                          (baked ? ", freshly baked" : ", unchanged since it was baked");
 
             if (absent == 0)
             {
