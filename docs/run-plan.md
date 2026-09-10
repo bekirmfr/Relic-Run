@@ -308,12 +308,43 @@ change which numbers the RNG draws, and every recorded run with them.
 the same 2.6 seconds the hall already pans by, so walking down and walking along a floor move at
 one speed. Without it the gate's two buttons cut straight to the next draft, and the rail's step is
 something a delver can only notice afterwards: the difference between having chosen to go deeper
-and finding oneself deeper. The source slides a new dungeon band up from below while this happens;
-that is NOT ported and cannot be yet, because the hall art is keyed by tier rather than by floor,
-so a descent would slide one image onto itself.
+and finding oneself deeper.
+
+I first wrote here that the source's sliding dungeon band could not be ported, because the hall art
+is keyed by tier rather than by floor — one image per dungeon, so a descent would slide a picture
+onto itself. **That was wrong**, and reading `bandPlate` properly is what showed it. The two bands
+are usually the same picture, and it does not matter: the floor being left is panned to wherever
+the delver fought their way to, and the floor arriving opens at its LEFT door. The slide is a walk
+from one hall's far door to the next hall's near one, which is the whole story it tells. It is
+ported now — see the entry below.
 
 Eight more strings joined the port's own `ADDED` table. The gate is the most consequential screen
 in the game and it was going to be entirely English otherwise.
+
+**5a · The descent, drawn. — DONE.** Two bands and one number. `HallView` holds the floor underfoot
+and the floor below it, always exactly one window apart, and a descent lifts both by one window
+height — which is the source's arrangement exactly: a slider carrying both, translated up a hundred
+per cent. The band arriving is drawn at pan zero, its left door, because that is what makes the
+slide read as a descent rather than a jump.
+
+The rail's marker walks with it. `FloorRailView` gained the source's little gold pointer, and it
+slides one node further down over the same duration with the same easing — the two are one movement
+seen twice, so easing them differently would let them drift apart in the middle and read as two
+things happening at once. The marker is placed from where the nodes ACTUALLY ARE after a forced
+layout pass, not from arithmetic over their sizes; the nodes resize around whichever floor is
+underfoot, so every node moves whenever the rail is redrawn.
+
+Two details that are not decoration. The rail is drawn for the floor being LEFT and only the marker
+moves, because redrawing for the new floor first would resize the whole rail under a marker that
+had not set off — showing the delver the destination before the journey. And the marker stops
+HALFWAY when an event is waiting, because an event sits in the gap between two floors and a delver
+who has walked into one has not arrived at the floor beyond it. That is also why the run can be
+mid-descent with its floor not yet advanced: `Delve` yields the event before it steps through the
+gate, so a pending event is exactly the signal that the walk ends in the gap.
+
+Still missing, and now the only part that is: the bazaar's own hall. The source gives that floor
+`hall-bazaar.png` and the port has not imported it, so descending into the bazaar arrives in the
+dungeon's own hall. That is the line in `HallView.Descend` that changes when the art lands.
 
 **6 · The rest.** `event`, `shop` / `merchant` with socket picking, `revive`, `pause`. Each is a
 stage the engine already answers and a screen that does not exist.

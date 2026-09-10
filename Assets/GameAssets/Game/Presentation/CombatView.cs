@@ -212,6 +212,19 @@ namespace RelicRun.Game.Presentation
             gauge.fillAmount = 0f;
         }
 
+        /// <summary>
+        /// Walks the hall down to the floor below.
+        /// </summary>
+        /// <remarks>
+        /// Forwarded rather than reached through. The hall is this view's scenery and nothing
+        /// outside it should know the hall exists — the scene knows it is descending, and this
+        /// knows what descending looks like.
+        /// </remarks>
+        public void Descend(float seconds)
+        {
+            if (_hall != null) _hall.Descend(seconds);
+        }
+
         /// <summary>Draws one event.</summary>
         public void Show(int index, CombatEvent shown)
         {

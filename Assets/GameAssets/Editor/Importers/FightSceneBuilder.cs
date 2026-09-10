@@ -534,6 +534,35 @@ namespace RelicRun.Editor.Importers
         /* ---------- the pieces ---------- */
 
         /// <summary>
+        /// One band of hall: a picture as wide as its own shape, pinned to the window's left.
+        /// </summary>
+        /// <remarks>
+        /// Two of these are built and only one is usually on. The second is the floor below, and
+        /// it exists so a descent has something to arrive at — see <see cref="HallView.Descend"/>.
+        /// </remarks>
+        private static GameObject Band(GameObject window, string name)
+        {
+            var band = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)band.transform;
+
+            rect.SetParent(window.transform, false);
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+
+            Image picture = band.GetComponent<Image>();
+            picture.color = Color.white;
+            picture.enabled = false;
+
+            // Nothing behind the hall reads a click, and the hall itself is scenery. Left on,
+            // the full-screen window would swallow every press meant for what is drawn over it.
+            picture.raycastTarget = false;
+
+            return band;
+        }
+
+
+        /// <summary>
         /// The gate between two floors: risk the purse, or walk away with it.
         /// </summary>
         /// <remarks>
@@ -952,6 +981,22 @@ namespace RelicRun.Editor.Importers
             // by the layout group as well as by the drawing, which is what makes this work.
             node.SetActive(false);
 
+            // The marker, over the nodes rather than among them: a child of the row would be
+            // laid out as a fourteenth floor. It is the last thing built under the rail, so it
+            // is painted over every node it passes.
+            GameObject arrow = Box(panel, "Here", new Vector2(0f, 0.5f), new Vector2(7f, 7f),
+                new Vector2(0f, 11f));
+
+            Image tip = arrow.GetComponent<Image>();
+            tip.sprite = White();
+            tip.color = new Color(0.890f, 0.702f, 0.255f);
+            tip.enabled = true;
+            tip.raycastTarget = false;
+
+            // Turned on its corner, which is as close as a square gets to the source's little
+            // downward triangle without a sprite nobody would ever look at twice.
+            arrow.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
             var view = panel.AddComponent<FloorRailView>();
 
             Wire(view, new[]
@@ -959,6 +1004,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_line", line.GetComponent<TMP_Text>()),
                 Pair("_nodes", (RectTransform)nodes.transform),
                 Pair("_node", dot),
+                Pair("_arrow", (RectTransform)arrow.transform),
             });
 
             return view;
@@ -1295,29 +1341,23 @@ namespace RelicRun.Editor.Importers
 
             window.AddComponent<RectMask2D>();
 
-            var art = new GameObject("Art", typeof(RectTransform), typeof(Image));
-            var rect = (RectTransform)art.transform;
+            // The floor below FIRST, so the floor underfoot is painted over it. A canvas paints
+            // in hierarchy order, and during a descent the two overlap by exactly the amount the
+            // first has been lifted.
+            GameObject under = Band(window, "Next");
+            GameObject art = Band(window, "Art");
 
-            rect.SetParent(window.transform, false);
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 0.5f);
-
-            Image picture = art.GetComponent<Image>();
-            picture.color = Color.white;
-            picture.enabled = false;
-
-            // Nothing behind the hall reads a click, and the hall itself is scenery. Left on,
-            // the full-screen window would swallow every press meant for what is drawn over it.
-            picture.raycastTarget = false;
+            under.SetActive(false);
 
             var view = window.AddComponent<HallView>();
 
             Wire(view, new[]
             {
                 Pair("_window", (RectTransform)window.transform),
-                Pair("_art", rect),
-                Pair("_picture", picture),
+                Pair("_art", (RectTransform)art.transform),
+                Pair("_picture", art.GetComponent<Image>()),
+                Pair("_next", (RectTransform)under.transform),
+                Pair("_nextPicture", under.GetComponent<Image>()),
                 Pair("_content", content),
             });
 

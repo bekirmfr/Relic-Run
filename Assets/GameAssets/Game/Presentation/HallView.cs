@@ -31,6 +31,11 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private RectTransform _art;
 
         [SerializeField] private Image _picture;
+
+        [Tooltip("The floor below, which rises into the window during a descent.")]
+        [SerializeField] private RectTransform _next;
+
+        [SerializeField] private Image _nextPicture;
         [SerializeField] private GameContent _content;
 
         private int _foes;
@@ -39,6 +44,20 @@ namespace RelicRun.Game.Presentation
         private double _to;
         private float _started;
         private float _over;
+
+        /// <summary>
+        /// How far the hall has been lifted, in units, out of one window height.
+        /// </summary>
+        /// <remarks>
+        /// The descent, and the only thing on this view that moves vertically. Both bands ride
+        /// it: the floor being left sits at the lift and the floor below sits one window under
+        /// that, so lifting by exactly one window swaps which of them fills it.
+        /// </remarks>
+        private float _lift;
+
+        private float _fellFrom;
+        private float _fellAt;
+        private float _falling;
 
         /// <summary>
         /// The hall this view loaded, so it can be let go of.
@@ -68,6 +87,12 @@ namespace RelicRun.Game.Presentation
             _to = 0d;
             _over = 0f;
 
+            // A floor opens flush against its own window, whatever a descent left behind.
+            _lift = 0f;
+            _falling = 0f;
+
+            if (_next != null) _next.gameObject.SetActive(false);
+
             Place(0d);
             Fetch(tier).Forget();
         }
@@ -95,6 +120,84 @@ namespace RelicRun.Game.Presentation
             if (_over <= 0f) Place(_to);
         }
 
+        /// <summary>
+        /// The walk down: this floor rises out of the window and the next one rises into it.
+        /// </summary>
+        /// <remarks>
+        /// Two bands and one number. The floor being left is lifted by a full window height while
+        /// the floor below — which starts one window under it — arrives exactly where the first
+        /// one was. That is the source's own arrangement: a slider holding both, translated up by
+        /// a hundred per cent.
+        ///
+        /// The band below opens at its LEFT door, which is what makes the slide read as a
+        /// descent rather than a jump even when both bands are the same picture. A delve fights
+        /// its way to the right-hand door of a floor; arriving at the left-hand door of the next
+        /// one is the whole story the animation tells.
+        ///
+        /// Within a delve both bands ARE the same picture, because a hall is one image per
+        /// dungeon rather than one per floor. The bazaar is the source's exception — it has a
+        /// hall of its own — and that art is not imported yet, so this is the line that changes
+        /// when it is.
+        /// </remarks>
+        public void Descend(float seconds)
+        {
+            if (_next == null || _window == null) return;
+
+            _next.gameObject.SetActive(true);
+
+            if (_nextPicture != null && _picture != null)
+            {
+                _nextPicture.sprite = _picture.sprite;
+                _nextPicture.enabled = _picture.enabled;
+            }
+
+            _fellFrom = _lift;
+            _fellAt = Time.unscaledTime;
+            _falling = seconds;
+
+            if (_falling <= 0f) Landed();
+            else Lift(_lift);
+        }
+
+        /// <summary>How far down the walk is, as a height in units.</summary>
+        private float Fallen()
+        {
+            if (_falling <= 0f) return _lift;
+
+            float over = Mathf.Clamp01((Time.unscaledTime - _fellAt) / _falling);
+
+            return Mathf.Lerp(_fellFrom, _window.rect.height, Ease(over));
+        }
+
+        /// <summary>
+        /// Arrived. The floor that rose into the window becomes the floor underfoot.
+        /// </summary>
+        /// <remarks>
+        /// The lift goes back to nothing rather than staying at one window height, because the
+        /// next descent has to start from a hall sitting still. Leaving it lifted would work
+        /// exactly once.
+        /// </remarks>
+        private void Landed()
+        {
+            _falling = 0f;
+            _lift = 0f;
+
+            if (_nextPicture != null && _picture != null && _nextPicture.sprite != null)
+            {
+                _picture.sprite = _nextPicture.sprite;
+                _picture.enabled = _nextPicture.enabled;
+            }
+
+            if (_next != null) _next.gameObject.SetActive(false);
+
+            _from = 0d;
+            _to = 0d;
+            _over = 0f;
+            _stride = 0;
+
+            Place(0d);
+        }
+
         private double Showing()
         {
             if (_over <= 0f) return _to;
@@ -106,11 +209,38 @@ namespace RelicRun.Game.Presentation
 
         private void Update()
         {
+            if (_falling > 0f)
+            {
+                Lift(Fallen());
+
+                if (Time.unscaledTime - _fellAt >= _falling) Landed();
+
+                return;
+            }
+
             if (_over <= 0f) return;
 
             Place(Showing());
 
             if (Time.unscaledTime - _started >= _over) _over = 0f;
+        }
+
+        /// <summary>
+        /// Puts both bands where a descent this far along says they go.
+        /// </summary>
+        /// <remarks>
+        /// The band below is always exactly one window under the one above it, and is always
+        /// drawn at its left door. Panning it would be panning a floor nobody has walked yet.
+        /// </remarks>
+        private void Lift(float lifted)
+        {
+            _lift = lifted;
+
+            Place(Showing());
+
+            if (_next == null || _window == null) return;
+
+            Place(_next, 0d, lifted - _window.rect.height);
         }
 
         /// <summary>
@@ -127,21 +257,33 @@ namespace RelicRun.Game.Presentation
                 : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
         }
 
-        /// <summary>Puts the art where a pan of this much says it goes.</summary>
+        /// <summary>Puts the hall where a pan of this much says it goes.</summary>
         private void Place(double pan)
         {
-            if (_window == null || _art == null) return;
+            Place(_art, pan, _lift);
+        }
+
+        /// <summary>The same, for either band, at a height of its own.</summary>
+        /// <remarks>
+        /// A band is as wide as its own aspect at the window's height and is anchored to the
+        /// window's left edge, so the pan is an offset rather than a fraction — see
+        /// <see cref="HallPan"/>. Stretched instead, a hall would put its doors somewhere other
+        /// than its edges and the walk would begin in the middle of a wall.
+        /// </remarks>
+        private void Place(RectTransform band, double pan, float y)
+        {
+            if (_window == null || band == null) return;
 
             float tall = _window.rect.height;
             float wide = (float)HallPan.Width(tall, Aspect(), 1d);
 
-            _art.anchorMin = new Vector2(0f, 0f);
-            _art.anchorMax = new Vector2(0f, 1f);
-            _art.pivot = new Vector2(0f, 0.5f);
-            _art.sizeDelta = new Vector2(wide, 0f);
+            band.anchorMin = new Vector2(0f, 0f);
+            band.anchorMax = new Vector2(0f, 1f);
+            band.pivot = new Vector2(0f, 0.5f);
+            band.sizeDelta = new Vector2(wide, 0f);
 
-            _art.anchoredPosition = new Vector2(
-                (float)HallPan.Offset(_window.rect.width, wide, pan), 0f);
+            band.anchoredPosition = new Vector2(
+                (float)HallPan.Offset(_window.rect.width, wide, pan), y);
         }
 
         /// <summary>

@@ -301,26 +301,56 @@ namespace RelicRun.Game.Presentation
         /// something a delver can only notice afterwards — which is the difference between having
         /// chosen to go deeper and finding oneself deeper.
         ///
-        /// The source slides a new dungeon band up from below while this happens. That is not
-        /// ported and cannot be yet: the hall art is keyed by TIER, not by floor, so there is no
-        /// second band to slide — a descent here would slide one image onto itself. What is real
-        /// is the pause and the rail, so that is what this does.
+        /// Three things at one speed. The floor being left rises out of the window and the floor
+        /// below rises into it; the rail's marker walks one node further down; and nothing is
+        /// asked for as long as both take. The length is the pacing's own <c>PanMs</c>, the same
+        /// number the hall pans a floor by, so the walk down and the walk along move alike.
         ///
-        /// The length is the pacing's own <c>PanMs</c>, the number the hall already pans by, so
-        /// the walk down and the walk along a floor move at one speed.
+        /// The rail is drawn for the floor being LEFT rather than the one arriving, and only the
+        /// marker moves. The nodes resize around whichever floor is underfoot, so redrawing for
+        /// the new floor first would resize the whole rail under a marker that had not set off
+        /// yet — the delver would see the destination before the journey.
+        ///
+        /// The marker stops HALFWAY when an event is waiting. An event sits in the gap between
+        /// two floors, and a delver who has walked into one has not arrived at the floor beyond
+        /// it. Which is also why the run can be mid-descent with its floor not yet advanced: the
+        /// engine yields the event before it steps through the gate.
         /// </remarks>
         private async UniTask Travelling(Delve delve)
         {
             Nothing();
-            Rail(delve);
+
+            // An event pending means the engine stopped IN the gap, so the floor underfoot is
+            // still the one just cleared. Without one it has already stepped through.
+            bool waiting = !delve.Finished && delve.Pending.Kind == AskKind.Event;
+
+            int to = waiting ? delve.State.Floor + 1 : delve.State.Floor;
 
             int held = _content != null && _content.Presentation != null
                 ? _content.Presentation.ToPacing().PanMs
                 : 0;
 
-            if (held <= 0 || Reduced()) return;
+            if (held <= 0 || Reduced())
+            {
+                Rail(delve);
+                return;
+            }
+
+            var seconds = held / 1000f;
+
+            if (_rail != null)
+            {
+                _rail.Show(FloorRails.Of(to - 1, delve.Events));
+                _rail.Walk(to, waiting, seconds);
+            }
+
+            if (_view != null) _view.Descend(seconds);
 
             await UniTask.Delay(held, DelayType.UnscaledDeltaTime);
+
+            if (Gone) return;
+
+            Rail(delve);
         }
 
         /// <summary>

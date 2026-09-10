@@ -27,6 +27,9 @@ namespace RelicRun.Game.Presentation
 
         [SerializeField] private Image _node;
 
+        [Tooltip("The marker over the floor underfoot. Slides rather than jumps.")]
+        [SerializeField] private RectTransform _arrow;
+
         /// <summary>Behind the delver: the thread and the floors they have walked.</summary>
         private static readonly Color Walked = new Color(0.55f, 0.51f, 0.45f);
 
@@ -42,6 +45,11 @@ namespace RelicRun.Game.Presentation
         private static readonly Color Met = new Color(0.29f, 0.27f, 0.38f);
 
         private readonly List<Image> _spawned = new List<Image>();
+
+        private float _from;
+        private float _to;
+        private float _started;
+        private float _over;
 
         /// <summary>Draws the rail for a run standing on a floor.</summary>
         public void Show(FloorRailCard card)
@@ -72,6 +80,121 @@ namespace RelicRun.Game.Presentation
 
                 Draw(_spawned[i], card.Floors[i]);
             }
+
+            // Measured NOW, not at the end of the frame. The marker is placed from where the
+            // nodes actually are, and the nodes have just been resized — a marker placed before
+            // the layout ran would sit over whichever floor was underfoot last time.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_nodes);
+
+            Point(card.Floor, false);
+        }
+
+        /// <summary>
+        /// Puts the marker over a floor at once, wherever it was.
+        /// </summary>
+        /// <remarks>
+        /// The nodes resize as the delver walks — whichever is underfoot is drawn bigger — so
+        /// every node's position moves whenever the rail is redrawn. The marker is therefore
+        /// placed from where the node ACTUALLY IS after the layout has run, rather than from
+        /// arithmetic over the sizes, which is what the source has to do in CSS.
+        /// </remarks>
+        public void Point(int floor, bool half)
+        {
+            _over = 0f;
+
+            float x;
+
+            if (!Marked(floor, half, out x)) return;
+
+            Put(x);
+        }
+
+        /// <summary>
+        /// Walks the marker to a floor over this long.
+        /// </summary>
+        /// <param name="half">
+        /// Whether to stop in the GAP before it rather than on it. An event waits in the gap, and
+        /// a delver walking into one has not arrived at the floor beyond it — so the marker stops
+        /// between two nodes, which is exactly where the event's own mark is drawn.
+        /// </param>
+        public void Walk(int floor, bool half, float seconds)
+        {
+            float x;
+
+            if (!Marked(floor, half, out x)) return;
+
+            if (seconds <= 0f)
+            {
+                Point(floor, half);
+                return;
+            }
+
+            _from = _arrow.position.x;
+            _to = x;
+            _started = Time.unscaledTime;
+            _over = seconds;
+        }
+
+        /// <summary>Where the marker sits for a floor, in world x, or nothing to point at.</summary>
+        private bool Marked(int floor, bool half, out float x)
+        {
+            x = 0f;
+
+            if (_arrow == null) return false;
+
+            int at = floor - 1;
+
+            if (at < 0 || at >= _spawned.Count || !_spawned[at].gameObject.activeSelf) return false;
+
+            x = _spawned[at].transform.position.x;
+
+            if (!half) return true;
+
+            // Halfway back toward the floor before it, which is where the gap is.
+            int before = at - 1;
+
+            if (before >= 0 && _spawned[before].gameObject.activeSelf)
+            {
+                x = (x + _spawned[before].transform.position.x) * 0.5f;
+            }
+
+            return true;
+        }
+
+        private void Put(float x)
+        {
+            if (_arrow == null) return;
+
+            Vector3 at = _arrow.position;
+
+            _arrow.position = new Vector3(x, at.y, at.z);
+        }
+
+        private void Update()
+        {
+            if (_over <= 0f) return;
+
+            float over = Mathf.Clamp01((Time.unscaledTime - _started) / _over);
+
+            Put(Mathf.Lerp(_from, _to, Ease(over)));
+
+            if (over >= 1f) _over = 0f;
+        }
+
+        /// <summary>
+        /// Ease in and out, the same cubic the hall walks on.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately the same shape and the same length as the descent behind it, because the
+        /// two are one movement seen twice: the hall says a floor is being left and the marker
+        /// says which one is being arrived at. Eased differently, they would drift apart in the
+        /// middle and read as two things happening at once.
+        /// </remarks>
+        private static float Ease(float t)
+        {
+            return t < 0.5f
+                ? 4f * t * t * t
+                : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
         }
 
         /// <summary>One node, at the size and colour its floor has earned.</summary>
