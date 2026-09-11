@@ -169,5 +169,8 @@
   "forSale": "À VENDRE · {n}g",
   "awakenRelic": "ÉVEILLER UNE RELIQUE · {n}g",
   "leaveShop": "QUITTER LA BOUTIQUE",
-  "relicShop": "ÉTAGE {n} · BOUTIQUE DE RELIQUES"
+  "relicShop": "ÉTAGE {n} · BOUTIQUE DE RELIQUES",
+  "spendSparks": "DÉPENSER DES ÉTINCELLES",
+  "sparksLeft": "IL EN RESTE {n}",
+  "sparksShort": "IL MANQUE {n}"
 }

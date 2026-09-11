@@ -169,5 +169,8 @@
   "forSale": "В ПРОДАЖЕ · {n}g",
   "awakenRelic": "ПРОБУДИТЬ РЕЛИКВИЮ · {n}g",
   "leaveShop": "ПОКИНУТЬ ЛАВКУ",
-  "relicShop": "ЭТАЖ {n} · ЛАВКА РЕЛИКВИЙ"
+  "relicShop": "ЭТАЖ {n} · ЛАВКА РЕЛИКВИЙ",
+  "spendSparks": "ПОТРАТИТЬ ИСКРЫ",
+  "sparksLeft": "ОСТАНЕТСЯ {n}",
+  "sparksShort": "НЕ ХВАТАЕТ {n}"
 }

@@ -375,6 +375,44 @@ const ADDED = {
     zh: "\u7B2C {n} \u5C42 \u00B7 \u5723\u7269\u5546\u5E97",
     ar: "\u0627\u0644\u0637\u0627\u0628\u0642 {n} \u00B7 \u0645\u062A\u062C\u0631 \u0627\u0644\u0622\u062B\u0627\u0631",
   },
+
+  /* Over the price of rising. Sparks outlive a run, which is why this is
+   * the only screen in a delve that spends something other than gold. */
+  spendSparks: {
+    en: "SPEND SPARKS",
+    tr: "KIVILCIM HARCA",
+    fr: "D\u00C9PENSER DES \u00C9TINCELLES",
+    es: "GASTAR CHISPAS",
+    ru: "\u041F\u041E\u0422\u0420\u0410\u0422\u0418\u0422\u042C \u0418\u0421\u041A\u0420\u042B",
+    ja: "\u30B9\u30D1\u30FC\u30AF\u3092\u4F7F\u3046",
+    zh: "\u6D88\u8017\u706B\u82B1",
+    ar: "\u0623\u0646\u0641\u0642 \u0627\u0644\u0634\u0631\u0627\u0631\u0627\u062A",
+  },
+
+  /* And what is left afterwards, which is what a delver spending their
+   * whole balance actually wants to know. */
+  sparksLeft: {
+    en: "{n} LEFT",
+    tr: "{n} KALIR",
+    fr: "IL EN RESTE {n}",
+    es: "QUEDAN {n}",
+    ru: "\u041E\u0421\u0422\u0410\u041D\u0415\u0422\u0421\u042F {n}",
+    ja: "\u6B8B\u308A {n}",
+    zh: "\u5269\u4F59 {n}",
+    ar: "\u064A\u062A\u0628\u0642\u0649 {n}",
+  },
+
+  /* Or, for a delver who cannot pay, by how much. */
+  sparksShort: {
+    en: "{n} SHORT",
+    tr: "{n} EKS\u0130K",
+    fr: "IL MANQUE {n}",
+    es: "FALTAN {n}",
+    ru: "\u041D\u0415 \u0425\u0412\u0410\u0422\u0410\u0415\u0422 {n}",
+    ja: "{n} \u8DB3\u308A\u306A\u3044",
+    zh: "\u8FD8\u5DEE {n}",
+    ar: "\u064A\u0646\u0642\u0635\u0643 {n}",
+  },
 };
 
 let added = 0;

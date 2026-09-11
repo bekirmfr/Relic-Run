@@ -169,5 +169,8 @@
   "forSale": "للبيع · {n}g",
   "awakenRelic": "أيقظ أثراً · {n}g",
   "leaveShop": "غادر المتجر",
-  "relicShop": "الطابق {n} · متجر الآثار"
+  "relicShop": "الطابق {n} · متجر الآثار",
+  "spendSparks": "أنفق الشرارات",
+  "sparksLeft": "يتبقى {n}",
+  "sparksShort": "ينقصك {n}"
 }

@@ -473,6 +473,7 @@ namespace RelicRun.Editor.Importers
             DraftStage draft = Draft(canvas, content, face);
             GateStage gate = Gate(canvas, content, face);
             BazaarStage bazaar = Bazaar(canvas, content, face);
+            ReviveStage rising = Rising(canvas, face);
             EventStage happening = Event(canvas, content, face);
             FloorRailView railing = Rail(canvas, face);
 
@@ -533,12 +534,146 @@ namespace RelicRun.Editor.Importers
             // An array, so it cannot be wired by Pair like everything else. It is also the one
             // reference here that GROWS: a stage per stop, added as each is built, and the scene
             // finds the right one by asking rather than by which slot it landed in.
-            Stages(entry, new RunStage[] { draft, gate, happening, bazaar });
+            Stages(entry, new RunStage[] { draft, gate, happening, bazaar, rising });
         }
 
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>
+        /// The one second chance: rise for sparks, or accept it.
+        /// </summary>
+        /// <remarks>
+        /// The source offers a third way — watch an advertisement — and it is deliberately not
+        /// built. There is no ad SDK wired in this port, and a button offering a free revive that
+        /// does nothing is a button that lies. Adding it back is one more slab beside this one.
+        /// </remarks>
+        private static ReviveStage Rising(GameObject parent, TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Revive", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = panel.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.031f, 0.027f, 0.020f, 0.94f);
+
+            // A diamond on its corner, in the red a run ends in. The source's own marker.
+            GameObject mark = Box(panel, "Mark", new Vector2(0.5f, 0.5f), new Vector2(12f, 12f),
+                new Vector2(0f, 214f));
+
+            Image ink = mark.GetComponent<Image>();
+            ink.sprite = White();
+            ink.color = new Color(0.769f, 0.349f, 0.235f);
+            ink.enabled = true;
+            mark.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+            GameObject kicker = Say(panel, face, "YOU HAVE FALLEN", Text(9),
+                TextAlignmentOptions.Center, new Vector2(0f, 186f), new Vector2(0f, 18f), true);
+
+            // Tall enough for the two lines it wraps to. Given seventy-two it wrapped anyway and
+            // grew downward out of its own box, straight through the sentence beneath it.
+            GameObject title = Say(panel, face, "The dark is not done with you.", Text(28),
+                TextAlignmentOptions.Center, new Vector2(0f, 118f), new Vector2(-40f, 110f), true);
+
+            title.GetComponent<TMP_Text>().enableWordWrapping = true;
+
+            // Inset by sixty a side. At thirty it ran edge to edge, which on a phone reads as
+            // text that has overflowed rather than text that fits.
+            GameObject sub = Say(panel, face, "Rise once with full health.", Text(12),
+                TextAlignmentOptions.Center, new Vector2(0f, 30f), new Vector2(-120f, 48f), true);
+
+            sub.GetComponent<TMP_Text>().enableWordWrapping = true;
+
+            GameObject rise = Panel(panel, "Rise", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -62f), new Vector2(300f, 92f));
+
+            var slab = rise.AddComponent<Image>();
+            slab.sprite = White();
+
+            // WHITE, and coloured by the button rather than by hand. A Selectable drives its
+            // target graphic's colour from its own block on every state change, so anything
+            // written straight onto the image is overwritten the next frame — which is how a
+            // slab that could not be afforded stayed green while claiming to have gone hollow.
+            slab.color = Color.white;
+
+            Button rising = rise.AddComponent<Button>();
+            rising.targetGraphic = slab;
+
+            ColorBlock states = rising.colors;
+            states.normalColor = new Color(0.486f, 0.604f, 0.416f);
+            states.highlightedColor = new Color(0.545f, 0.667f, 0.471f);
+            states.pressedColor = new Color(0.361f, 0.463f, 0.310f);
+            states.selectedColor = states.normalColor;
+
+            // Hollow: the same ground the screen is drawn on, so an unaffordable rise reads as an
+            // outline rather than as a button somebody has dimmed.
+            states.disabledColor = new Color(0.078f, 0.071f, 0.059f);
+            states.colorMultiplier = 1f;
+            rising.colors = states;
+
+            var ring = rise.AddComponent<Outline>();
+            ring.effectColor = new Color(0.486f, 0.604f, 0.416f);
+            ring.effectDistance = new Vector2(2f, 2f);
+
+            var down = rise.AddComponent<VerticalLayoutGroup>();
+            down.childAlignment = TextAnchor.MiddleCenter;
+            down.childForceExpandWidth = true;
+            down.childForceExpandHeight = false;
+            down.childControlWidth = true;
+            down.childControlHeight = true;
+            down.spacing = 5f;
+            down.padding = new RectOffset(12, 12, 14, 14);
+
+            Say(rise, face, "SPEND SPARKS", Text(8), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 14f), true);
+
+            Say(rise, face, "\u25C6 150", Text(17), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 24f), true);
+
+            Say(rise, face, "0 LEFT", Text(8), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 14f), true);
+
+            GameObject accept = Panel(panel, "Accept", new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -156f), new Vector2(300f, 48f));
+
+            var hollow = accept.AddComponent<Image>();
+            hollow.sprite = White();
+            hollow.color = new Color(0.078f, 0.071f, 0.059f, 0.85f);
+
+            accept.AddComponent<Button>().targetGraphic = hollow;
+
+            var edge = accept.AddComponent<Outline>();
+            edge.effectColor = new Color(0.227f, 0.200f, 0.157f);
+            edge.effectDistance = new Vector2(2f, 2f);
+
+            GameObject acceptLabel = Say(accept, face, "Accept death", Text(13),
+                TextAlignmentOptions.Center, Vector2.zero, new Vector2(0f, 48f), true);
+
+            var stage = panel.AddComponent<ReviveStage>();
+
+            TMP_Text[] onTheSlab = rise.GetComponentsInChildren<TMP_Text>(true);
+
+            Wire(stage, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_sub", sub.GetComponent<TMP_Text>()),
+
+                Pair("_rise", rise.GetComponent<Button>()),
+                Pair("_riseKicker", onTheSlab.Length > 0 ? onTheSlab[0] : null),
+                Pair("_riseLabel", onTheSlab.Length > 1 ? onTheSlab[1] : null),
+                Pair("_riseAfter", onTheSlab.Length > 2 ? onTheSlab[2] : null),
+
+                Pair("_accept", accept.GetComponent<Button>()),
+                Pair("_acceptLabel", acceptLabel.GetComponent<TMP_Text>()),
+            });
+
+            panel.SetActive(false);
+
+            return stage;
+        }
+
 
         /// <summary>How tall one row of the bazaar's shelf is.</summary>
         private const float ShelfRow = 76f;

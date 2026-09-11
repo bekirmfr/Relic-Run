@@ -169,5 +169,8 @@
   "forSale": "EN VENTA · {n}g",
   "awakenRelic": "DESPERTAR UNA RELIQUIA · {n}g",
   "leaveShop": "SALIR DE LA TIENDA",
-  "relicShop": "PISO {n} · TIENDA DE RELIQUIAS"
+  "relicShop": "PISO {n} · TIENDA DE RELIQUIAS",
+  "spendSparks": "GASTAR CHISPAS",
+  "sparksLeft": "QUEDAN {n}",
+  "sparksShort": "FALTAN {n}"
 }

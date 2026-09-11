@@ -169,5 +169,8 @@
   "forSale": "SATILIK · {n}g",
   "awakenRelic": "BİR KALINTIYI UYANDIR · {n}g",
   "leaveShop": "DÜKKÂNDAN ÇIK",
-  "relicShop": "KAT {n} · KALINTI DÜKKÂNI"
+  "relicShop": "KAT {n} · KALINTI DÜKKÂNI",
+  "spendSparks": "KIVILCIM HARCA",
+  "sparksLeft": "{n} KALIR",
+  "sparksShort": "{n} EKSİK"
 }

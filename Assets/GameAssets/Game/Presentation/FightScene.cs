@@ -234,9 +234,16 @@ namespace RelicRun.Game.Presentation
                     }
                     else
                     {
+                        // The one stop that spends something the run does not own. Sparks are the
+                        // delver's account rather than the delve's purse, so the stage is told
+                        // the balance on the way in and the scene charges it on the way out.
+                        Lend(stage, earned);
+
                         stop.Answer = await Decided(stage, stop, delve.State);
 
                         if (Gone) return;
+
+                        Charge(stage, earned);
                     }
                 }
 
@@ -480,6 +487,43 @@ namespace RelicRun.Game.Presentation
                 stage.Words = _speech != null ? _speech.Locale : null;
                 stage.Showing = false;
             }
+        }
+
+        /// <summary>
+        /// Tells a stage anything it needs that lives outside the run.
+        /// </summary>
+        /// <remarks>
+        /// Exactly one does. Everything else a stage draws comes from the stop and the run state,
+        /// which is the point of a stage — but rising from the dead is paid for out of the save,
+        /// and the save outlives the delve.
+        /// </remarks>
+        private static void Lend(RunStage stage, SaveState earned)
+        {
+            var rising = stage as ReviveStage;
+
+            if (rising != null) rising.Sparks = earned != null ? earned.Sparks : 0;
+        }
+
+        /// <summary>
+        /// Takes the sparks a delver just spent standing back up.
+        /// </summary>
+        /// <remarks>
+        /// After the answer rather than inside the button, so a delver whose scene went away
+        /// mid-press is not charged for a run that never resumed. Committed at once: sparks are
+        /// bought, and a crash between spending and saving would be a delver paying twice.
+        /// </remarks>
+        private void Charge(RunStage stage, SaveState earned)
+        {
+            var rising = stage as ReviveStage;
+
+            if (rising == null || !rising.Paid || earned == null) return;
+
+            earned.Sparks = Math.Max(0, earned.Sparks - ReviveCards.Cost);
+
+            if (_vault != null) _vault.CommitProgress();
+
+            Debug.Log("the delver spent " + ReviveCards.Cost + " sparks to rise, leaving " +
+                      earned.Sparks, this);
         }
 
         /// <summary>Which stage draws a stop, or null when nothing does yet.</summary>

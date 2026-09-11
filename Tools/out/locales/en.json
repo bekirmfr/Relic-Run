@@ -169,5 +169,8 @@
   "forSale": "FOR SALE · {n}g",
   "awakenRelic": "AWAKEN A RELIC · {n}g",
   "leaveShop": "LEAVE THE SHOP",
-  "relicShop": "FLOOR {n} · RELIC SHOP"
+  "relicShop": "FLOOR {n} · RELIC SHOP",
+  "spendSparks": "SPEND SPARKS",
+  "sparksLeft": "{n} LEFT",
+  "sparksShort": "{n} SHORT"
 }

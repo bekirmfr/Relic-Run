@@ -169,5 +169,8 @@
   "forSale": "販売中 · {n}g",
   "awakenRelic": "レリックを覚醒させる · {n}g",
   "leaveShop": "店を出る",
-  "relicShop": "{n}階 · レリック商店"
+  "relicShop": "{n}階 · レリック商店",
+  "spendSparks": "スパークを使う",
+  "sparksLeft": "残り {n}",
+  "sparksShort": "{n} 足りない"
 }

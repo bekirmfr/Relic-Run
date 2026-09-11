@@ -436,6 +436,25 @@ comes from its description and a description's height comes from how wide it was
 so the first pass settles widths and the second is the one that can ask a wrapped line how tall
 it came to. Run once, the longest rows lost their last line.
 
+**6c · The revive. — DONE.** The last screen most runs ever show. Offered once per delve and
+never again — `Delve` asks only while `Revived` is false — so there is no "are you sure" on it.
+
+Sparks are NOT the purse. They outlive a run, so the engine's question is a bare yes and the
+spending happens in the scene against the save: the stage says it *would* have paid, and
+`FightScene.Charge` is what actually takes them. Charged after the answer rather than inside the
+button, so a delver whose scene went away mid-press is not billed for a run that never resumed.
+
+The source offers a second way to say yes — watch an advertisement — and it is deliberately not
+built. There is no ad SDK wired in this port, and a button offering a free revive that does
+nothing is a button that lies. Same reasoning that kept FIGHT off the intro card until the loop
+could honour it.
+
+Two layout bugs from the first look. The title wrapped to two lines and grew straight through the
+sentence beneath it, because it had been given the height of one. And the unaffordable slab stayed
+GREEN however I coloured it: a `Selectable` repaints its target graphic from its own `ColorBlock`
+on every state change, so anything written onto the image is gone the next frame. The colours
+belong to the button now, set once when the scene is built.
+
 **Still English on the shelf.** `[[LCK]]` and its like appear raw in relic descriptions — the
 source substitutes the live stat with `richDesc()` and the port does not. It shows on the draft
 too, so it is one fix in one place rather than a bazaar problem.
