@@ -28,7 +28,7 @@
   "hitsFor": "{h}/{m} · golpea por {a}",
   "purseLine": "Bolsa: {g} de oro. Las escaleras bajan…",
   "previewLine": "Abajo: {i} {n} — {h} PV, golpea por {a}, lleva ~{g} de oro",
-  "descendBtn": "⬇️ Descender (piso {n})",
+  "descendBtn": "⬇️ Descender",
   "cashOut": "💰 Retirarse",
   "dieWarn": "Si mueres abajo, solo conservas la mitad.",
   "logEnter": "{i} {n} bloquea el paso",

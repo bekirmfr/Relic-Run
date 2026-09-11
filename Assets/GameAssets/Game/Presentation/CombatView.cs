@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using RelicRun.Core.Combat;
@@ -112,6 +113,28 @@ namespace RelicRun.Game.Presentation
 
         private IReadOnlyList<CombatEvent> _events;
         private Pacing _pacing;
+
+        /// <summary>
+        /// The numbers everything on this screen is timed by.
+        /// </summary>
+        /// <remarks>
+        /// The pacing a FIGHT is playing at when there is one, and the authored settings when
+        /// there is not. That second half matters more than it looks: the first draft of a run
+        /// happens before any fight has begun, so <c>_pacing</c> is still null there — and a
+        /// relic taken on floor one flew for nought seconds, which is to say it did not fly at
+        /// all while every relic after it did.
+        /// </remarks>
+        private PacingRules Rules
+        {
+            get
+            {
+                if (_pacing != null) return _pacing.Rules;
+
+                return _content != null && _content.Presentation != null
+                    ? _content.Presentation.ToPacing()
+                    : null;
+            }
+        }
         private CombatLog _reading;
         private int _heroMax;
         private readonly List<LogLine> _lines = new List<LogLine>();
@@ -318,7 +341,9 @@ namespace RelicRun.Game.Presentation
         {
             if (_intro == null) return;
 
-            _intro.Held = _pacing != null ? _pacing.Rules.IntroMs / 1000f : 0f;
+            PacingRules said = Rules;
+
+            _intro.Held = said != null ? said.IntroMs / 1000f : 0f;
 
             _intro.Show(IntroCards.Trader(line));
         }
@@ -348,6 +373,56 @@ namespace RelicRun.Game.Presentation
         public void Descend(float seconds)
         {
             if (_hall != null) _hall.Descend(seconds);
+        }
+
+        /// <summary>
+        /// Puts a newly taken relic on the shelf, and flies its picture there.
+        /// </summary>
+        /// <remarks>
+        /// The same beat a foe gets, for the same reason: a thing that appears is a thing a
+        /// delver has to go looking for, and a thing that travels is one they watched arrive. It
+        /// is the only moment in a run where the shelf changes while somebody is watching it.
+        ///
+        /// The slot is built FIRST and then left empty. Building it after would land the flight
+        /// on a shelf that has not made room yet, and the icon would settle a slot's width to the
+        /// left of where it belongs.
+        /// </remarks>
+        public void Shelve(Shelf shelf, Sprite icon, RectTransform from, Action landed)
+        {
+            if (_tray == null)
+            {
+                if (landed != null) landed();
+                return;
+            }
+
+            _tray.Begin(shelf, false);
+
+            int at = _tray.Count - 1;
+
+            RectTransform to = _tray.Where(at);
+
+            PacingRules said = Rules;
+
+            float over = said != null ? said.FlyMs / 1000f : 0f;
+
+            if (_flight == null || icon == null || from == null || to == null || over <= 0f)
+            {
+                if (landed != null) landed();
+                return;
+            }
+
+            // Laid out NOW, so the flight aims at where the slot actually ends up rather than at
+            // wherever the row happened to be before it grew.
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_tray.transform);
+
+            _tray.Veil(at, true);
+
+            _flight.Fly(icon, from, to, over, () =>
+            {
+                _tray.Veil(at, false);
+
+                if (landed != null) landed();
+            });
         }
 
         /// <summary>Loads the hall below before the walk down starts, so it is seen arriving.</summary>
@@ -444,7 +519,9 @@ namespace RelicRun.Game.Presentation
 
             // Its own length, so the timer behind the button drains at the rate the loop is
             // actually holding it for rather than at a number typed in twice.
-            _intro.Held = _pacing != null ? _pacing.Rules.IntroMs / 1000f : 0f;
+            PacingRules said = Rules;
+
+            _intro.Held = said != null ? said.IntroMs / 1000f : 0f;
 
             _intro.Show(IntroCards.Of(_events[index].State));
         }
@@ -471,7 +548,9 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
-            float over = _pacing != null ? _pacing.Rules.FlyMs / 1000f : 0f;
+            PacingRules said = Rules;
+
+            float over = said != null ? said.FlyMs / 1000f : 0f;
 
             _flight.Fly(drawn, from, _enemyArt != null ? (RectTransform)_enemyArt.transform : null,
                 over, Landed);

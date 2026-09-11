@@ -28,7 +28,7 @@
   "hitsFor": "{h}/{m} · hits for {a}",
   "purseLine": "Purse: {g} gold. The stairs go down…",
   "previewLine": "Below: {i} {n} — {h} HP, hits for {a}, carries ~{g} gold",
-  "descendBtn": "⬇️ Descend (floor {n})",
+  "descendBtn": "⬇️ Descend",
   "cashOut": "💰 Cash out",
   "dieWarn": "Die below and you keep only half.",
   "logEnter": "{i} {n} blocks the way",

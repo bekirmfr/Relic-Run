@@ -59,6 +59,12 @@ namespace RelicRun.Game.Presentation
 
         private static readonly Color Quiet = new Color(0.396f, 0.361f, 0.306f);
 
+        /// <summary>The relic's picture, for whatever wants to carry it somewhere.</summary>
+        public Image Icon
+        {
+            get { return _icon; }
+        }
+
         /// <summary>The button this card is, for whoever wants to know it was pressed.</summary>
         public Button Press
         {

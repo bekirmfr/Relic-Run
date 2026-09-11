@@ -60,6 +60,34 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>Updates every slot to the moment this event happened in.</summary>
+        /// <summary>How many slots are on the shelf.</summary>
+        public int Count
+        {
+            get { return _slots.Count; }
+        }
+
+        /// <summary>
+        /// Where a slot is, for anything that wants to land something on it.
+        /// </summary>
+        /// <remarks>
+        /// A rect rather than the slot itself, because the only thing outside this tray has any
+        /// business knowing is WHERE — what a slot draws and when is the tray's own affair.
+        /// </remarks>
+        public RectTransform Where(int index)
+        {
+            if (index < 0 || index >= _slots.Count || _slots[index] == null) return null;
+
+            return (RectTransform)_slots[index].transform;
+        }
+
+        /// <summary>Leaves one slot's picture out until something puts it there.</summary>
+        public void Veil(int index, bool hidden)
+        {
+            if (index < 0 || index >= _slots.Count || _slots[index] == null) return;
+
+            _slots[index].Veil(hidden);
+        }
+
         public void Show(CombatEvent shown)
         {
             if (_shelf == null) return;

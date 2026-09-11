@@ -106,6 +106,19 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>Draws this copy as it stood at one moment of the fight.</summary>
+        /// <summary>
+        /// Hides or shows the relic's picture, leaving the slot itself where it is.
+        /// </summary>
+        /// <remarks>
+        /// For the moment between a relic being taken and its icon arriving. The SLOT stays —
+        /// hiding it would shuffle the whole shelf sideways and then shuffle it back — so what
+        /// goes away is only the picture the flight is carrying.
+        /// </remarks>
+        public void Veil(bool hidden)
+        {
+            if (_icon != null) _icon.enabled = !hidden && _icon.sprite != null;
+        }
+
         public void Show(RelicMeter meter)
         {
             Cadence charge = meter.Charge;

@@ -204,6 +204,9 @@ namespace RelicRun.Game.Presentation
 
                 Ask stop = delve.Pending;
 
+                Sprite took = null;
+                RectTransform from = null;
+
                 Rail(delve);
 
                 if (stop.Kind == AskKind.Fought)
@@ -268,6 +271,18 @@ namespace RelicRun.Game.Presentation
                         if (Gone) return;
 
                         Charge(stage, earned);
+
+                        // Captured here, while the stage is still the one on the screen and
+                        // still holds what was pressed. A flight has to start where the delver
+                        // was looking, and by the time the run has taken the relic the card is
+                        // gone.
+                        var drafted = stage as DraftStage;
+
+                        if (drafted != null)
+                        {
+                            took = drafted.Taken;
+                            from = drafted.TakenFrom;
+                        }
                     }
                 }
 
@@ -282,6 +297,15 @@ namespace RelicRun.Game.Presentation
                 if (telling != null)
                 {
                     await Told(telling, stop, delve.State);
+
+                    if (Gone) return;
+                }
+
+                // AFTER the pump, because the shelf it lands on is the shelf with the relic on
+                // it — the run only takes it when the draft stop is answered.
+                if (took != null && stop.Kind == AskKind.Draft)
+                {
+                    await Shelving(delve, took, from);
 
                     if (Gone) return;
                 }
@@ -532,6 +556,31 @@ namespace RelicRun.Game.Presentation
             }
 
             return _trader;
+        }
+
+        /// <summary>
+        /// Carries a taken relic from the card the delver pressed to its place on the shelf.
+        /// </summary>
+        /// <remarks>
+        /// The draft's answer to the foe's flight, and asked for in the same words: a relic
+        /// should arrive the way an opponent does. Held for exactly as long as the flight takes,
+        /// so the next screen does not open over the top of it.
+        /// </remarks>
+        private async UniTask Shelving(Delve delve, Sprite took, RectTransform from)
+        {
+            if (_view == null) return;
+
+            Nothing();
+
+            _view.Shelve(Shelf.Of(delve.State.Hero), took, from, null);
+
+            if (Reduced()) return;
+
+            int over = Pace(p => p.FlyMs);
+
+            if (over <= 0) return;
+
+            await UniTask.Delay(over, DelayType.UnscaledDeltaTime);
         }
 
         /// <summary>

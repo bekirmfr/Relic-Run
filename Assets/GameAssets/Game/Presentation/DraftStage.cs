@@ -71,6 +71,19 @@ namespace RelicRun.Game.Presentation
 
         private int _reachedOn;
 
+        /// <summary>
+        /// The picture the delver actually reached for, and where on the screen it was.
+        /// </summary>
+        /// <remarks>
+        /// Kept so the icon can FLY to the shelf rather than blink onto it, the way a foe flies
+        /// out of its card and into the frame it is fought in. Captured at the press, because the
+        /// card is gone by the time the run has finished taking the relic — and a flight has to
+        /// start where the delver was looking.
+        /// </remarks>
+        public Sprite Taken { get; private set; }
+
+        public RectTransform TakenFrom { get; private set; }
+
         public override AskKind Answers
         {
             get { return AskKind.Draft; }
@@ -190,6 +203,8 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         private void Take(RelicId relic)
         {
+            Reached(relic);
+
             if (_asking == AskKind.Reroll)
             {
                 _reaching = relic;
@@ -373,6 +388,41 @@ namespace RelicRun.Game.Presentation
             }
 
             return said.ToString();
+        }
+
+        /// <summary>
+        /// Remembers the picture that was reached for and the card it was on.
+        /// </summary>
+        /// <remarks>
+        /// Found by asking the CARDS rather than by remembering which one was dressed with what:
+        /// a card knows its own parts, and a delver pressing the second card should see the
+        /// second card's icon leave.
+        /// </remarks>
+        private void Reached(RelicId relic)
+        {
+            Taken = null;
+            TakenFrom = null;
+
+            Sprite want = _content != null && _content.RelicIcons != null
+                ? _content.RelicIcons.For(relic)
+                : null;
+
+            if (want == null) return;
+
+            for (var i = 0; i < _spawned.Count; i++)
+            {
+                if (!_spawned[i].gameObject.activeSelf) continue;
+
+                var known = _spawned[i].GetComponent<RelicCardView>();
+
+                Image icon = known != null ? known.Icon : Icon(_spawned[i]);
+
+                if (icon == null || icon.sprite != want) continue;
+
+                Taken = want;
+                TakenFrom = (RectTransform)icon.transform;
+                return;
+            }
         }
 
         /// <summary>A translated word, or the English one for a relic nobody translated.</summary>
