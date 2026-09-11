@@ -82,7 +82,9 @@ namespace RelicRun.Editor.Importers
 
         private static int Copy()
         {
-            ContentPaths.EnsureFolder(ContentPaths.Sheets);
+            ContentPaths.EnsureFolder(ContentPaths.Relics);
+            ContentPaths.EnsureFolder(ContentPaths.Enemies);
+            ContentPaths.EnsureFolder(ContentPaths.UI);
             ContentPaths.EnsureFolder(ContentPaths.Halls);
             ContentPaths.EnsureFolder(ContentPaths.Events);
             ContentPaths.EnsureFolder(ContentPaths.Locales);
@@ -98,13 +100,11 @@ namespace RelicRun.Editor.Importers
                     ContentPaths.Halls + "/" + hall + ".png");
             }
 
-            // The bazaar's hall and the merchant standing in it. Beside the halls because they
-            // are addressed with the halls and weigh what halls weigh — see HallBook.
-            foreach (string art in ContentIds.Bazaar)
-            {
-                copied += Bring(ContentPaths.SourceArt + "/" + art + ".png",
-                    ContentPaths.Halls + "/" + art + ".png");
-            }
+            // The bazaar's two, each to the folder its KIND of art lives in. They are addressed
+            // together — both are fetched once, on one floor — but a hall is scenery and a
+            // merchant is somebody, and the folders say so.
+            copied += Bring(ContentPaths.SourceArt + "/hall-bazaar.png", ContentPaths.BazaarHall);
+            copied += Bring(ContentPaths.SourceArt + "/merchant.png", ContentPaths.MerchantArt);
 
             foreach (string art in ContentIds.Events)
             {
@@ -186,14 +186,12 @@ namespace RelicRun.Editor.Importers
                 Pixelate(ContentPaths.Halls + "/" + hall + ".png", false);
             }
 
-            // The bazaar's two, which land in the same folder and need the same settings.
-            // Copied without this, they import as plain TEXTURES — and an address that resolves
-            // to a texture when a sprite was asked for throws InvalidKeyException at the moment
-            // the delver walks onto floor seven, with nothing on screen to say why.
-            foreach (string art in ContentIds.Bazaar)
-            {
-                Pixelate(ContentPaths.Halls + "/" + art + ".png", false);
-            }
+            // The bazaar's two. Copied without this they import as plain TEXTURES — and an
+            // address that resolves to a texture when a sprite was asked for throws
+            // InvalidKeyException at the moment the delver walks onto floor seven, with nothing
+            // on screen to say why.
+            Pixelate(ContentPaths.BazaarHall, false);
+            Pixelate(ContentPaths.MerchantArt, false);
 
             foreach (string art in ContentIds.Events)
             {
@@ -271,8 +269,7 @@ namespace RelicRun.Editor.Importers
             // The book's own list: the ten dungeons' halls AND the bazaar floor's two. Asking
             // ContentIds.Halls here would address the dungeons and leave the bazaar unbound,
             // which is exactly what it did — the files copied and the book stayed at ten.
-            halls.Rebind(Addressed(halls.Needed,
-                Addressing.Address(Addressing.HallGroup, ContentPaths.Halls, halls.Needed, ".png")));
+            halls.Rebind(Addressed(halls.Needed, Scenery(halls.Needed)));
             events.Rebind(Addressed(ContentIds.Events,
                 Addressing.Address(Addressing.EventGroup, ContentPaths.Events, ContentIds.Events, ".png")));
 
@@ -337,6 +334,36 @@ namespace RelicRun.Editor.Importers
         /// An id with no GUID is bound to nothing rather than skipped. A missing row and a row
         /// pointing nowhere are different failures and the audit says which.
         /// </remarks>
+        /// <summary>
+        /// Addresses the halls, and the bazaar's two wherever they each live.
+        /// </summary>
+        /// <remarks>
+        /// One addressable GROUP over two folders, which is the shape the art ended up in: the
+        /// halls and the bazaar's hall are scenery and sit together, and the merchant is filed
+        /// with the enemies. Addressing is about WHEN a thing is fetched, and all of these are
+        /// fetched once when a delver reaches the floor that wants them — so the group is right
+        /// even where the folders differ.
+        /// </remarks>
+        private static IDictionary<string, string> Scenery(IReadOnlyList<string> ids)
+        {
+            var halls = new List<string>();
+
+            foreach (string id in ids)
+            {
+                if (id != "merchant") halls.Add(id);
+            }
+
+            IDictionary<string, string> found = Addressing.Address(
+                Addressing.HallGroup, ContentPaths.Halls, halls, ".png");
+
+            IDictionary<string, string> merchant = Addressing.Address(
+                Addressing.HallGroup, ContentPaths.Enemies, new[] { "merchant" }, ".png");
+
+            foreach (KeyValuePair<string, string> one in merchant) found[one.Key] = one.Value;
+
+            return found;
+        }
+
         private static List<AddressBook.Entry> Addressed(IReadOnlyList<string> ids,
             IDictionary<string, string> guids)
         {

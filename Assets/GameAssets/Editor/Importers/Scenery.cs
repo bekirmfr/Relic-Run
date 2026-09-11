@@ -37,7 +37,7 @@ namespace RelicRun.Editor.Importers
         /// One pixel rather than Unity's built-in UISprite, which is rounded and nine-sliced. A
         /// bar three units tall with rounded ends is a bar with no ends.
         /// </remarks>
-        public const string WhitePath = "Assets/GameAssets/Art/Sheets/White.png";
+        public const string WhitePath = "Assets/GameAssets/Art/UI/White.png";
 
         /// <summary>
         /// A text size, snapped to the grid the bitmap face is baked on.
@@ -383,7 +383,7 @@ namespace RelicRun.Editor.Importers
             var found = AssetDatabase.LoadAssetAtPath<Sprite>(WhitePath);
             if (found != null) return found;
 
-            ContentPaths.EnsureFolder(ContentPaths.Sheets);
+            ContentPaths.EnsureFolder(ContentPaths.UI);
 
             var pixel = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             pixel.SetPixel(0, 0, Color.white);

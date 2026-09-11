@@ -223,6 +223,10 @@ namespace RelicRun.Game.Presentation
         /// <summary>Spawns rows until there are enough of them.</summary>
         private static void Fit(List<Button> made, Button template, RectTransform under, int want)
         {
+            // The template itself is never one of the rows. Left showing in the scene it draws as
+            // an undressed relic above the real ones.
+            template.gameObject.SetActive(false);
+
             while (made.Count < want)
             {
                 Button one = Instantiate(template, under);

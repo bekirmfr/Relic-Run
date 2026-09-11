@@ -113,7 +113,7 @@ namespace RelicRun.Game.Presentation
             Write(_purseLabel, Say("inThePurse"), Faint);
 
             Write(_descendKicker, Say("riskItAll"), Faded);
-            Write(_descendLabel, Say("descendBtn", "n", Count(gate.Next)), Coal);
+            Write(_descendLabel, Say("descendBtn"), Coal);
             Write(_descendRisk, Say("riskGold", "n", purse), Blood);
 
             Write(_leaveKicker, Say("walkAway"), Away);

@@ -215,6 +215,11 @@ namespace RelicRun.Game.Presentation
         {
             if (_card == null || _cards == null) return;
 
+            // The template itself is never one of the cards. Left showing in the scene it draws
+            // as an undressed relic — a blank icon on an untinted body — above the real ones,
+            // and it is an easy thing to leave on while laying a card out in the editor.
+            _card.gameObject.SetActive(false);
+
             while (_spawned.Count < card.Offer.Count)
             {
                 Button made = Instantiate(_card, _cards);
@@ -258,6 +263,24 @@ namespace RelicRun.Game.Presentation
         /// </param>
         private void Dress(Button card, Offered offered, int gold)
         {
+            Sprite drawn = _content != null && _content.RelicIcons != null
+                ? _content.RelicIcons.For(offered.Relic)
+                : null;
+
+            // A card that names its own parts dresses itself. Everything below is what a card
+            // WITHOUT one gets — reaching in and taking texts in the order they happen to be
+            // made in, which works exactly until somebody reorders the hierarchy in the editor.
+            var known = card.GetComponent<RelicCardView>();
+
+            if (known != null)
+            {
+                known.Show(offered, Word(offered.NameKey, offered.Name),
+                    Describes(offered.Relic, offered.WhatKey, offered.What, gold),
+                    Under(offered), drawn);
+
+                return;
+            }
+
             var texts = card.GetComponentsInChildren<TMP_Text>(true);
 
             if (texts.Length > 0)
@@ -283,13 +306,10 @@ namespace RelicRun.Game.Presentation
 
             Image icon = Icon(card);
 
-            if (icon != null && _content != null && _content.RelicIcons != null)
-            {
-                Sprite drawn = _content.RelicIcons.For(offered.Relic);
+            if (icon == null) return;
 
-                icon.sprite = drawn;
-                icon.enabled = drawn != null;
-            }
+            icon.sprite = drawn;
+            icon.enabled = drawn != null;
         }
 
         /// <summary>

@@ -24,7 +24,22 @@ namespace RelicRun.Editor.Importers
         /* ---------- where it lands, as asset paths ---------- */
 
         public const string Art = "Assets/GameAssets/Art";
-        public const string Sheets = Art + "/Sheets";
+
+        /// <summary>
+        /// One folder per KIND of art, rather than one folder called Sheets.
+        /// </summary>
+        /// <remarks>
+        /// The sheets moved: relic icons, the bestiary and the interface each have their own
+        /// folder now, and the merchant went to live with the enemies he refuses to be. Nothing
+        /// about the game changed — but four paths were spelled out here and every one of them
+        /// pointed at the old place, which is how the audits found out.
+        /// </remarks>
+        public const string Relics = Art + "/Relics";
+
+        public const string Enemies = Art + "/Enemies";
+
+        public const string UI = Art + "/UI";
+
         public const string Halls = Art + "/Halls";
         public const string Events = Art + "/Events";
         public const string Fonts = Art + "/Fonts";
@@ -34,8 +49,13 @@ namespace RelicRun.Editor.Importers
         public const string Text = Content + "/Text";
         public const string Locales = Text + "/Locales";
 
-        public const string RelicIconSheet = Sheets + "/relic-icons.png";
-        public const string EnemySheet = Sheets + "/enemies-hoard.png";
+        public const string RelicIconSheet = Relics + "/relic-icons.png";
+        public const string EnemySheet = Enemies + "/enemies-hoard.png";
+
+        /// <summary>The bazaar's hall, which is scenery, and its merchant, who is not.</summary>
+        public const string BazaarHall = Halls + "/hall-bazaar.png";
+
+        public const string MerchantArt = Enemies + "/merchant.png";
         public const string HeroPackText = Text + "/hero-pack.json";
 
         public const string RelicIconBookAsset = Content + "/RelicIcons.asset";

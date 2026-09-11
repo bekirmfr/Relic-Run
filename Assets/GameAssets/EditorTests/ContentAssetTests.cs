@@ -198,9 +198,9 @@ namespace RelicRun.Tests.Editor
                 Imported(ContentPaths.Halls + "/" + hall + ".png", SpriteImportMode.Single);
             }
 
-            foreach (string hall in ContentIds.Bazaar)
+            foreach (string hall in new[] { ContentPaths.BazaarHall, ContentPaths.MerchantArt })
             {
-                Imported(ContentPaths.Halls + "/" + hall + ".png", SpriteImportMode.Single);
+                Imported(hall, SpriteImportMode.Single);
             }
 
             foreach (string art in ContentIds.Events)
