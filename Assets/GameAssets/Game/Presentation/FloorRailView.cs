@@ -14,9 +14,14 @@ namespace RelicRun.Game.Presentation
     /// underfoot. Everything else — the fight, the draft, the shelf — answers "what is happening
     /// now"; this answers "how much is left", which is the question a delver walks out on.
     ///
-    /// It decides nothing. Which floors are marked and how big each is comes from
-    /// <see cref="FloorRails"/>, so a node's size and what it means cannot come apart — what
-    /// lives here is what the source keeps in CSS: which colours, and the thread between.
+    /// It decides nothing. Which floor is which, which gaps hold an event and which of those have
+    /// been met is <see cref="FloorRails"/>' answer; what lives here is the drawing of it.
+    ///
+    /// DRAWN FROM ART, not from rectangles. Every state has a sprite off one sheet — a plain
+    /// floor, the bazaar's awning, the crown, an event's diamond, and the marker over wherever
+    /// the delver is standing — each in the two or three states it can be in. That is why
+    /// <see cref="FloorNode.Side"/> goes unused here: it records the SOURCE's sizing, which was
+    /// CSS, and the port's rail is sized by the pixels somebody drew.
     /// </remarks>
     public sealed class FloorRailView : MonoBehaviour
     {
@@ -30,19 +35,39 @@ namespace RelicRun.Game.Presentation
         [Tooltip("The marker over the floor underfoot. Slides rather than jumps.")]
         [SerializeField] private RectTransform _arrow;
 
-        /// <summary>Behind the delver: the thread and the floors they have walked.</summary>
-        private static readonly Color Walked = new Color(0.55f, 0.51f, 0.45f);
+        [Header("A floor")]
+        [SerializeField] private Sprite _floorWalked;
+        [SerializeField] private Sprite _floorHere;
+        [SerializeField] private Sprite _floorAhead;
 
-        /// <summary>Underfoot.</summary>
-        private static readonly Color Here = new Color(0.89f, 0.70f, 0.25f);
+        [Header("The bazaar")]
+        [SerializeField] private Sprite _shopWalked;
+        [SerializeField] private Sprite _shopHere;
+        [SerializeField] private Sprite _shopAhead;
 
-        /// <summary>And ahead, which is most of a run and is meant to look like nothing.</summary>
-        private static readonly Color Ahead = new Color(0.14f, 0.12f, 0.09f);
+        [Header("The crown")]
+        [Tooltip("No walked crown: a run that reaches the bottom is over.")]
+        [SerializeField] private Sprite _crownHere;
 
-        /// <summary>The violet an event in the gap is marked in.</summary>
-        private static readonly Color Waiting = new Color(0.61f, 0.55f, 0.82f);
+        [SerializeField] private Sprite _crownAhead;
 
-        private static readonly Color Met = new Color(0.29f, 0.27f, 0.38f);
+        [Header("An event, in the gap before a floor")]
+        [SerializeField] private Sprite _eventPassed;
+
+        [Tooltip("The one the delver is about to walk into.")]
+        [SerializeField] private Sprite _eventNext;
+
+        [SerializeField] private Sprite _eventAhead;
+
+        [Header("Size")]
+        [Tooltip("How many screen units one drawn pixel takes.")]
+        [SerializeField] private int _scale = 3;
+
+        [Tooltip("The narrowest a gap between two floors may be squeezed to.")]
+        [SerializeField] private float _spacing = 6f;
+
+        [Tooltip("How much bare panel is left at each end of the rail.")]
+        [SerializeField] private int _inset = 16;
 
         private readonly List<Image> _spawned = new List<Image>();
 
@@ -54,13 +79,11 @@ namespace RelicRun.Game.Presentation
         /// <summary>Draws the rail for a run standing on a floor.</summary>
         public void Show(FloorRailCard card)
         {
-            if (_line != null)
-            {
-                _line.text = "FLOOR " + card.Floor + " / " + card.Deepest;
-                _line.color = Walked;
-            }
+            if (_line != null) _line.text = "FLOOR " + card.Floor + " / " + card.Deepest;
 
             if (_node == null || _nodes == null || card.Floors == null) return;
+
+            Row();
 
             while (_spawned.Count < card.Floors.Count)
             {
@@ -70,6 +93,8 @@ namespace RelicRun.Game.Presentation
                 _spawned.Add(made);
             }
 
+            var wide = 0f;
+
             for (var i = 0; i < _spawned.Count; i++)
             {
                 bool used = i < card.Floors.Count;
@@ -78,25 +103,202 @@ namespace RelicRun.Game.Presentation
 
                 if (!used) continue;
 
-                Draw(_spawned[i], card.Floors[i]);
+                wide += Draw(_spawned[i], card.Floors[i], card.Floor);
+            }
+
+            // The gaps are whatever is LEFT once the floors have had their pixels, which is what
+            // lets the rail be as wide as the scene says without anything here knowing how wide
+            // that is. Then the events are placed, because where an event sits is half a gap.
+            float gap = Gap(wide, card.Floors.Count);
+
+            for (var i = 0; i < _spawned.Count && i < card.Floors.Count; i++)
+            {
+                Place(_spawned[i], card.Floors[i], gap);
             }
 
             // Measured NOW, not at the end of the frame. The marker is placed from where the
-            // nodes actually are, and the nodes have just been resized — a marker placed before
-            // the layout ran would sit over whichever floor was underfoot last time.
+            // nodes actually are, and a marker placed before the layout ran would sit over
+            // whichever floor was underfoot last time.
             LayoutRebuilder.ForceRebuildLayoutImmediate(_nodes);
 
             Point(card.Floor, false);
         }
 
         /// <summary>
+        /// Sets the row to space the nodes and to leave their SIZE alone.
+        /// </summary>
+        /// <remarks>
+        /// Both halves matter. The spacing is authored rather than computed, and the diamond's
+        /// offset is computed from it, so widening the rail in the scene moves the events with it
+        /// instead of leaving them stranded between the wrong pair.
+        ///
+        /// And a layout group that controls its children's size will happily stretch a nine-pixel
+        /// crown into a two-by-thirty smear — which is exactly what it did the first time this
+        /// drew. The sizes here come from the ART, so the row is told to keep its hands off them
+        /// every time the rail is drawn rather than trusting whatever the scene was last saved
+        /// with.
+        /// </remarks>
+        private void Row()
+        {
+            var row = _nodes.GetComponent<HorizontalLayoutGroup>();
+
+            if (row == null) return;
+
+            row.childControlWidth = false;
+            row.childControlHeight = false;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.padding = new RectOffset(_inset, _inset, 0, 0);
+        }
+
+        /// <summary>
+        /// How wide each gap between two floors comes out, given the room left over.
+        /// </summary>
+        /// <remarks>
+        /// Computed rather than authored, which is the difference between a rail that fits the
+        /// panel somebody drew it into and one that runs off the end of it. The floors take their
+        /// pixels first — they are art and they are not negotiable — and the gaps divide whatever
+        /// remains.
+        ///
+        /// Floored at <c>_spacing</c>, so a rail squeezed narrower than its own contents runs
+        /// over the edge rather than stacking thirteen floors on top of each other. Overflowing
+        /// is visible; overlapping looks like one floor.
+        /// </remarks>
+        private float Gap(float taken, int floors)
+        {
+            var row = _nodes.GetComponent<HorizontalLayoutGroup>();
+
+            int gaps = floors - 1;
+
+            if (gaps <= 0) return _spacing;
+
+            float room = _nodes.rect.width - _inset * 2f - taken;
+
+            // Never narrower than the mark that sits in it. A gap squeezed under an event's own
+            // diamond draws the diamond over the two floors either side of it, which reads as
+            // three things in one place rather than as one thing between two.
+            float least = _eventAhead != null
+                ? Mathf.Max(_spacing, _eventAhead.rect.width * _scale + 2f)
+                : _spacing;
+
+            float gap = Mathf.Max(least, room / gaps);
+
+            if (row != null) row.spacing = gap;
+
+            return gap;
+        }
+
+        /// <summary>One node: whichever sprite says what this floor is and where the delver is.</summary>
+        /// <returns>How wide it came out, so the gaps can divide what is left.</returns>
+        private float Draw(Image node, FloorNode floor, int standing)
+        {
+            Sprite drawn = Face(floor);
+
+            node.sprite = drawn;
+            node.enabled = drawn != null;
+            node.color = Color.white;
+
+            var rect = (RectTransform)node.transform;
+
+            // The art's own size, scaled. A bazaar is wider than a floor and a crown is wider
+            // than both, and that is the sheet's decision rather than this file's.
+            rect.sizeDelta = drawn != null
+                ? new Vector2(drawn.rect.width * _scale, drawn.rect.height * _scale)
+                : new Vector2(_scale * 3f, _scale * 3f);
+
+            // Nothing is turned on its corner any more. The crown is a crown.
+            rect.localRotation = Quaternion.identity;
+
+            Dot(node, floor, standing);
+
+            return rect.sizeDelta.x;
+        }
+
+        /// <summary>Puts a floor's event mark in the middle of the gap before it.</summary>
+        private void Place(Image node, FloorNode floor, float gap)
+        {
+            if (!floor.Event) return;
+
+            Transform found = node.transform.childCount > 0 ? node.transform.GetChild(0) : null;
+
+            if (found == null) return;
+
+            var rect = (RectTransform)found;
+            var mine = (RectTransform)node.transform;
+
+            // Half a floor and half a gap to the left, which is the middle of the thread between
+            // this floor and the one before it.
+            rect.anchoredPosition = new Vector2(-(mine.sizeDelta.x + gap) * 0.5f, 0f);
+        }
+
+        /// <summary>Which face this floor wears.</summary>
+        /// <remarks>
+        /// Three kinds, and two or three states each. A crown has no walked state on purpose: a
+        /// delver standing past floor thirteen has finished the run, so the rail is gone.
+        /// </remarks>
+        private Sprite Face(FloorNode floor)
+        {
+            switch (floor.Mark)
+            {
+                case FloorMark.Crown:
+                    return floor.Here ? _crownHere : _crownAhead;
+
+                case FloorMark.Bazaar:
+                    return floor.Here ? _shopHere : floor.Walked ? _shopWalked : _shopAhead;
+
+                default:
+                    return floor.Here ? _floorHere : floor.Walked ? _floorWalked : _floorAhead;
+            }
+        }
+
+        /// <summary>
+        /// The event marker, in the GAP before a floor rather than on it.
+        /// </summary>
+        /// <remarks>
+        /// The first child of a node, made once and then only re-sprited. It is drawn on the
+        /// floor the delver arrives at rather than the one they leave, and then pushed back into
+        /// the gap — because that is where the event happens, and hanging it on either node
+        /// would claim it belongs to a floor.
+        /// </remarks>
+        private void Dot(Image node, FloorNode floor, int standing)
+        {
+            Transform found = node.transform.childCount > 0 ? node.transform.GetChild(0) : null;
+
+            if (found == null) return;
+
+            found.gameObject.SetActive(floor.Event);
+
+            if (!floor.Event) return;
+
+            var mark = found.GetComponent<Image>();
+
+            if (mark == null) return;
+
+            // The one in the gap the delver is about to walk into is picked out, because that is
+            // the only event on the rail they are about to have to answer.
+            bool next = !floor.EventPassed && floor.Floor == standing + 1;
+
+            Sprite drawn = floor.EventPassed ? _eventPassed : next ? _eventNext : _eventAhead;
+
+            mark.sprite = drawn;
+            mark.enabled = drawn != null;
+            mark.color = Color.white;
+
+            var rect = (RectTransform)found;
+
+            rect.sizeDelta = drawn != null
+                ? new Vector2(drawn.rect.width * _scale, drawn.rect.height * _scale)
+                : rect.sizeDelta;
+        }
+
+        /// <summary>
         /// Puts the marker over a floor at once, wherever it was.
         /// </summary>
         /// <remarks>
-        /// The nodes resize as the delver walks — whichever is underfoot is drawn bigger — so
-        /// every node's position moves whenever the rail is redrawn. The marker is therefore
-        /// placed from where the node ACTUALLY IS after the layout has run, rather than from
-        /// arithmetic over the sizes, which is what the source has to do in CSS.
+        /// The marker is placed from where the node ACTUALLY IS after the layout has run, rather
+        /// than from arithmetic over the sizes — the nodes are different widths and the art is
+        /// free to change them.
         /// </remarks>
         public void Point(int floor, bool half)
         {
@@ -195,48 +397,6 @@ namespace RelicRun.Game.Presentation
             return t < 0.5f
                 ? 4f * t * t * t
                 : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
-        }
-
-        /// <summary>One node, at the size and colour its floor has earned.</summary>
-        private static void Draw(Image node, FloorNode floor)
-        {
-            var rect = (RectTransform)node.transform;
-
-            rect.sizeDelta = new Vector2(floor.Side, floor.Side);
-
-            node.color = floor.Here ? Here : floor.Walked ? Walked : Ahead;
-
-            // The crown is turned on its corner, which is the source's way of saying the bottom
-            // of a run does not look like the rest of it.
-            rect.localRotation = floor.Mark == FloorMark.Crown
-                ? Quaternion.Euler(0f, 0f, 45f)
-                : Quaternion.identity;
-
-            Dot(node, floor);
-        }
-
-        /// <summary>
-        /// The event marker, which sits on the node AFTER the gap it waits in.
-        /// </summary>
-        /// <remarks>
-        /// The first child of a node, made once and then only recoloured. It is drawn on the
-        /// floor the delver arrives at rather than the one they leave, because that is where the
-        /// gap is on the rail — the thread between two nodes — and putting it on the earlier one
-        /// would show an event a floor from where it happens.
-        /// </remarks>
-        private static void Dot(Image node, FloorNode floor)
-        {
-            Transform found = node.transform.childCount > 0 ? node.transform.GetChild(0) : null;
-
-            if (found == null) return;
-
-            found.gameObject.SetActive(floor.Event);
-
-            if (!floor.Event) return;
-
-            var mark = found.GetComponent<Image>();
-
-            if (mark != null) mark.color = floor.EventPassed ? Met : Waiting;
         }
     }
 }
