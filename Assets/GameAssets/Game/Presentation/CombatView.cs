@@ -58,6 +58,9 @@ namespace RelicRun.Game.Presentation
 
         [Tooltip("Carries a foe from its card into the frame it is fought in.")]
         [SerializeField] private FoeFlight _flight;
+
+        [Tooltip("The pause button and its menu. Shown only while a fight is being read out.")]
+        [SerializeField] private PauseGate _pause;
         [SerializeField] private RectTransform _enemyFliers;
 
         [Header("The purse")]
@@ -143,7 +146,30 @@ namespace RelicRun.Game.Presentation
         private IReadOnlyList<EnemyState> _pack;
 
         /// <summary>Whether the delver has stopped to look at something.</summary>
-        public bool Paused { get; set; }
+        /// <summary>
+        /// Whether the fight is stopped, which is the gate's answer rather than this view's.
+        /// </summary>
+        /// <remarks>
+        /// Asked by the playback loop once a turn round the loop. It reads through to
+        /// <see cref="PauseGate"/> so there is exactly one thing in the scene that knows whether
+        /// a fight is running — a second copy of that flag is a second thing to get out of step.
+        /// </remarks>
+        public bool Paused
+        {
+            get { return _pause != null && _pause.Paused; }
+        }
+
+        /// <summary>Whether the pause button is on the screen. A fight's, and nothing else's.</summary>
+        public bool Pausable
+        {
+            set { if (_pause != null) _pause.Offered = value; }
+        }
+
+        /// <summary>The gate itself, for whoever needs to know the delver walked out.</summary>
+        public PauseGate Gate
+        {
+            get { return _pause; }
+        }
 
         /// <summary>
         /// Whether the delver has pressed FIGHT on the card in front of them.

@@ -388,8 +388,8 @@ Still missing, and now the only part that is: the bazaar's own hall. The source 
 `hall-bazaar.png` and the port has not imported it, so descending into the bazaar arrives in the
 dungeon's own hall. That is the line in `HallView.Descend` that changes when the art lands.
 
-**6 · The rest.** `event` — DONE — then `shop` / `merchant`, `revive`, `pause`. Each is a stage the
-engine already answers and a screen that does not exist.
+**6 · The rest. — DONE.** `event`, `shop`/`merchant`, `revive` and `pause` all have screens now,
+and `FightScene.Plainly` — the dull auto-answer every stop used to get — has nothing left in it.
 
 A correction to this line before anything else: **the source's socket picking is dead code.**
 `socketPick` is never assigned — the only thing that could set it sits behind a ternary whose
@@ -454,6 +454,30 @@ sentence beneath it, because it had been given the height of one. And the unaffo
 GREEN however I coloured it: a `Selectable` repaints its target graphic from its own `ColorBlock`
 on every state change, so anything written onto the image is gone the next frame. The colours
 belong to the button now, set once when the scene is built.
+
+**6d · Pause. — DONE, and step 6 with it.** The one thing in a fight a delver can do: stop it.
+Not a `RunStage`, because pausing is not a question the run asks — the run does not know it
+happened, and the reading of a floor stops between two events and carries on from the same one.
+Which is also why it is safe: nothing is decided while it is up.
+
+The gate it sets has existed since the playback loop was written — `IPlaybackScreen.Paused`, which
+the loop WAITS on rather than polls — and this is finally the thing that sets it. `CombatView.Paused`
+reads through to the gate rather than keeping a second copy of the flag.
+
+Offered only during a fight, and turning it off also unpauses: a fight that ended while stopped
+would otherwise leave the flag set, and the next fight would open frozen with nothing on screen to
+start it. Pausing does not OPEN the menu, it offers it — most pauses are somebody looking away, and
+a menu in front of the fight they stopped to look at is the opposite of what they asked for.
+
+EXIT GAME throws the run away: no score, no gold banked. That is the source's behaviour and it is
+the honest one — paying out for an unfinished run would make quitting a strategy.
+
+The source's pause menu also carries sound and language. Both already exist on the settings screen,
+and reaching that screen from inside a fight wants a popup canvas this scene has not got — a wiring
+job rather than a second copy of the same two controls.
+
+No new Core test: a `MonoBehaviour` cannot have one, and the mechanism underneath — the loop's
+gate — is already covered by `PlaybackLoopTests`.
 
 **Still English on the shelf.** `[[LCK]]` and its like appear raw in relic descriptions — the
 source substitutes the live stat with `richDesc()` and the port does not. It shows on the draft

@@ -83,6 +83,7 @@ namespace RelicRun.Game.Presentation
             _vault = Resolve<SaveVault>("a save");
 
             Hear();
+            Watch();
             Walk();
 
             return Task.CompletedTask;
@@ -204,7 +205,13 @@ namespace RelicRun.Game.Presentation
                     Nothing();
                     Met(earned, stop.Pack);
 
+                    // Only a fight can be stopped. Every other beat of a run is already waiting
+                    // for a press, so a pause button on a draft would stop nothing.
+                    _view.Pausable = true;
+
                     await Read(stop, order.Tier, delve.State);
+
+                    _view.Pausable = false;
 
                     if (Gone) return;
 
@@ -809,6 +816,47 @@ namespace RelicRun.Game.Presentation
             FightSettings watching = _harness != null ? _harness.Watching : null;
 
             return watching != null && watching.SkipIntro;
+        }
+
+        /// <summary>
+        /// Listens for a delver walking out of the run.
+        /// </summary>
+        /// <remarks>
+        /// Wired in <c>Initialize</c> along with everything else from the container, for the same
+        /// reason: a fight outlives its screen often enough that reaching for a component later
+        /// once cost a MissingReferenceException.
+        /// </remarks>
+        private void Watch()
+        {
+            if (_view == null || _view.Gate == null) return;
+
+            _view.Gate.Left += Abandoned;
+        }
+
+        /// <summary>
+        /// The delver quit. Everything is lost.
+        /// </summary>
+        /// <remarks>
+        /// No score, no gold banked — the source throws the run away and so does this. A delver
+        /// who abandons a run halfway has not finished it, and paying out for an unfinished run
+        /// would make quitting a strategy.
+        ///
+        /// <c>_abandoned</c> first, so the walk sees <c>Gone</c> and stops wherever it is rather
+        /// than settling a run nobody finished.
+        /// </remarks>
+        private void Abandoned()
+        {
+            if (_abandoned) return;
+
+            _abandoned = true;
+
+            if (_showing != null) _showing.Abandon();
+
+            Release(new Answer());
+
+            Debug.Log("the delver walked out of the run; nothing is banked", this);
+
+            Leave();
         }
 
         /// <summary>Finds whoever makes the noises and hands them to the screen.</summary>

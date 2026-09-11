@@ -477,6 +477,10 @@ namespace RelicRun.Editor.Importers
             EventStage happening = Event(canvas, content, face);
             FloorRailView railing = Rail(canvas, face);
 
+            // LAST. The pause menu covers everything including the rail, because a delver who has
+            // stopped the game should not still be looking at how far down they are.
+            PauseGate pausing = Pausing(canvas, face);
+
             // Last of all, over everything including the rail. The card a fight opens on is the
             // one thing in this game that covers the whole screen on purpose.
             IntroBanner intro = Intro(canvas, content, face);
@@ -508,6 +512,7 @@ namespace RelicRun.Editor.Importers
                 Pair("_intro", intro),
                 Pair("_queue", queue),
                 Pair("_flight", flight),
+                Pair("_pause", pausing),
             });
 
             // The authored fight, which is now a FALLBACK rather than the fight. It carries the
@@ -540,6 +545,136 @@ namespace RelicRun.Editor.Importers
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>
+        /// The pause button, and the menu it offers once the fight has stopped.
+        /// </summary>
+        /// <remarks>
+        /// Bottom right and forty-six units square, which is the source's own thumb-reach corner.
+        /// The MENU button appears beside it only while stopped — there is nothing to leave
+        /// mid-blow.
+        ///
+        /// The menu is deliberately three things: PAUSED, RESUME, EXIT GAME. The source also
+        /// carries sound and language on it, and both of those already exist on the settings
+        /// screen; reaching that screen from inside a fight wants a popup canvas this scene has
+        /// not got, so it is a wiring job rather than a second copy of the same two controls.
+        /// </remarks>
+        private static PauseGate Pausing(GameObject parent, TMP_FontAsset face)
+        {
+            GameObject root = Panel(parent, "Pause", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            GameObject toggle = Corner(root, "Toggle", new Vector2(-37f, 39f),
+                new Vector2(46f, 46f));
+
+            GameObject glyph = Say(toggle, face, "\u2590\u258C", Text(13),
+                TextAlignmentOptions.Center, Vector2.zero, new Vector2(0f, 46f), true);
+
+            GameObject open = Corner(root, "Menu", new Vector2(-114f, 39f),
+                new Vector2(92f, 46f));
+
+            Image opening = open.GetComponent<Image>();
+            opening.color = new Color(0.165f, 0.137f, 0.078f);
+
+            var ring = open.GetComponent<Outline>();
+            ring.effectColor = new Color(0.890f, 0.702f, 0.255f);
+
+            Say(open, face, "MENU", Text(9), TextAlignmentOptions.Center, Vector2.zero,
+                new Vector2(0f, 46f), true).GetComponent<TMP_Text>().color =
+                new Color(0.890f, 0.702f, 0.255f);
+
+            open.SetActive(false);
+
+            // The menu itself, over everything.
+            GameObject menu = Panel(root, "Sheet", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = menu.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.031f, 0.027f, 0.020f, 0.95f);
+
+            GameObject title = Say(menu, face, "PAUSED", Text(11), TextAlignmentOptions.Center,
+                new Vector2(0f, 96f), new Vector2(0f, 22f), true);
+
+            GameObject resume = Panel(menu, "Resume", new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(320f, 56f));
+
+            var slab = resume.AddComponent<Image>();
+            slab.sprite = White();
+            slab.color = Color.white;
+
+            Button resuming = resume.AddComponent<Button>();
+            resuming.targetGraphic = slab;
+
+            ColorBlock green = resuming.colors;
+            green.normalColor = new Color(0.486f, 0.604f, 0.416f);
+            green.highlightedColor = new Color(0.545f, 0.667f, 0.471f);
+            green.pressedColor = new Color(0.361f, 0.463f, 0.310f);
+            green.selectedColor = green.normalColor;
+            green.colorMultiplier = 1f;
+            resuming.colors = green;
+
+            GameObject resumeLabel = Say(resume, face, "RESUME", Text(15),
+                TextAlignmentOptions.Center, Vector2.zero, new Vector2(0f, 56f), true);
+
+            GameObject exit = Panel(menu, "Exit", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -50f), new Vector2(320f, 48f));
+
+            var hollow = exit.AddComponent<Image>();
+            hollow.sprite = White();
+            hollow.color = new Color(0.078f, 0.071f, 0.059f, 0.9f);
+
+            exit.AddComponent<Button>().targetGraphic = hollow;
+
+            var edge = exit.AddComponent<Outline>();
+            edge.effectColor = new Color(0.769f, 0.349f, 0.235f);
+            edge.effectDistance = new Vector2(2f, 2f);
+
+            GameObject exitLabel = Say(exit, face, "EXIT GAME", Text(13),
+                TextAlignmentOptions.Center, Vector2.zero, new Vector2(0f, 48f), true);
+
+            menu.SetActive(false);
+
+            var gate = root.AddComponent<PauseGate>();
+
+            Wire(gate, new[]
+            {
+                Pair("_toggle", toggle.GetComponent<Button>()),
+                Pair("_glyph", glyph.GetComponent<TMP_Text>()),
+                Pair("_open", open.GetComponent<Button>()),
+
+                Pair("_menu", menu),
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_resume", resuming),
+                Pair("_resumeLabel", resumeLabel.GetComponent<TMP_Text>()),
+                Pair("_exit", exit.GetComponent<Button>()),
+                Pair("_exitLabel", exitLabel.GetComponent<TMP_Text>()),
+            });
+
+            root.SetActive(false);
+
+            return gate;
+        }
+
+        /// <summary>A small pressable square pinned to the bottom-right corner.</summary>
+        private static GameObject Corner(GameObject parent, string name, Vector2 at, Vector2 size)
+        {
+            GameObject made = Panel(parent, name, new Vector2(1f, 0f), new Vector2(1f, 0f),
+                at, size);
+
+            var ground = made.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.078f, 0.071f, 0.059f, 0.85f);
+
+            made.AddComponent<Button>().targetGraphic = ground;
+
+            var edge = made.AddComponent<Outline>();
+            edge.effectColor = new Color(0.227f, 0.200f, 0.157f);
+            edge.effectDistance = new Vector2(2f, 2f);
+
+            return made;
+        }
+
 
         /// <summary>
         /// The one second chance: rise for sparks, or accept it.
