@@ -165,5 +165,9 @@
   "fightBtn": "قاتل",
   "betweenFloors": "بين الطوابق",
   "continueDescent": "واصل النزول",
-  "notEnoughGold": "لا يكفي الذهب"
+  "notEnoughGold": "لا يكفي الذهب",
+  "forSale": "للبيع · {n}g",
+  "awakenRelic": "أيقظ أثراً · {n}g",
+  "leaveShop": "غادر المتجر",
+  "relicShop": "الطابق {n} · متجر الآثار"
 }

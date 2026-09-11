@@ -165,5 +165,9 @@
   "fightBtn": "战斗",
   "betweenFloors": "层与层之间",
   "continueDescent": "继续下行",
-  "notEnoughGold": "金币不足"
+  "notEnoughGold": "金币不足",
+  "forSale": "出售 · {n}g",
+  "awakenRelic": "觉醒一件圣物 · {n}g",
+  "leaveShop": "离开商店",
+  "relicShop": "第 {n} 层 · 圣物商店"
 }

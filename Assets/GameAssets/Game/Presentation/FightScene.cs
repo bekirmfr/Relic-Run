@@ -588,14 +588,7 @@ namespace RelicRun.Game.Presentation
         /// </remarks>
         private static Answer Plainly(Ask ask)
         {
-            switch (ask.Kind)
-            {
-                case AskKind.Bazaar:
-                    return new Answer { Deal = BazaarDeal.Walk };
-
-                default:
-                    return new Answer();
-            }
+            return new Answer();
         }
 
         /// <summary>

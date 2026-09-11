@@ -165,5 +165,9 @@
   "fightBtn": "FIGHT",
   "betweenFloors": "BETWEEN FLOORS",
   "continueDescent": "CONTINUE THE DESCENT",
-  "notEnoughGold": "NOT ENOUGH GOLD"
+  "notEnoughGold": "NOT ENOUGH GOLD",
+  "forSale": "FOR SALE · {n}g",
+  "awakenRelic": "AWAKEN A RELIC · {n}g",
+  "leaveShop": "LEAVE THE SHOP",
+  "relicShop": "FLOOR {n} · RELIC SHOP"
 }

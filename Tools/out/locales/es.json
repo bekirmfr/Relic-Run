@@ -165,5 +165,9 @@
   "fightBtn": "LUCHAR",
   "betweenFloors": "ENTRE PISOS",
   "continueDescent": "CONTINUAR EL DESCENSO",
-  "notEnoughGold": "ORO INSUFICIENTE"
+  "notEnoughGold": "ORO INSUFICIENTE",
+  "forSale": "EN VENTA · {n}g",
+  "awakenRelic": "DESPERTAR UNA RELIQUIA · {n}g",
+  "leaveShop": "SALIR DE LA TIENDA",
+  "relicShop": "PISO {n} · TIENDA DE RELIQUIAS"
 }

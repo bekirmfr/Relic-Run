@@ -165,5 +165,9 @@
   "fightBtn": "SAVAŞ",
   "betweenFloors": "KATLAR ARASINDA",
   "continueDescent": "İNMEYE DEVAM ET",
-  "notEnoughGold": "YETERLİ ALTIN YOK"
+  "notEnoughGold": "YETERLİ ALTIN YOK",
+  "forSale": "SATILIK · {n}g",
+  "awakenRelic": "BİR KALINTIYI UYANDIR · {n}g",
+  "leaveShop": "DÜKKÂNDAN ÇIK",
+  "relicShop": "KAT {n} · KALINTI DÜKKÂNI"
 }

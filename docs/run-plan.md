@@ -415,6 +415,31 @@ him for nothing — and a priced choice can name its price in the LABEL rather t
 is what the Imp's Dice does. What replaced them are the invariants that are actually true: a
 priced choice shows its number somewhere a delver reads, and an event can hurt but never kill.
 
+**6b · The bazaar. — DONE.** Five relics, whatever can be woken, one deal. The card is built on
+the DRAFT's own `Offered` rather than a second description of the same relic — a delver moves
+between those two screens inside one run, and the shelf is where forty gold goes, so the two
+agreeing is worth having by construction rather than by a test that notices when they stop.
+
+Nothing on the screen counts deals. The engine offers the shelf, takes one, and offers what is
+left; an awakening shelf that has closed arrives empty. A screen keeping its own tally would
+disagree with the engine the first time a woken Merchant's Thumb bought a second one.
+
+Three things the first play caught. The waking rows were BLANK, because most relics have no
+awakened prose and the source answers those with a fallback line I had dropped. The rows were
+placed at fixed heights and collided the moment a description wrapped to three lines, which is
+most of them — they are laid out now, and a row is as tall as what is written on it. And the
+kicker landed underneath the floor rail, which is drawn over every stage: two lines both
+beginning FLOOR 7, on top of each other.
+
+The layout needed rebuilding TWICE after a redraw, which is not superstition: a row's height
+comes from its description and a description's height comes from how wide it was allowed to be,
+so the first pass settles widths and the second is the one that can ask a wrapped line how tall
+it came to. Run once, the longest rows lost their last line.
+
+**Still English on the shelf.** `[[LCK]]` and its like appear raw in relic descriptions — the
+source substitutes the live stat with `richDesc()` and the port does not. It shows on the draft
+too, so it is one fix in one place rather than a bazaar problem.
+
 **On translating these screens.** The source ships the event, shop, merchant and revive screens
 entirely in hardcoded English — no locale keys at all, in any of the eight languages. The port
 adds keys for the UI chrome around them (`betweenFloors`, `continueDescent`, `notEnoughGold`) and

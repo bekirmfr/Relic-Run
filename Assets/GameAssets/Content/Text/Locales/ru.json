@@ -165,5 +165,9 @@
   "fightBtn": "В БОЙ",
   "betweenFloors": "МЕЖДУ ЭТАЖАМИ",
   "continueDescent": "ПРОДОЛЖИТЬ СПУСК",
-  "notEnoughGold": "НЕ ХВАТАЕТ ЗОЛОТА"
+  "notEnoughGold": "НЕ ХВАТАЕТ ЗОЛОТА",
+  "forSale": "В ПРОДАЖЕ · {n}g",
+  "awakenRelic": "ПРОБУДИТЬ РЕЛИКВИЮ · {n}g",
+  "leaveShop": "ПОКИНУТЬ ЛАВКУ",
+  "relicShop": "ЭТАЖ {n} · ЛАВКА РЕЛИКВИЙ"
 }

@@ -472,6 +472,7 @@ namespace RelicRun.Editor.Importers
             // being asked. Both are last, so nothing built before them can be hidden by accident.
             DraftStage draft = Draft(canvas, content, face);
             GateStage gate = Gate(canvas, content, face);
+            BazaarStage bazaar = Bazaar(canvas, content, face);
             EventStage happening = Event(canvas, content, face);
             FloorRailView railing = Rail(canvas, face);
 
@@ -532,12 +533,326 @@ namespace RelicRun.Editor.Importers
             // An array, so it cannot be wired by Pair like everything else. It is also the one
             // reference here that GROWS: a stage per stop, added as each is built, and the scene
             // finds the right one by asking rather than by which slot it landed in.
-            Stages(entry, new RunStage[] { draft, gate, happening });
+            Stages(entry, new RunStage[] { draft, gate, happening, bazaar });
         }
 
         /* ---------- wiring ---------- */
 
         /* ---------- the pieces ---------- */
+
+        /// <summary>How tall one row of the bazaar's shelf is.</summary>
+        private const float ShelfRow = 76f;
+
+        /// <summary>
+        /// The Hoard Bazaar: five relics, whatever can be woken, and the way out.
+        /// </summary>
+        /// <remarks>
+        /// One column, scrolled, because the two shelves together can run past the bottom of a
+        /// phone: five wares and up to six wakings is eleven rows, and the way out has to stay
+        /// reachable at the end of them. Everything is laid out rather than placed, so the
+        /// waking shelf disappearing closes the gap it leaves behind.
+        /// </remarks>
+        private static BazaarStage Bazaar(GameObject parent, GameContent content,
+            TMP_FontAsset face)
+        {
+            GameObject panel = Panel(parent, "Bazaar", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var ground = panel.AddComponent<Image>();
+            ground.sprite = White();
+            ground.color = Ground;
+
+            GameObject view = Scroller(panel);
+
+            GameObject column = Panel(view, "Column", new Vector2(0f, 1f), new Vector2(1f, 1f),
+                Vector2.zero, new Vector2(0f, 0f));
+
+            var rect = (RectTransform)column.transform;
+            rect.pivot = new Vector2(0.5f, 1f);
+
+            var stack = column.AddComponent<VerticalLayoutGroup>();
+            stack.childAlignment = TextAnchor.UpperCenter;
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = true;
+            stack.spacing = 8f;
+
+            // Sixty at the top, not twenty: the floor rail is drawn OVER every stage and sits in
+            // the first forty-six units of the screen. A kicker at twenty landed underneath it,
+            // and two lines both beginning FLOOR 7 on top of each other read as a glitch.
+            stack.padding = new RectOffset(20, 20, 60, 24);
+
+            var grows = column.AddComponent<ContentSizeFitter>();
+            grows.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Told what it is scrolling. A ScrollRect with no content scrolls nothing at all,
+            // silently — the shelf simply runs off the bottom and the way out is unreachable on
+            // a phone, which is the one device this layout is for.
+            ScrollRect scrolls = view.GetComponent<ScrollRect>();
+
+            scrolls.viewport = (RectTransform)view.transform;
+            scrolls.content = rect;
+
+            GameObject kicker = Row(column, face, "\u25C9 FLOOR 7 \u00B7 RELIC SHOP", Text(8), 16f);
+
+            // The name and the purse on one line, because the purse is what the name is about.
+            GameObject head = Stripe(column, 34f);
+
+            GameObject title = Say(head, face, "THE HOARD BAZAAR", Text(24),
+                TextAlignmentOptions.Left, new Vector2(0f, 0f), new Vector2(300f, 34f));
+
+            GameObject gold = Say(head, face, "0g", Text(14), TextAlignmentOptions.Right,
+                Vector2.zero, new Vector2(0f, 34f), true);
+
+            GameObject sub = Row(column, face, "One deal per visit.", Text(13), 54f);
+            sub.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.TopLeft;
+
+            GameObject buyTitle = Row(column, face, "FOR SALE", Text(8), 20f);
+
+            GameObject wares = Shelf(column, "Wares");
+            Button ware = ShelfRowTemplate(wares, face, true);
+
+            // The waking shelf, heading and all, so an empty one leaves no gap.
+            GameObject waking = Panel(column, "Awaken", new Vector2(0f, 1f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var wakingStack = waking.AddComponent<VerticalLayoutGroup>();
+            wakingStack.childAlignment = TextAnchor.UpperCenter;
+            wakingStack.childForceExpandWidth = true;
+            wakingStack.childForceExpandHeight = false;
+            wakingStack.childControlWidth = true;
+            wakingStack.childControlHeight = true;
+            wakingStack.spacing = 8f;
+            wakingStack.padding = new RectOffset(0, 0, 10, 0);
+
+            waking.AddComponent<ContentSizeFitter>().verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+
+            GameObject wakeTitle = Row(waking, face, "AWAKEN A RELIC", Text(8), 20f);
+
+            GameObject wakings = Shelf(waking, "Wakings");
+            Button woken = ShelfRowTemplate(wakings, face, false);
+
+            GameObject leave = Press(column, "Leave", face, "LEAVE THE SHOP", Text(14),
+                new Color(0.078f, 0.071f, 0.059f), new Color(0.906f, 0.878f, 0.824f), 50f);
+
+            leave.AddComponent<LayoutElement>().minHeight = 50f;
+
+            var edge = leave.AddComponent<Outline>();
+            edge.effectColor = new Color(0.227f, 0.200f, 0.157f);
+            edge.effectDistance = new Vector2(2f, 2f);
+
+            var stage = panel.AddComponent<BazaarStage>();
+
+            Wire(stage, new[]
+            {
+                Pair("_kicker", kicker.GetComponent<TMP_Text>()),
+                Pair("_title", title.GetComponent<TMP_Text>()),
+                Pair("_gold", gold.GetComponent<TMP_Text>()),
+                Pair("_sub", sub.GetComponent<TMP_Text>()),
+
+                Pair("_buyTitle", buyTitle.GetComponent<TMP_Text>()),
+                Pair("_wares", (RectTransform)wares.transform),
+                Pair("_ware", ware),
+
+                Pair("_wakeShelf", waking),
+                Pair("_wakeTitle", wakeTitle.GetComponent<TMP_Text>()),
+                Pair("_wakings", (RectTransform)wakings.transform),
+                Pair("_waking", woken),
+
+                Pair("_column", rect),
+                Pair("_leave", leave.GetComponent<Button>()),
+                Pair("_leaveLabel", leave.GetComponentInChildren<TMP_Text>(true)),
+                Pair("_content", content),
+            });
+
+            panel.SetActive(false);
+
+            return stage;
+        }
+
+        /// <summary>
+        /// A window that scrolls what is taller than it.
+        /// </summary>
+        /// <remarks>
+        /// Vertical only, and with no bar: a phone scrolls by dragging and a bar drawn beside
+        /// eleven rows is eleven rows of decoration. The mask is what stops a shelf spilling over
+        /// the way out.
+        /// </remarks>
+        private static GameObject Scroller(GameObject parent)
+        {
+            GameObject window = Panel(parent, "Scroll", new Vector2(0f, 0f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            window.AddComponent<RectMask2D>();
+
+            var scrolls = window.AddComponent<ScrollRect>();
+            scrolls.horizontal = false;
+            scrolls.vertical = true;
+            scrolls.movementType = ScrollRect.MovementType.Elastic;
+            scrolls.elasticity = 0.08f;
+            scrolls.scrollSensitivity = 28f;
+
+            return window;
+        }
+
+        /// <summary>A line of text that takes a whole row of the column.</summary>
+        private static GameObject Row(GameObject parent, TMP_FontAsset face, string what,
+            int size, float tall)
+        {
+            GameObject said = Say(parent, face, what, size, TextAlignmentOptions.Left,
+                Vector2.zero, new Vector2(0f, tall), true);
+
+            said.AddComponent<LayoutElement>().minHeight = tall;
+
+            return said;
+        }
+
+        /// <summary>A row of the column that holds things placed by hand rather than laid out.</summary>
+        private static GameObject Stripe(GameObject parent, float tall)
+        {
+            GameObject band = Panel(parent, "Head", new Vector2(0f, 1f), new Vector2(1f, 1f),
+                Vector2.zero, new Vector2(0f, tall));
+
+            band.AddComponent<LayoutElement>().minHeight = tall;
+
+            return band;
+        }
+
+        /// <summary>One of the two shelves: a column of rows that grows with what is on it.</summary>
+        private static GameObject Shelf(GameObject parent, string name)
+        {
+            GameObject shelf = Panel(parent, name, new Vector2(0f, 1f), new Vector2(1f, 1f),
+                Vector2.zero, Vector2.zero);
+
+            var stack = shelf.AddComponent<VerticalLayoutGroup>();
+            stack.childAlignment = TextAnchor.UpperCenter;
+            stack.childForceExpandWidth = true;
+            stack.childForceExpandHeight = false;
+            stack.childControlWidth = true;
+            stack.childControlHeight = false;
+            stack.spacing = 7f;
+
+            shelf.AddComponent<ContentSizeFitter>().verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+
+            return shelf;
+        }
+
+        /// <summary>
+        /// One row of a shelf: a picture, a name, what it does, and a price.
+        /// </summary>
+        /// <remarks>
+        /// LAID OUT rather than placed, and that is the whole of it. Placed at fixed heights the
+        /// three lines collided the moment a description wrapped to three lines — which most of
+        /// them do — and a shelf of relics read as one relic written over another. Here the row
+        /// is a horizontal band of picture, body and price; the body stacks its three lines; and
+        /// the row takes its height from whatever they came to.
+        ///
+        /// The four texts are still read back by ORDER — name, what, the line under, price — so
+        /// the order they are made in here is the order the stage dresses them in. A waking row
+        /// has no picture, because what it wakes is already on the delver's own shelf.
+        /// </remarks>
+        private static Button ShelfRowTemplate(GameObject parent, TMP_FontAsset face, bool picture)
+        {
+            var made = new GameObject("Row", typeof(RectTransform), typeof(Image), typeof(Button),
+                typeof(CanvasGroup));
+
+            var rect = (RectTransform)made.transform;
+
+            rect.SetParent(parent.transform, false);
+            rect.sizeDelta = new Vector2(0f, ShelfRow);
+
+            var band = made.AddComponent<HorizontalLayoutGroup>();
+            band.childAlignment = TextAnchor.MiddleLeft;
+            band.childForceExpandWidth = false;
+            band.childForceExpandHeight = false;
+            band.childControlWidth = true;
+            band.childControlHeight = true;
+            band.spacing = 12f;
+            band.padding = new RectOffset(12, 12, 10, 10);
+
+            // Grows with its contents, and never shrinks below the height a picture needs.
+            made.AddComponent<ContentSizeFitter>().verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+
+            made.AddComponent<LayoutElement>().minHeight = ShelfRow;
+
+            Image ground = made.GetComponent<Image>();
+            ground.sprite = White();
+            ground.color = new Color(0.078f, 0.067f, 0.047f);
+
+            Button press = made.GetComponent<Button>();
+            press.targetGraphic = ground;
+
+            var edge = made.AddComponent<Outline>();
+            edge.effectColor = new Color(0.227f, 0.200f, 0.157f);
+            edge.effectDistance = new Vector2(2f, 2f);
+
+            if (picture)
+            {
+                GameObject icon = Box(made, "Icon", new Vector2(0f, 0.5f),
+                    new Vector2(40f, 40f), Vector2.zero);
+
+                LayoutElement fixedSize = icon.AddComponent<LayoutElement>();
+                fixedSize.preferredWidth = 40f;
+                fixedSize.preferredHeight = 40f;
+                fixedSize.flexibleWidth = 0f;
+            }
+
+            GameObject body = Panel(made, "Body", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+                Vector2.zero, Vector2.zero);
+
+            var lines = body.AddComponent<VerticalLayoutGroup>();
+            lines.childAlignment = TextAnchor.MiddleLeft;
+            lines.childForceExpandWidth = true;
+            lines.childForceExpandHeight = false;
+            lines.childControlWidth = true;
+            lines.childControlHeight = true;
+            lines.spacing = 2f;
+
+            // The body takes whatever is left after the picture and the price, which is what
+            // makes a description wrap to the row's real width rather than to a number typed in
+            // here that is wrong on every other screen size.
+            LayoutElement takes = body.AddComponent<LayoutElement>();
+            takes.flexibleWidth = 1f;
+
+            Line(body, face, "Relic", Text(14));
+            Line(body, face, "what it does", Text(12));
+            Line(body, face, "FAMILY", Text(8));
+
+            // Last, and on the right. It is read back as the fourth text.
+            GameObject price = Say(made, face, "0g", Text(10), TextAlignmentOptions.Right,
+                Vector2.zero, new Vector2(52f, 20f));
+
+            LayoutElement priceWidth = price.AddComponent<LayoutElement>();
+            priceWidth.preferredWidth = 52f;
+            priceWidth.flexibleWidth = 0f;
+
+            made.SetActive(false);
+
+            return press;
+        }
+
+        /// <summary>One line of a row's body, sized by what is written on it.</summary>
+        /// <remarks>
+        /// Word wrap on and no fixed height: a TextMeshPro laid out by a group reports the height
+        /// its text actually needs once the group has settled its width, which is the only way a
+        /// row can be as tall as its longest description and no taller.
+        /// </remarks>
+        private static GameObject Line(GameObject parent, TMP_FontAsset face, string what, int size)
+        {
+            GameObject said = Say(parent, face, what, size, TextAlignmentOptions.TopLeft,
+                Vector2.zero, new Vector2(0f, 18f), true);
+
+            TMP_Text text = said.GetComponent<TMP_Text>();
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Overflow;
+
+            return said;
+        }
+
 
         /// <summary>
         /// The event in the gap between two floors.

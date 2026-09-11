@@ -165,5 +165,9 @@
   "fightBtn": "たたかう",
   "betweenFloors": "階と階のあいだ",
   "continueDescent": "降下を続ける",
-  "notEnoughGold": "ゴールドが足りない"
+  "notEnoughGold": "ゴールドが足りない",
+  "forSale": "販売中 · {n}g",
+  "awakenRelic": "レリックを覚醒させる · {n}g",
+  "leaveShop": "店を出る",
+  "relicShop": "{n}階 · レリック商店"
 }

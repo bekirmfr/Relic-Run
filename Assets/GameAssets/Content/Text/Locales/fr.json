@@ -165,5 +165,9 @@
   "fightBtn": "COMBATTRE",
   "betweenFloors": "ENTRE DEUX ÉTAGES",
   "continueDescent": "POURSUIVRE LA DESCENTE",
-  "notEnoughGold": "PAS ASSEZ D'OR"
+  "notEnoughGold": "PAS ASSEZ D'OR",
+  "forSale": "À VENDRE · {n}g",
+  "awakenRelic": "ÉVEILLER UNE RELIQUE · {n}g",
+  "leaveShop": "QUITTER LA BOUTIQUE",
+  "relicShop": "ÉTAGE {n} · BOUTIQUE DE RELIQUES"
 }

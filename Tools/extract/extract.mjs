@@ -325,6 +325,56 @@ const ADDED = {
     zh: "\u91D1\u5E01\u4E0D\u8DB3",
     ar: "\u0644\u0627 \u064A\u0643\u0641\u064A \u0627\u0644\u0630\u0647\u0628",
   },
+
+  /* The bazaar's buying shelf and what a relic off it costs. */
+  forSale: {
+    en: "FOR SALE \u00B7 {n}g",
+    tr: "SATILIK \u00B7 {n}g",
+    fr: "\u00C0 VENDRE \u00B7 {n}g",
+    es: "EN VENTA \u00B7 {n}g",
+    ru: "\u0412 \u041F\u0420\u041E\u0414\u0410\u0416\u0415 \u00B7 {n}g",
+    ja: "\u8CA9\u58F2\u4E2D \u00B7 {n}g",
+    zh: "\u51FA\u552E \u00B7 {n}g",
+    ar: "\u0644\u0644\u0628\u064A\u0639 \u00B7 {n}g",
+  },
+
+  /* And its waking shelf. The word for a relic is the one the draft
+   * already uses, so the two screens name the same thing the same way. */
+  awakenRelic: {
+    en: "AWAKEN A RELIC \u00B7 {n}g",
+    tr: "B\u0130R KALINTIYI UYANDIR \u00B7 {n}g",
+    fr: "\u00C9VEILLER UNE RELIQUE \u00B7 {n}g",
+    es: "DESPERTAR UNA RELIQUIA \u00B7 {n}g",
+    ru: "\u041F\u0420\u041E\u0411\u0423\u0414\u0418\u0422\u042C \u0420\u0415\u041B\u0418\u041A\u0412\u0418\u042E \u00B7 {n}g",
+    ja: "\u30EC\u30EA\u30C3\u30AF\u3092\u899A\u9192\u3055\u305B\u308B \u00B7 {n}g",
+    zh: "\u89C9\u9192\u4E00\u4EF6\u5723\u7269 \u00B7 {n}g",
+    ar: "\u0623\u064A\u0642\u0638 \u0623\u062B\u0631\u0627\u064B \u00B7 {n}g",
+  },
+
+  /* The way out of the bazaar, which is also the way on to floor eight. */
+  leaveShop: {
+    en: "LEAVE THE SHOP",
+    tr: "D\u00DCKK\u00C2NDAN \u00C7IK",
+    fr: "QUITTER LA BOUTIQUE",
+    es: "SALIR DE LA TIENDA",
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041B\u0410\u0412\u041A\u0423",
+    ja: "\u5E97\u3092\u51FA\u308B",
+    zh: "\u79BB\u5F00\u5546\u5E97",
+    ar: "\u063A\u0627\u062F\u0631 \u0627\u0644\u0645\u062A\u062C\u0631",
+  },
+
+  /* The bazaar's own kicker. Not "cleared" — this floor is walked through rather
+   * than fought, and calling it cleared would claim a fight that never happened. */
+  relicShop: {
+    en: "FLOOR {n} \u00B7 RELIC SHOP",
+    tr: "KAT {n} \u00B7 KALINTI D\u00DCKK\u00C2NI",
+    fr: "\u00C9TAGE {n} \u00B7 BOUTIQUE DE RELIQUES",
+    es: "PISO {n} \u00B7 TIENDA DE RELIQUIAS",
+    ru: "\u042D\u0422\u0410\u0416 {n} \u00B7 \u041B\u0410\u0412\u041A\u0410 \u0420\u0415\u041B\u0418\u041A\u0412\u0418\u0419",
+    ja: "{n}\u968E \u00B7 \u30EC\u30EA\u30C3\u30AF\u5546\u5E97",
+    zh: "\u7B2C {n} \u5C42 \u00B7 \u5723\u7269\u5546\u5E97",
+    ar: "\u0627\u0644\u0637\u0627\u0628\u0642 {n} \u00B7 \u0645\u062A\u062C\u0631 \u0627\u0644\u0622\u062B\u0627\u0631",
+  },
 };
 
 let added = 0;
