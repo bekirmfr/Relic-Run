@@ -172,5 +172,6 @@
   "relicShop": "FLOOR {n} · RELIC SHOP",
   "spendSparks": "SPEND SPARKS",
   "sparksLeft": "{n} LEFT",
-  "sparksShort": "{n} SHORT"
+  "sparksShort": "{n} SHORT",
+  "tradeBtn": "TRADE"
 }

@@ -172,5 +172,6 @@
   "relicShop": "PISO {n} · TIENDA DE RELIQUIAS",
   "spendSparks": "GASTAR CHISPAS",
   "sparksLeft": "QUEDAN {n}",
-  "sparksShort": "FALTAN {n}"
+  "sparksShort": "FALTAN {n}",
+  "tradeBtn": "COMERCIAR"
 }

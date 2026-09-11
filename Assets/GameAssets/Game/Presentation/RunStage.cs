@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using RelicRun.Core.Content;
+using RelicRun.Core.Presentation;
 using RelicRun.Core.Run;
 using UnityEngine;
 
@@ -96,6 +98,47 @@ namespace RelicRun.Game.Presentation
             Action<Answer> decided = Decided;
 
             if (decided != null) decided(answer);
+        }
+
+        /// <summary>What a stat chip is painted with, on both sides of the word.</summary>
+        /// <remarks>
+        /// The source's own treatment: smaller, letter-spaced, and in the dull gold it uses for
+        /// numbers that come off the delver rather than off the relic. TextMeshPro markup, which
+        /// is why it lives here and not in Core.
+        /// </remarks>
+        private const string ChipOpen = "<size=82%><color=#B9A05C>";
+
+        private const string ChipClose = "</color></size>";
+
+        /// <summary>
+        /// A relic's description, with its live number filled and its stat chips painted.
+        /// </summary>
+        /// <remarks>
+        /// Two of the fifty relics need this and both reached a delver as raw markup before it
+        /// existed — <c>(now +{n})</c> on the Midas Blade and <c>[[LCK]]</c> on the Weighted
+        /// Dice. On <see cref="RunStage"/> rather than on either screen, because the draft and
+        /// the shelf both describe relics and describing them differently is exactly the bug
+        /// this is fixing.
+        /// </remarks>
+        protected string Describes(RelicId relic, string key, string english, int gold)
+        {
+            string said;
+
+            if (key == null)
+            {
+                said = english ?? string.Empty;
+            }
+            else if (RelicWords.Lives(relic))
+            {
+                said = Say(key, "n", RelicWords.Live(relic, gold)
+                    .ToString(CultureInfo.InvariantCulture));
+            }
+            else
+            {
+                said = Say(key);
+            }
+
+            return RelicWords.Chips(said, ChipOpen, ChipClose);
         }
 
         /// <summary>A word from the delver's own language, or the key when there is none.</summary>

@@ -75,7 +75,8 @@ namespace RelicRun.Tests.Editor
         [Test]
         public void EveryHallAndEventIsAddressedByItsContentId()
         {
-            Exactly(Addressing.HallGroup, ContentIds.Halls);
+            // The book's own list, which is the dungeons' halls AND the bazaar floor's two.
+            Exactly(Addressing.HallGroup, _content.Halls.Needed);
             Exactly(Addressing.EventGroup, ContentIds.Events);
         }
 

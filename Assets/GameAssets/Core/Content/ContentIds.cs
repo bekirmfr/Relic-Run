@@ -82,6 +82,20 @@ namespace RelicRun.Core.Content
             }
         }
 
+        /// <summary>
+        /// The bazaar floor's own scenery: its hall, and the merchant who stands in it.
+        /// </summary>
+        /// <remarks>
+        /// Apart from <see cref="Halls"/> on purpose, and the separation is the point: a hall
+        /// belongs to a DUNGEON and there are exactly as many of them as there are dungeons,
+        /// which is a thing worth a test. The bazaar is a FLOOR — floor seven of every run,
+        /// whichever dungeon it is in — so its art is neither one of the ten nor an eleventh.
+        ///
+        /// Addressed with the halls all the same, because they weigh what halls weigh and a run
+        /// meets them once.
+        /// </remarks>
+        public static readonly IReadOnlyList<string> Bazaar = new[] { "hall-bazaar", "merchant" };
+
         /// <summary>The twelve dungeon events, by the stem of their illustration, in index order.</summary>
         public static IReadOnlyList<string> Events { get { return EventArt.All; } }
 

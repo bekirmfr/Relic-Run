@@ -25,6 +25,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 21a5767f2ead8594f9c84c45212c5225
+    m_Address: merchant
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 55c9b89a9652d1c4881263de744368e6
     m_Address: hall-throne
     m_ReadOnly: 0
@@ -47,6 +52,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 792331dc1d947fc4a86921ea82697ec0
     m_Address: hall-moss
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8c82f3b1206781c49bbea22fd5c0185d
+    m_Address: hall-bazaar
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

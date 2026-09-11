@@ -14,6 +14,8 @@ using RelicRun.Game.Services;
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace RelicRun.Game.Presentation
 {
@@ -68,6 +70,9 @@ namespace RelicRun.Game.Presentation
 
         /// <summary>What is waiting on a stage, so an abandoned run does not wait forever.</summary>
         private UniTaskCompletionSource<Answer> _deciding;
+
+        /// <summary>The merchant's face, once it has arrived.</summary>
+        private Sprite _trader;
 
         /// <summary>Built. Starts the delve without waiting for it to finish.</summary>
         /// <remarks>
@@ -191,6 +196,7 @@ namespace RelicRun.Game.Presentation
             if (_view != null) _view.Speaks(_speech != null ? _speech.Locale : null);
 
             var told = false;
+            var trading = false;
 
             while (!delve.Finished)
             {
@@ -241,6 +247,17 @@ namespace RelicRun.Game.Presentation
                     }
                     else
                     {
+                        // The bazaar floor is WALKED onto, like any other. The first time the run
+                        // asks about it, the delver is still at the near door.
+                        if (stop.Kind == AskKind.Bazaar && !trading)
+                        {
+                            trading = true;
+
+                            await Approach(delve);
+
+                            if (Gone) return;
+                        }
+
                         // The one stop that spends something the run does not own. Sparks are the
                         // delver's account rather than the delve's purse, so the stage is told
                         // the balance on the way in and the scene charges it on the way out.
@@ -269,9 +286,22 @@ namespace RelicRun.Game.Presentation
                     if (Gone) return;
                 }
 
-                if (descending)
+                // The visit is over when the run stops asking about it, which is the only thing
+                // that knows: one deal, or two with a woken Thumb, or none at all.
+                bool left = trading && (delve.Finished || delve.Pending.Kind != AskKind.Bazaar);
+
+                if (left)
                 {
-                    await Travelling(delve);
+                    trading = false;
+
+                    await Departing();
+
+                    if (Gone) return;
+                }
+
+                if (descending || left)
+                {
+                    await Travelling(delve, order.Tier);
 
                     if (Gone) return;
                 }
@@ -364,6 +394,147 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>
+        /// Walking onto the bazaar floor, and meeting whoever is standing on it.
+        /// </summary>
+        /// <remarks>
+        /// The same three beats a fought floor has: walk, meet, decide. That is the whole idea —
+        /// a delver arriving on floor seven should not be able to tell it is not a fight until
+        /// the card comes up and offers them a TRADE instead of a FIGHT.
+        ///
+        /// The merchant's face is fetched here rather than drawn from the content book directly,
+        /// because it is ADDRESSED like the hall it stands in and a card drawing itself cannot
+        /// wait. A face that has not arrived leaves the card without a portrait for a moment,
+        /// which is better than a card that is not there.
+        /// </remarks>
+        private async UniTask Approach(Delve delve)
+        {
+            if (_view == null) return;
+
+            Nothing();
+            Rail(delve);
+
+            Sprite face = await Face();
+
+            if (Gone) return;
+
+            _view.Trading(face);
+
+            if (!Reduced())
+            {
+                int walk = Pace(p => p.WalkMs);
+
+                if (walk > 0) await UniTask.Delay(walk, DelayType.UnscaledDeltaTime);
+
+                if (Gone) return;
+            }
+
+            _view.Met(delve.State.Floor + delve.State.Gold);
+
+            if (Reduced())
+            {
+                _view.Traded();
+                return;
+            }
+
+            int read = Pace(p => p.IntroMs);
+
+            if (read <= 0)
+            {
+                _view.Traded();
+                return;
+            }
+
+            // Held like any other card, and cut short the same way: the TRADE button is the
+            // intro's own, so pressing it is what Impatient answers.
+            await Waited(read);
+
+            // And then DOWN. Left up, the shelf opens behind an opaque card and the delver is
+            // looking at a TRADE button that appears to do nothing when they press it — which is
+            // exactly what it did.
+            _view.Traded();
+        }
+
+        /// <summary>
+        /// Leaving the bazaar: the rest of the hall, and then the stairs.
+        /// </summary>
+        /// <remarks>
+        /// The merchant stands halfway along, because a floor of one is two strides. This is the
+        /// second of them, and it is what makes the shop a place a delver walked through rather
+        /// than a screen that appeared over one.
+        /// </remarks>
+        private async UniTask Departing()
+        {
+            if (_view == null) return;
+
+            Nothing();
+
+            _view.LeaveTrading();
+
+            if (Reduced()) return;
+
+            int walk = Pace(p => p.WalkMs);
+
+            if (walk <= 0) return;
+
+            await UniTask.Delay(walk, DelayType.UnscaledDeltaTime);
+        }
+
+        /// <summary>Waits, unless the delver presses the card's own button first.</summary>
+        private async UniTask Waited(int ms)
+        {
+            float over = Time.unscaledTime + ms / 1000f;
+
+            while (Time.unscaledTime < over)
+            {
+                if (Gone || _view.Impatient) return;
+
+                await UniTask.Yield(PlayerLoopTiming.Update);
+            }
+        }
+
+        /// <summary>One of the pacing's numbers, or nothing when there is no pacing.</summary>
+        private int Pace(Func<PacingRules, int> which)
+        {
+            if (_content == null || _content.Presentation == null) return 0;
+
+            return which(_content.Presentation.ToPacing());
+        }
+
+        /// <summary>
+        /// Fetches the merchant's face, once, and keeps it.
+        /// </summary>
+        /// <remarks>
+        /// An AssetReference caches its handle on the ASSET, so loading one twice throws — the
+        /// lesson the halls and the locales both taught. A delve meets the merchant once, but a
+        /// SESSION may meet him a dozen times, and the second would have come back empty.
+        /// </remarks>
+        private async UniTask<Sprite> Face()
+        {
+            if (_trader != null) return _trader;
+
+            if (_content == null || _content.Halls == null) return null;
+
+            AssetReferenceSprite address = _content.Halls.Merchant;
+
+            if (address == null) return null;
+
+            try
+            {
+                AsyncOperationHandle<Sprite> fetching = address.IsValid()
+                    ? address.OperationHandle.Convert<Sprite>()
+                    : address.LoadAssetAsync<Sprite>();
+
+                _trader = await fetching.Task;
+            }
+            catch (Exception broken)
+            {
+                Debug.LogWarning("the merchant has no face: " + broken.Message, this);
+            }
+
+            return _trader;
+        }
+
+        /// <summary>
         /// The last stretch, out of the fight and along to the door at the end of the floor.
         /// </summary>
         /// <remarks>
@@ -436,7 +607,12 @@ namespace RelicRun.Game.Presentation
         /// it. Which is also why the run can be mid-descent with its floor not yet advanced: the
         /// engine yields the event before it steps through the gate.
         /// </remarks>
-        private async UniTask Travelling(Delve delve)
+        /// <param name="tier">
+        /// Which dungeon, so the floor below can be loaded before the walk down begins. The
+        /// bazaar is the exception it exists for: two floors of every run arrive somewhere with
+        /// different walls, and both of them are that one.
+        /// </param>
+        private async UniTask Travelling(Delve delve, int tier)
         {
             Nothing();
 
@@ -464,7 +640,17 @@ namespace RelicRun.Game.Presentation
                 _rail.Walk(to, waiting, seconds);
             }
 
-            if (_view != null) _view.Descend(seconds);
+            if (_view != null)
+            {
+                // Loaded BEFORE the slide, so what rises into the window is the hall the delver
+                // is arriving in. Without it the band repeated the one being left and the new
+                // walls appeared in a blink after the landing.
+                await _view.Ready(tier, to == DelveRun.BazaarFloor);
+
+                if (Gone) return;
+
+                _view.Descend(seconds);
+            }
 
             await UniTask.Delay(held, DelayType.UnscaledDeltaTime);
 

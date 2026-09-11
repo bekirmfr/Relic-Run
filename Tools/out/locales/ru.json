@@ -172,5 +172,6 @@
   "relicShop": "ЭТАЖ {n} · ЛАВКА РЕЛИКВИЙ",
   "spendSparks": "ПОТРАТИТЬ ИСКРЫ",
   "sparksLeft": "ОСТАНЕТСЯ {n}",
-  "sparksShort": "НЕ ХВАТАЕТ {n}"
+  "sparksShort": "НЕ ХВАТАЕТ {n}",
+  "tradeBtn": "ТОРГОВАТЬ"
 }

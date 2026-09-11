@@ -413,6 +413,18 @@ const ADDED = {
     zh: "\u8FD8\u5DEE {n}",
     ar: "\u064A\u0646\u0642\u0635\u0643 {n}",
   },
+
+  /* What the card offers on the bazaar floor, where FIGHT would be a lie. */
+  tradeBtn: {
+    en: "TRADE",
+    tr: "TAKAS",
+    fr: "\u00C9CHANGER",
+    es: "COMERCIAR",
+    ru: "\u0422\u041E\u0420\u0413\u041E\u0412\u0410\u0422\u042C",
+    ja: "\u53D6\u5F15\u3059\u308B",
+    zh: "\u4EA4\u6613",
+    ar: "\u062A\u0627\u062C\u0631",
+  },
 };
 
 let added = 0;

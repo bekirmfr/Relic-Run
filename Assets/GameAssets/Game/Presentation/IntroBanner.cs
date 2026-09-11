@@ -56,6 +56,12 @@ namespace RelicRun.Game.Presentation
         /// <summary>And what the button says.</summary>
         public const string FightKey = "fightBtn";
 
+        /// <summary>Or says instead, when the thing in the frame is selling rather than fighting.</summary>
+        public const string TradeKey = "tradeBtn";
+
+        /// <summary>What the merchant's name is written in.</summary>
+        private static readonly Color Coin = new Color(0.890f, 0.702f, 0.255f);
+
         /// <summary>How big the foe is drawn on the card.</summary>
         /// <remarks>
         /// The source's 232 pixels, which is eight times a 32-wide sprite less a little. It is
@@ -87,6 +93,16 @@ namespace RelicRun.Game.Presentation
 
         /// <summary>How long the card is held, so the timer drains at the rate it is held for.</summary>
         public float Held { get; set; }
+
+        /// <summary>
+        /// The merchant's face, handed down rather than fetched.
+        /// </summary>
+        /// <remarks>
+        /// Addressed art, and a card drawing itself is not allowed to wait — so the scene fetches
+        /// it and puts it here. Null until it arrives, which shows as a card with no portrait for
+        /// a moment rather than as a card that is not there.
+        /// </remarks>
+        public Sprite Trader { get; set; }
 
         /// <summary>Where the foe is drawn, for whatever carries it into the fight.</summary>
         public RectTransform Picture
@@ -125,7 +141,7 @@ namespace RelicRun.Game.Presentation
 
             if (_fightLabel != null)
             {
-                _fightLabel.text = Say(FightKey);
+                _fightLabel.text = Say(card.Trading ? TradeKey : FightKey);
                 _fightLabel.color = Coal;
             }
 
@@ -156,30 +172,47 @@ namespace RelicRun.Game.Presentation
                 if (glow != null && glow != edge) glow.enabled = card.Lit;
             }
 
+            // The merchant's portrait is ADDRESSED, like the hall he stands in, so it arrives a
+            // moment after the card does. Everything else on the card is already there — which is
+            // why the fetch does not hold up the drawing.
             if (_art != null)
             {
-                Sprite drawn = _content != null && _content.Enemies != null
-                    ? _content.Enemies.For(card.Species, card.Variant)
-                    : null;
+                if (card.Trading)
+                {
+                    _art.sprite = Trader;
+                    _art.enabled = Trader != null;
+                }
+                else
+                {
+                    Sprite drawn = _content != null && _content.Enemies != null
+                        ? _content.Enemies.For(card.Species, card.Variant)
+                        : null;
 
-                _art.sprite = drawn;
-                _art.enabled = drawn != null;
+                    _art.sprite = drawn;
+                    _art.enabled = drawn != null;
+                }
             }
 
             if (_name != null)
             {
-                _name.text = Say(card.NameKey);
-                _name.color = Ink;
+                _name.text = card.Trading ? IntroCards.TradeName : Say(card.NameKey);
+                _name.color = card.Trading ? Coin : Ink;
             }
 
             if (_stats != null)
             {
-                _stats.text = card.Stats;
+                // His line where a foe's numbers go. He has no numbers, and the alternative is a
+                // gap in the middle of the card where a delver is looking for something.
+                _stats.text = card.Trading ? card.Line : card.Stats;
                 _stats.color = Faint;
             }
 
             if (_blocks != null)
             {
+                // Nothing under the merchant. "It blocks the way" is true of everything else on a
+                // floor and false of the one thing that wants to be spoken to.
+                _blocks.gameObject.SetActive(!card.Trading);
+
                 _blocks.text = Say(BlocksKey);
                 _blocks.color = Quiet;
             }

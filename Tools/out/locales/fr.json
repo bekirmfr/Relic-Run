@@ -172,5 +172,6 @@
   "relicShop": "ÉTAGE {n} · BOUTIQUE DE RELIQUES",
   "spendSparks": "DÉPENSER DES ÉTINCELLES",
   "sparksLeft": "IL EN RESTE {n}",
-  "sparksShort": "IL MANQUE {n}"
+  "sparksShort": "IL MANQUE {n}",
+  "tradeBtn": "ÉCHANGER"
 }

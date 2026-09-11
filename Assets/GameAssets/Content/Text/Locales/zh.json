@@ -172,5 +172,6 @@
   "relicShop": "第 {n} 层 · 圣物商店",
   "spendSparks": "消耗火花",
   "sparksLeft": "剩余 {n}",
-  "sparksShort": "还差 {n}"
+  "sparksShort": "还差 {n}",
+  "tradeBtn": "交易"
 }

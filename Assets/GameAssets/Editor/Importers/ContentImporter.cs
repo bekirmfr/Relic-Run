@@ -98,6 +98,14 @@ namespace RelicRun.Editor.Importers
                     ContentPaths.Halls + "/" + hall + ".png");
             }
 
+            // The bazaar's hall and the merchant standing in it. Beside the halls because they
+            // are addressed with the halls and weigh what halls weigh — see HallBook.
+            foreach (string art in ContentIds.Bazaar)
+            {
+                copied += Bring(ContentPaths.SourceArt + "/" + art + ".png",
+                    ContentPaths.Halls + "/" + art + ".png");
+            }
+
             foreach (string art in ContentIds.Events)
             {
                 copied += Bring(ContentPaths.SourceArt + "/" + art + ".png",
@@ -178,6 +186,15 @@ namespace RelicRun.Editor.Importers
                 Pixelate(ContentPaths.Halls + "/" + hall + ".png", false);
             }
 
+            // The bazaar's two, which land in the same folder and need the same settings.
+            // Copied without this, they import as plain TEXTURES — and an address that resolves
+            // to a texture when a sprite was asked for throws InvalidKeyException at the moment
+            // the delver walks onto floor seven, with nothing on screen to say why.
+            foreach (string art in ContentIds.Bazaar)
+            {
+                Pixelate(ContentPaths.Halls + "/" + art + ".png", false);
+            }
+
             foreach (string art in ContentIds.Events)
             {
                 Pixelate(ContentPaths.Events + "/" + art + ".png", false);
@@ -251,8 +268,11 @@ namespace RelicRun.Editor.Importers
 
             relicIcons.Rebind(FromSheet(ContentPaths.RelicIconSheet, SpriteSheet.RelicCells()));
             enemies.Rebind(FromSheet(ContentPaths.EnemySheet, SpriteSheet.EnemyCells()));
-            halls.Rebind(Addressed(ContentIds.Halls,
-                Addressing.Address(Addressing.HallGroup, ContentPaths.Halls, ContentIds.Halls, ".png")));
+            // The book's own list: the ten dungeons' halls AND the bazaar floor's two. Asking
+            // ContentIds.Halls here would address the dungeons and leave the bazaar unbound,
+            // which is exactly what it did — the files copied and the book stayed at ten.
+            halls.Rebind(Addressed(halls.Needed,
+                Addressing.Address(Addressing.HallGroup, ContentPaths.Halls, halls.Needed, ".png")));
             events.Rebind(Addressed(ContentIds.Events,
                 Addressing.Address(Addressing.EventGroup, ContentPaths.Events, ContentIds.Events, ".png")));
 

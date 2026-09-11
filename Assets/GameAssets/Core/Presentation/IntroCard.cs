@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using RelicRun.Core.Combat;
@@ -37,6 +38,20 @@ namespace RelicRun.Core.Presentation
 
         /// <summary>Whether the frame is lit, which only the bottom of a run is.</summary>
         public bool Lit;
+
+        /// <summary>
+        /// Whether this is the merchant rather than something that will hit you.
+        /// </summary>
+        /// <remarks>
+        /// The bazaar floor is walked into exactly like a fight — down the hall, met, announced —
+        /// and then the card offers a TRADE instead of a FIGHT. One card with a flag rather than
+        /// two cards, because it IS the same card: a delver arriving on floor seven should not be
+        /// able to tell they are about to be sold something until they read it.
+        /// </remarks>
+        public bool Trading;
+
+        /// <summary>What the merchant says, when it is the merchant. English.</summary>
+        public string Line;
     }
 
     /// <summary>
@@ -75,6 +90,60 @@ namespace RelicRun.Core.Presentation
 
         /// <summary>What sits between two of the four numbers.</summary>
         public const string Between = " · ";
+
+        /// <summary>What the bazaar's kicker says over the merchant.</summary>
+        public const string TradeKicker = "NEUTRAL · THE HOARD BAZAAR";
+
+        /// <summary>And what it calls him.</summary>
+        public const string TradeName = "The Merchant";
+
+        /// <summary>
+        /// The five things he says, one of which a visit picks.
+        /// </summary>
+        /// <remarks>
+        /// English, and untranslated at the source. Chosen off the run's own stream rather than
+        /// at random, so a seed says the same thing twice — see <see cref="Trader"/>.
+        /// </remarks>
+        public static readonly IReadOnlyList<string> Lines = new[]
+        {
+            "\u201CAh. A live one. Everything here is for sale \u2014 including advice.\u201D",
+            "\u201CI don't fight, delver. I price. Come, see what the dead left behind.\u201D",
+            "\u201CThe scales never lie. Your gold, my curios \u2014 one deal only.\u201D",
+            "\u201CYou'll want something from me. They always do.\u201D",
+            "\u201CCoin now, regret later. That's the usual arrangement.\u201D",
+        };
+
+        /// <summary>
+        /// The card for the merchant, with whichever line this visit drew.
+        /// </summary>
+        /// <remarks>
+        /// The line is picked by INDEX rather than rolled here, because Core's streams belong to
+        /// the run and a card is not entitled to draw from one. A caller that has a number hands
+        /// it over; one that has not passes anything and gets the first.
+        /// </remarks>
+        public static IntroCard Trader(int line)
+        {
+            IReadOnlyList<string> said = Lines;
+
+            int at = said.Count > 0 ? ((line % said.Count) + said.Count) % said.Count : 0;
+
+            return new IntroCard
+            {
+                Species = -1,
+                Variant = 0,
+                Rank = EnemyRank.Guard,
+                NameKey = null,
+                Called = TradeKicker,
+                Hex = KingHex,
+                Ranked = true,
+                Stats = string.Empty,
+                Edge = 2,
+                EdgeHex = KingHex,
+                Lit = true,
+                Trading = true,
+                Line = said.Count > 0 ? said[at] : string.Empty,
+            };
+        }
 
         /// <summary>The card for whoever is stepping up in this snapshot.</summary>
         public static IntroCard Of(CombatSnapshot state)

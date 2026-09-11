@@ -160,8 +160,9 @@ namespace RelicRun.Game.Presentation
                 Ware ware = card.Wares[i];
 
                 Dress(_shelf[i], ware.Shown.NameKey, ware.Shown.Name,
-                    ware.Shown.WhatKey, ware.Shown.What, Under(ware.Shown),
-                    Count(card.BuyPrice) + "g", ware.Afford, ware.Shown.Relic);
+                    Describes(ware.Shown.Relic, ware.Shown.WhatKey, ware.Shown.What, card.Gold),
+                    Under(ware.Shown), Count(card.BuyPrice) + "g", ware.Afford,
+                    ware.Shown.Relic);
 
                 // Captured per row. The shelf is redrawn after every deal, so a listener that
                 // asked which relic its row was showing would buy whatever it had become.
@@ -203,7 +204,7 @@ namespace RelicRun.Game.Presentation
 
                 Waking waking = card.Wakings[i];
 
-                Dress(_woken[i], waking.NameKey, waking.Name, null, waking.Promise, null,
+                Dress(_woken[i], waking.NameKey, waking.Name, waking.Promise, null,
                     Count(card.WakePrice) + "g", waking.Afford, waking.Relic);
 
                 // The SLOT, not the relic. A delver carrying three Thorn Vests wakes one of
@@ -232,7 +233,12 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>One row: a picture, a name, what it does, and what it costs.</summary>
-        private void Dress(Button row, string nameKey, string name, string whatKey, string what,
+        /// <param name="what">
+        /// Already said and already painted. The caller resolves it because only the caller knows
+        /// whether it is a relic's description — which has live numbers and stat chips in it —
+        /// or a promise about waking one, which is plain English.
+        /// </param>
+        private void Dress(Button row, string nameKey, string name, string what,
             string under, string price, bool afford, RelicId relic)
         {
             var texts = row.GetComponentsInChildren<TMP_Text>(true);
@@ -245,7 +251,7 @@ namespace RelicRun.Game.Presentation
 
             if (texts.Length > 1)
             {
-                texts[1].text = Word(whatKey, what);
+                texts[1].text = what ?? string.Empty;
                 texts[1].color = Faint;
             }
 

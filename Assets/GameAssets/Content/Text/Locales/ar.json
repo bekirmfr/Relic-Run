@@ -172,5 +172,6 @@
   "relicShop": "الطابق {n} · متجر الآثار",
   "spendSparks": "أنفق الشرارات",
   "sparksLeft": "يتبقى {n}",
-  "sparksShort": "ينقصك {n}"
+  "sparksShort": "ينقصك {n}",
+  "tradeBtn": "تاجر"
 }

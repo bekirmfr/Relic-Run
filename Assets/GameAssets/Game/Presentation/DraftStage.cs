@@ -233,7 +233,7 @@ namespace RelicRun.Game.Presentation
 
                 Offered offered = card.Offer[i];
 
-                Dress(_spawned[i], offered);
+                Dress(_spawned[i], offered, run.Gold);
 
                 // Captured per card rather than read at press time. The table is redressed every
                 // floor, and a listener that asked which relic this card was showing would take
@@ -252,7 +252,11 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>One card: what it is, what it does, and what it would chain with.</summary>
-        private void Dress(Button card, Offered offered)
+        /// <param name="gold">
+        /// What is in the purse. One relic of the fifty describes itself with a number that comes
+        /// off it — see <c>RelicWords</c> — and a card drawn without it says "(now +{n})".
+        /// </param>
+        private void Dress(Button card, Offered offered, int gold)
         {
             var texts = card.GetComponentsInChildren<TMP_Text>(true);
 
@@ -264,7 +268,7 @@ namespace RelicRun.Game.Presentation
 
             if (texts.Length > 1)
             {
-                texts[1].text = Word(offered.WhatKey, offered.What);
+                texts[1].text = Describes(offered.Relic, offered.WhatKey, offered.What, gold);
                 texts[1].color = Told;
             }
 

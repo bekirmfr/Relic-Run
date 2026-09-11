@@ -172,5 +172,6 @@
   "relicShop": "KAT {n} · KALINTI DÜKKÂNI",
   "spendSparks": "KIVILCIM HARCA",
   "sparksLeft": "{n} KALIR",
-  "sparksShort": "{n} EKSİK"
+  "sparksShort": "{n} EKSİK",
+  "tradeBtn": "TAKAS"
 }

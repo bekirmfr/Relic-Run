@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
@@ -59,6 +60,9 @@ namespace RelicRun.Game.Presentation
         private float _fellAt;
         private float _falling;
 
+        /// <summary>Whether somebody loaded the arriving band rather than leaving it a copy.</summary>
+        private bool _readied;
+
         /// <summary>
         /// The hall this view loaded, so it can be let go of.
         /// </summary>
@@ -81,6 +85,20 @@ namespace RelicRun.Game.Presentation
         /// <param name="tier">Which hall, counting from one as the catalog does.</param>
         public void Begin(int foes, int tier)
         {
+            Begin(foes, tier, false);
+        }
+
+        /// <param name="bazaar">
+        /// Whether this floor is the shop rather than a fight, which has a hall of its own.
+        /// </param>
+        /// <remarks>
+        /// The one place in a delve where the walls change without the delver having chosen a
+        /// different dungeon. The source swaps the backdrop for the shop floor whatever hall the
+        /// run is in, and it is worth the swap: a floor with nothing to fight on it should not
+        /// look like the six that did.
+        /// </remarks>
+        public void Begin(int foes, int tier, bool bazaar)
+        {
             _foes = foes;
             _stride = 0;
             _from = 0d;
@@ -94,7 +112,7 @@ namespace RelicRun.Game.Presentation
             if (_next != null) _next.gameObject.SetActive(false);
 
             Place(0d);
-            Fetch(tier).Forget();
+            Fetch(tier, bazaar).Forget();
         }
 
         /// <summary>
@@ -170,7 +188,9 @@ namespace RelicRun.Game.Presentation
 
             _next.gameObject.SetActive(true);
 
-            if (_nextPicture != null && _picture != null)
+            // Only when nobody said what is below. Ready() is what a floor with different walls
+            // calls first, and copying over it would undo the whole point of having called it.
+            if (!_readied && _nextPicture != null && _picture != null)
             {
                 _nextPicture.sprite = _picture.sprite;
                 _nextPicture.enabled = _picture.enabled;
@@ -182,6 +202,54 @@ namespace RelicRun.Game.Presentation
 
             if (_falling <= 0f) Landed();
             else Lift(_lift);
+        }
+
+        /// <summary>
+        /// Loads the hall the delver is about to arrive in, before the walk down begins.
+        /// </summary>
+        /// <remarks>
+        /// Without this the arriving band simply repeated the departing one, and the new hall
+        /// appeared in a blink AFTER the slide had landed — which reads as the room changing
+        /// behind the delver's back rather than as a descent into somewhere else. It matters on
+        /// exactly two floors of a run, and both are the bazaar: the one descended into and the
+        /// one descended out of.
+        ///
+        /// Awaited by the scene rather than started and forgotten, because a slide that begins
+        /// before the picture arrives shows the blank a moment before it shows the hall.
+        /// </remarks>
+        public async UniTask Ready(int tier, bool bazaar)
+        {
+            _readied = false;
+
+            if (_nextPicture == null || _content == null || _content.Halls == null) return;
+
+            AssetReferenceSprite address = bazaar
+                ? _content.Halls.Bazaar
+                : _content.Halls.For(tier);
+
+            if (address == null) return;
+
+            try
+            {
+                // The same handle dance Fetch does, and for the same reason: an AssetReference
+                // caches its handle on the asset, so asking twice throws.
+                AsyncOperationHandle<Sprite> fetching = address.IsValid()
+                    ? address.OperationHandle.Convert<Sprite>()
+                    : address.LoadAssetAsync<Sprite>();
+
+                Sprite drawn = await fetching.Task;
+
+                if (this == null || _nextPicture == null) return;
+
+                _nextPicture.sprite = drawn;
+                _nextPicture.enabled = drawn != null;
+
+                _readied = drawn != null;
+            }
+            catch (Exception broken)
+            {
+                Debug.LogWarning("the floor below has no walls yet: " + broken.Message, this);
+            }
         }
 
         /// <summary>How far down the walk is, as a height in units.</summary>
@@ -206,6 +274,7 @@ namespace RelicRun.Game.Presentation
         {
             _falling = 0f;
             _lift = 0f;
+            _readied = false;
 
             if (_nextPicture != null && _picture != null && _nextPicture.sprite != null)
             {
@@ -334,11 +403,14 @@ namespace RelicRun.Game.Presentation
         /// blocked on — a fight that would not start until its backdrop arrived would be a fight
         /// held up by scenery.
         /// </remarks>
-        private async UniTaskVoid Fetch(int tier)
+        private async UniTaskVoid Fetch(int tier, bool bazaar)
         {
             if (_picture == null || _content == null || _content.Halls == null) return;
 
-            var address = _content.Halls.For(tier);
+            AssetReferenceSprite address = bazaar
+                ? _content.Halls.Bazaar
+                : _content.Halls.For(tier);
+
             if (address == null) return;
 
             // A hall already in hand is not fetched again — see _held.

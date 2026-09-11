@@ -83,3 +83,17 @@ MonoBehaviour:
       m_SubObjectType: 
       m_SubObjectGUID: 
       m_EditorAssetChanged: 0
+  - Id: hall-bazaar
+    Art:
+      m_AssetGUID: 8c82f3b1206781c49bbea22fd5c0185d
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
+  - Id: merchant
+    Art:
+      m_AssetGUID: 21a5767f2ead8594f9c84c45212c5225
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0

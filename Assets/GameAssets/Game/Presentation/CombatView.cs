@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
 using RelicRun.Core.Presentation;
@@ -270,6 +271,73 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>
+        /// Opens the bazaar floor: its own hall, one figure in it, and no fight.
+        /// </summary>
+        /// <remarks>
+        /// The same shape a fought floor has — a hall with somebody in the middle of it — which
+        /// is the point. A delver walks onto floor seven exactly as they walk onto any other and
+        /// finds out what is there when the card comes up.
+        ///
+        /// ONE stride to the middle, because a floor of one foe is two strides and the merchant
+        /// stands where that foe would. The second stride is the walk out, after the deal.
+        /// </remarks>
+        public void Trading(Sprite merchant)
+        {
+            _events = null;
+            _pacing = _content != null && _content.Presentation != null
+                ? Pacing.For(0, false, 1, _content.Presentation.ToPacing())
+                : _pacing;
+
+            if (_intro != null) _intro.Trader = merchant;
+
+            if (_flight != null) _flight.Stop();
+
+            _hidden = true;
+
+            if (_queue != null) _queue.Hide();
+
+            // One foe's worth of hall, and the bazaar's own walls.
+            if (_hall != null)
+            {
+                _hall.Begin(1, 1, true);
+                _hall.Walk();
+            }
+
+            // Nothing in the foe's frame. The merchant is met on the card and never stands in
+            // the slot a thing that hits you would.
+            if (_enemyArt != null) _enemyArt.enabled = false;
+
+            if (_enemyName != null) _enemyName.text = string.Empty;
+
+            _foeDrawn = -1;
+            _foeVariant = -1;
+        }
+
+        /// <summary>Puts the merchant's card up, with whichever line this visit drew.</summary>
+        public void Met(int line)
+        {
+            if (_intro == null) return;
+
+            _intro.Held = _pacing != null ? _pacing.Rules.IntroMs / 1000f : 0f;
+
+            _intro.Show(IntroCards.Trader(line));
+        }
+
+        /// <summary>Takes the merchant's card down. The delver has chosen to trade.</summary>
+        public void Traded()
+        {
+            if (_intro != null) _intro.Hide();
+        }
+
+        /// <summary>And walks the rest of the bazaar's hall, the visit being over.</summary>
+        public void LeaveTrading()
+        {
+            if (_intro != null) _intro.Hide();
+
+            if (_hall != null) _hall.Stretch();
+        }
+
+        /// <summary>
         /// Walks the hall down to the floor below.
         /// </summary>
         /// <remarks>
@@ -280,6 +348,12 @@ namespace RelicRun.Game.Presentation
         public void Descend(float seconds)
         {
             if (_hall != null) _hall.Descend(seconds);
+        }
+
+        /// <summary>Loads the hall below before the walk down starts, so it is seen arriving.</summary>
+        public UniTask Ready(int tier, bool bazaar)
+        {
+            return _hall != null ? _hall.Ready(tier, bazaar) : UniTask.CompletedTask;
         }
 
         /// <summary>Draws one event.</summary>

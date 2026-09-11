@@ -71,7 +71,9 @@ namespace RelicRun.Tests.Editor
         {
             Assert.That(_content.RelicIcons.Entries.Count, Is.EqualTo(RelicCatalog.All.Count - 1),
                 "fifty relics, one of them drawn from a glyph");
-            Assert.That(_content.Halls.Entries.Count, Is.EqualTo(DungeonCatalog.All.Count));
+            // The ten dungeons, plus the bazaar floor's hall and its merchant.
+            Assert.That(_content.Halls.Entries.Count,
+                Is.EqualTo(DungeonCatalog.All.Count + ContentIds.Bazaar.Count));
             Assert.That(_content.Events.Entries.Count, Is.EqualTo(EventArt.All.Count));
             Assert.That(_content.Enemies.Entries.Count, Is.EqualTo(ContentIds.Enemies.Count));
 
@@ -192,6 +194,11 @@ namespace RelicRun.Tests.Editor
             foreach (string path in sheets) Imported(path, SpriteImportMode.Multiple);
 
             foreach (string hall in ContentIds.Halls)
+            {
+                Imported(ContentPaths.Halls + "/" + hall + ".png", SpriteImportMode.Single);
+            }
+
+            foreach (string hall in ContentIds.Bazaar)
             {
                 Imported(ContentPaths.Halls + "/" + hall + ".png", SpriteImportMode.Single);
             }

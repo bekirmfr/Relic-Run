@@ -479,9 +479,36 @@ job rather than a second copy of the same two controls.
 No new Core test: a `MonoBehaviour` cannot have one, and the mechanism underneath — the loop's
 gate — is already covered by `PlaybackLoopTests`.
 
-**Still English on the shelf.** `[[LCK]]` and its like appear raw in relic descriptions — the
-source substitutes the live stat with `richDesc()` and the port does not. It shows on the draft
-too, so it is one fix in one place rather than a bazaar problem.
+**6e · The two descriptions that could not say themselves. — DONE.** Forty-eight of the fifty
+relics are a fixed sentence. Two are not, and both reached a delver as raw markup: the Midas
+Blade's `(now +{n})` and the Weighted Dice's `[[LCK]]`. `RelicWords` fills the one and unwraps the
+other, and `RunStage.Describes` is where both screens say a relic's description — on the base
+class rather than on either screen, because describing the same relic two ways is the bug being
+fixed.
+
+The markup belongs to the caller: Core finds the chip, the screen paints it, because TextMeshPro
+tags are not a fact about a relic.
+
+**A contradiction the source ships, now visible.** The Midas Blade's English says "+1 attack per
+SIXTY gold" and both the engine and the source's own lore line say FIFTY. The number in brackets
+is computed from the rule, so at 260 gold a delver reads "per 60 gold ... (now +5)". The source
+had the same contradiction and hid it behind an unfilled placeholder. Fixing the prose means
+overriding a shipped string; fixing the rule means breaking every recorded run. Left as it is,
+and flagged.
+
+**6f · The bazaar floor, walked. — DONE.** It is a FLOOR now, not a screen that appears. The
+delver descends into the bazaar's own hall, walks to the middle of it, meets the merchant on the
+usual card — which offers a TRADE where a foe's offers a FIGHT — trades, walks the rest of the
+hall to the far door, and descends. The same four beats every other floor has.
+
+Three things the first play caught. The two new pieces of art imported as plain TEXTURES, because
+`Configure()` had never heard of them — and an address that resolves to a texture when a sprite
+was asked for throws `InvalidKeyException` at the moment the delver walks onto floor seven, with
+nothing on screen to say why. The TRADE button appeared to do nothing, because the shelf opened
+BEHIND an opaque card I had never taken down. And the bazaar's walls appeared in a blink *after*
+the descent had landed, because the arriving band simply repeated the departing one — `HallView.Ready`
+now loads the hall below before the walk down begins, which matters on exactly two floors of a run
+and both of them are this one.
 
 **On translating these screens.** The source ships the event, shop, merchant and revive screens
 entirely in hardcoded English — no locale keys at all, in any of the eight languages. The port
