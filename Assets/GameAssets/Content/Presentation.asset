@@ -26,4 +26,6 @@ MonoBehaviour:
   PanMs: 2600
   IntroMs: 3000
   FlyMs: 520
+  DieMs: 220
+  DieBossMs: 340
   SpeedShortensTheTickWait: 1

@@ -33,7 +33,7 @@ namespace RelicRun.Tests
 
         private static CombatEvent On(int tick, CombatEventType type = CombatEventType.EnemyDamage)
         {
-            var state = new CombatSnapshot(tick, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
+            var state = new CombatSnapshot(tick, 100, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
                 0, 0, 0, NoRelics, NoMods, default(CombatCounters));
 
             return new CombatEvent(type, 0, state);

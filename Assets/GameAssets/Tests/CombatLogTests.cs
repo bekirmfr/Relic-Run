@@ -40,7 +40,7 @@ namespace RelicRun.Tests
         private static CombatEvent An(CombatEventType type, int amount = 7, string source = "you",
             int depth = 0, bool? foe = null, bool? crit = null, int enemyIndex = 0)
         {
-            var state = new CombatSnapshot(1, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
+            var state = new CombatSnapshot(1, 100, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
                 0, enemyIndex, 0, NoRelics, NoMods, default(CombatCounters));
 
             return new CombatEvent(type, depth, state, amount, source, RelicId.None, null, crit,
@@ -449,7 +449,7 @@ namespace RelicRun.Tests
         [Test]
         public void AnEventWithNoAmountReadsAsNone()
         {
-            var state = new CombatSnapshot(1, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
+            var state = new CombatSnapshot(1, 100, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
                 0, 0, 0, NoRelics, NoMods, default(CombatCounters));
             var nothing = new CombatEvent(CombatEventType.Gold, 0, state, null, "Coin Magnet");
 

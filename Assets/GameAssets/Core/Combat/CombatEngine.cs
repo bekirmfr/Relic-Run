@@ -1434,6 +1434,7 @@ namespace RelicRun.Core.Combat
             var state = new CombatSnapshot(
                 tick: _tick,
                 heroHp: _hero.Php,
+                heroMaxHp: _hero.Pmax,
                 enemyHp: Math.Max(0, _enemyHp),
                 gold: _hero.Gold,
                 enemyMaxHp: _cur != null ? EnemyMax : 1,

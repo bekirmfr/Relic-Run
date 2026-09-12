@@ -700,6 +700,7 @@ namespace RelicRun.Game.Presentation
             // hall rearranges itself every time a foe dies. Disabling the graphic stops it being
             // drawn and leaves the rect exactly where the layout put it.
             _enemyArt.enabled = on && _enemyArt.sprite != null;
+            _enemyGauge.enabled = on;
         }
 
         /// <summary>The frame is empty now, and stays empty until somebody else walks into it.</summary>

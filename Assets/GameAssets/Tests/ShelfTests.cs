@@ -33,7 +33,7 @@ namespace RelicRun.Tests
         private static CombatSnapshot State(CombatCounters counters, int anvilSpent = 0,
             bool soilUsed = false)
         {
-            return new CombatSnapshot(0, 100, 10, 0, 10, 3, EnemyRank.Guard, 0, 25, 10, 0, 0, 0,
+            return new CombatSnapshot(0, 100, 100, 10, 0, 10, 3, EnemyRank.Guard, 0, 25, 10, 0, 0, 0,
                 null, null, counters, 0, anvilSpent, soilUsed);
         }
 

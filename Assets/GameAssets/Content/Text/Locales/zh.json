@@ -28,7 +28,7 @@
   "hitsFor": "{h}/{m} · 攻击 {a}",
   "purseLine": "钱袋：{g} 金币。阶梯向下延伸…",
   "previewLine": "下方：{i} {n} — {h} 生命，攻击 {a}，携带约 {g} 金币",
-  "descendBtn": "⬇️ 下潜",
+  "descendBtn": "⬇️ 下潜（第 {n} 层）",
   "cashOut": "💰 收手离开",
   "dieWarn": "在下面死亡只能保留一半金币。",
   "logEnter": "{i} {n} 挡住了去路",

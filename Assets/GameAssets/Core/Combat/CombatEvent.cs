@@ -119,6 +119,7 @@ namespace RelicRun.Core.Combat
     {
         public readonly int Tick;
         public readonly int HeroHp;
+        public readonly int HeroMaxHp;
         public readonly int EnemyHp;
         public readonly int Gold;
         public readonly int EnemyMaxHp;
@@ -185,7 +186,7 @@ namespace RelicRun.Core.Combat
 
         public readonly int HeroLck;
 
-        public CombatSnapshot(int tick, int heroHp, int enemyHp, int gold, int enemyMaxHp,
+        public CombatSnapshot(int tick, int heroHp, int heroMaxHp, int enemyHp, int gold, int enemyMaxHp,
             int enemyAtk, EnemyRank enemyRank, int enemyArmor, int enemySpd, int enemyLck,
             int enemyVariant, int enemyIndex, int heroAdrenaline,
             IReadOnlyList<RelicId> enemyRelics, IReadOnlyList<StatModifier> heroMods,
@@ -201,6 +202,7 @@ namespace RelicRun.Core.Combat
             HeroFury = heroFury;
             Tick = tick;
             HeroHp = heroHp;
+            HeroMaxHp = heroMaxHp;
             EnemyHp = enemyHp;
             Gold = gold;
             EnemyMaxHp = enemyMaxHp;

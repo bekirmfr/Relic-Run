@@ -267,7 +267,7 @@ namespace RelicRun.Tests
 
         private static CombatSnapshot Snapshot(EnemyRank rank, int hp, int max)
         {
-            return new CombatSnapshot(0, 100, hp, 0, max, 12, rank, 3, 27, 8, 1, 3, 0,
+            return new CombatSnapshot(0, 100, 100, hp, 0, max, 12, rank, 3, 27, 8, 1, 3, 0,
                 new List<RelicId>(), new List<StatModifier>(),
                 new CombatCounters(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
         }

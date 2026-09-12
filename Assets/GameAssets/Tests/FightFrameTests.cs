@@ -30,7 +30,7 @@ namespace RelicRun.Tests
         private static CombatEvent At(int tick, CombatEventType type, string source = null,
             int depth = 0, int amount = 5, RelicId relic = RelicId.None, bool? crit = null)
         {
-            var state = new CombatSnapshot(tick, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
+            var state = new CombatSnapshot(tick, 100, 100, 50, 0, 50, 5, EnemyRank.Guard, 0, 25, 10,
                 0, 0, 0, NoRelics, NoMods, default(CombatCounters));
 
             return new CombatEvent(type, depth, state, amount, source, relic, null, crit);

@@ -28,7 +28,7 @@
   "hitsFor": "{h}/{m} · frappe à {a}",
   "purseLine": "Bourse : {g} pièces d'or. L'escalier descend…",
   "previewLine": "En bas : {i} {n} — {h} PV, frappe à {a}, porte ~{g} d'or",
-  "descendBtn": "⬇️ Descendre",
+  "descendBtn": "⬇️ Descendre (étage {n})",
   "cashOut": "💰 Encaisser",
   "dieWarn": "Meurs en bas et tu n'en gardes que la moitié.",
   "logEnter": "{i} {n} bloque le passage",

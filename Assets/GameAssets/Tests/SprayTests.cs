@@ -21,7 +21,7 @@ namespace RelicRun.Tests
         private static CombatEvent Happened(CombatEventType type, int depth = 0)
         {
             var counters = new CombatCounters(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            var state = new CombatSnapshot(0, 100, 10, 0, 10, 3, EnemyRank.Guard, 0, 25, 10, 0, 0,
+            var state = new CombatSnapshot(0, 100, 100, 10, 0, 10, 3, EnemyRank.Guard, 0, 25, 10, 0, 0,
                 0, null, null, counters);
 
             return new CombatEvent(type, depth, state, 1);
