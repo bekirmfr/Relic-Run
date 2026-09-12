@@ -180,6 +180,7 @@ GameObject:
   - component: {fileID: 7280504762795130339}
   - component: {fileID: 3446148067791544686}
   - component: {fileID: 3220108525079289649}
+  - component: {fileID: 816284829502329481}
   m_Layer: 0
   m_Name: GameLift_LifetimeScope
   m_TagString: Untagged
@@ -240,3 +241,19 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9095942637061900500}
   m_Enabled: 1
+--- !u!114 &816284829502329481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9095942637061900500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2751aa0c7d088443bdce3b5bd020ba0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _on: 1
+  _period: 3
+  _weight: 0.16
+  _order: 1000
