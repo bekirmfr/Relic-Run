@@ -96,6 +96,24 @@ namespace RelicRun.Core.Presentation
         public int FlyMs = 520;
 
         /// <summary>
+        /// How long a beaten foe takes to go out.
+        /// </summary>
+        /// <remarks>
+        /// A fifth of a second, which is the source's. Short enough to stay out of the way of the
+        /// log and long enough to be seen, which is the whole job — a corpse that vanished on the
+        /// frame it died would read as the foe never having been there.
+        /// </remarks>
+        public int DieMs = 220;
+
+        /// <summary>And a third of a second for something that had a name.</summary>
+        /// <remarks>
+        /// The source gives a boss and the Hoard-King half again as long. It is not decoration:
+        /// the thing a delver spent a floor on should take longer to stop existing than the
+        /// guards did.
+        /// </remarks>
+        public int DieBossMs = 340;
+
+        /// <summary>
         /// How long the hall itself takes to slide, which is SHORTER than the walk.
         /// </summary>
         /// <remarks>

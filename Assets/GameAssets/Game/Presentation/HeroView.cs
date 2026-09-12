@@ -143,7 +143,38 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
-            if (_state != Die && _state != Idle) Act(Idle);
+            // And dying ends with nobody there. The animation is watched to its last frame and
+            // THEN the delver is gone, which is the difference between having died and having
+            // been deleted — a body left folded on the floor while the end screen comes up reads
+            // as the run having stopped rather than as the delver having lost.
+            if (_state == Die)
+            {
+                Gone();
+                return;
+            }
+
+            if (_state != Idle) Act(Idle);
+        }
+
+        /// <summary>
+        /// Takes the delver off the screen, the dying being over.
+        /// </summary>
+        /// <remarks>
+        /// The texture is dropped rather than the object disabled, so whatever is drawn here next
+        /// starts from nothing — a <c>RawImage</c> keeps its last texture, and a delver who began
+        /// their next run wearing the final frame of their last death would be a hard thing to
+        /// explain.
+        /// </remarks>
+        private void Gone()
+        {
+            _playing = null;
+            _state = null;
+            _frame = 0;
+
+            if (_art == null) return;
+
+            _art.texture = null;
+            _art.enabled = false;
         }
 
         /// <summary>Which slice of the grid is on screen.</summary>
@@ -151,6 +182,7 @@ namespace RelicRun.Game.Presentation
         {
             if (_art == null || _playing == null) return;
 
+            _art.enabled = true;
             _art.texture = _playing.Grid;
             _art.material = _playing.Paint;
             _art.uvRect = HeroTextures.FrameUv(_playing.Hero, _frame);

@@ -77,6 +77,13 @@ namespace RelicRun.Game.Data
                  "blinks out and a foe appears somewhere else.")]
         [Min(0)] public int FlyMs = 520;
 
+        [Tooltip("How long a beaten foe takes to fade out of its frame. Short enough to stay " +
+                 "out of the log's way, long enough to be seen.")]
+        [Min(0)] public int DieMs = 220;
+
+        [Tooltip("And how long something with a name takes. The source gives a boss half again.")]
+        [Min(0)] public int DieBossMs = 340;
+
         [Tooltip("Whether pressing the control also shortens the long waits. The source only " +
                  "shortened the gaps between events on the same tick, which was most likely a " +
                  "slip: it changed the least of what a delver pressing it wanted skipped.")]
@@ -102,6 +109,8 @@ namespace RelicRun.Game.Data
                 PanMs = PanMs,
                 IntroMs = IntroMs,
                 FlyMs = FlyMs,
+                DieMs = DieMs,
+                DieBossMs = DieBossMs,
             };
         }
     }

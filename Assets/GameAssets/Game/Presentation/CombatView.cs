@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using RelicRun.Core.Combat;
 using RelicRun.Core.Content;
 using RelicRun.Core.Presentation;
+using RelicRun.Core.Stats;
 using GameLift.Audio;
 using RelicRun.Game.Data;
 using TMPro;
@@ -43,6 +44,7 @@ namespace RelicRun.Game.Presentation
         [Header("The foe")]
         [SerializeField] private Image _enemyHealth;
         [SerializeField] private Image _enemyGauge;
+        [SerializeField] private TMP_Text _enemyHealthText;
         [SerializeField] private TMP_Text _enemyName;
 
         [Tooltip("ATK, DEF, SPD and LCK as chips. The pool is the bar's job, not a chip's.")]
@@ -156,7 +158,15 @@ namespace RelicRun.Game.Presentation
         /// standing there while they are walking toward it — the source hides the same glyph for
         /// the same span, and the announcement is worth nothing if the surprise is already up.
         /// </remarks>
+        /// <summary>Whether the foe's avatar is being kept off the screen.</summary>
+        /// <remarks>
+        /// Drawn or not drawn, rather than present or absent. The avatar's rect stays where the
+        /// frame's layout put it whatever is happening to the foe in it, because a rect that
+        /// comes and goes takes its neighbours with it.
+        /// </remarks>
         private bool _hidden;
+
+        private DeathFade _fading;
 
         /// <summary>
         /// Who is on this floor, in the order they arrive.
@@ -269,7 +279,9 @@ namespace RelicRun.Game.Presentation
 
             if (_flight != null) _flight.Stop();
 
-            _hidden = false;
+            // Empty until somebody lands in it. A floor opens on a hall being walked down, and
+            // the foe arrives out of the card that announces them.
+            Avatar(false);
 
             Dress();
 
@@ -315,7 +327,7 @@ namespace RelicRun.Game.Presentation
 
             if (_flight != null) _flight.Stop();
 
-            _hidden = true;
+            Avatar(false);
 
             if (_queue != null) _queue.Hide();
 
@@ -439,6 +451,8 @@ namespace RelicRun.Game.Presentation
 
             Acted(shown);
 
+            Fell(shown);
+
             Bars(shown.State);
 
             if (_events == null || index < 0 || index >= _events.Count) return;
@@ -487,7 +501,11 @@ namespace RelicRun.Game.Presentation
             // Nobody meets a foe before they are introduced. The frame is emptied as the walk
             // sets off and stays empty through the card, so what arrives in it is the thing that
             // flies out of the announcement rather than something already standing there.
-            _hidden = true;
+            Avatar(false);
+
+            // Whatever the last foe's fade had reached is not this foe's business. Left running,
+            // the new one walks on half transparent and finishes disappearing as it arrives.
+            if (_fading != null) _fading.Stop();
 
             if (_hall != null) _hall.Walk();
 
@@ -555,9 +573,10 @@ namespace RelicRun.Game.Presentation
         /// <summary>The foe is where it fights from now, so the frame may show it.</summary>
         private void Landed()
         {
-            _hidden = false;
-
-            if (_enemyArt != null) _enemyArt.enabled = _enemyArt.sprite != null;
+            // The copy has arrived, so the real one takes over from it. This is the only place
+            // the avatar comes back, which is what keeps the flight and the foe the same
+            // creature to look at.
+            Avatar(true);
         }
 
         /// <summary>Walks the rest of the hall, the floor being over.</summary>
@@ -631,6 +650,93 @@ namespace RelicRun.Game.Presentation
         }
 
         /// <summary>
+        /// Puts a beaten foe out of its frame, once the fade has been watched.
+        /// </summary>
+        /// <remarks>
+        /// A corpse left standing is what this is for. Nothing cleared the frame on a kill, so
+        /// the foe a delver had just beaten went on standing there through the walk to the next
+        /// one, through the last stretch to the door and through the gate — which reads as the
+        /// fight not having finished rather than as having been won.
+        ///
+        /// The picture is nulled at the END of the fade rather than at the start, so what a
+        /// delver sees is the thing going rather than the thing gone.
+        /// </remarks>
+        private void Fell(CombatEvent shown)
+        {
+            if (shown.Type != CombatEventType.Kill || _enemyArt == null) return;
+
+            PacingRules said = Rules;
+
+            bool named = shown.State.EnemyRank == EnemyRank.Boss ||
+                         shown.State.EnemyRank == EnemyRank.King;
+
+            float over = said == null ? 0f
+                : (named ? said.DieBossMs : said.DieMs) / 1000f;
+
+            Dying().Play(_enemyArt, over, Buried);
+        }
+
+        /// <summary>
+        /// Turns the foe's avatar on or off.
+        /// </summary>
+        /// <remarks>
+        /// Off between a death and the next foe LANDING in the frame — which covers the walk down
+        /// the hall, the card that announces them, and the flight itself. The thing that flies is
+        /// a copy; the avatar comes back at the moment the copy arrives, which is what makes the
+        /// two read as one creature rather than as a picture and then another picture.
+        ///
+        /// It hides the graphic and never the object. Deactivating the object pulls the avatar
+        /// out of the frame's layout and every sibling slides over to close the gap, so the hall
+        /// rearranged itself on each death — which is a far worse thing than a corpse.
+        /// </remarks>
+        private void Avatar(bool on)
+        {
+            _hidden = !on;
+
+            if (_enemyArt == null) return;
+
+            // The GRAPHIC, not the object. Turning the object off takes it out of whatever is
+            // laying the frame out, and everything beside it slides over to fill the hole — the
+            // hall rearranges itself every time a foe dies. Disabling the graphic stops it being
+            // drawn and leaves the rect exactly where the layout put it.
+            _enemyArt.enabled = on && _enemyArt.sprite != null;
+        }
+
+        /// <summary>The frame is empty now, and stays empty until somebody else walks into it.</summary>
+        private void Buried()
+        {
+            if (_enemyArt == null) return;
+
+            _enemyArt.sprite = null;
+
+            // And the frame STAYS empty. _foeDrawn is deliberately left alone: the events after
+            // a kill — the gold, the loot, the log settling — still carry the dead foe in their
+            // state, and a view that had forgotten drawing it would helpfully draw it again on
+            // the very next one. Which it did: the corpse came back a frame after it faded.
+            Avatar(false);
+        }
+
+        /// <summary>
+        /// Whatever fades the foe out, found on the frame itself or put there.
+        /// </summary>
+        /// <remarks>
+        /// Added at run time rather than wired in the scene, because it belongs to the graphic it
+        /// fades and there is exactly one of those. A serialized field would be a thing to wire,
+        /// a thing to forget to wire, and a thing to notice was unwired only when a corpse
+        /// refused to leave.
+        /// </remarks>
+        private DeathFade Dying()
+        {
+            if (_fading != null) return _fading;
+
+            _fading = _enemyArt.GetComponent<DeathFade>();
+
+            if (_fading == null) _fading = _enemyArt.gameObject.AddComponent<DeathFade>();
+
+            return _fading;
+        }
+
+        /// <summary>
         /// The row of foes, as far along as the fight is at this event.
         /// </summary>
         /// <remarks>
@@ -658,7 +764,8 @@ namespace RelicRun.Game.Presentation
             Fraction(_heroHealth, state.HeroHp, HeroMax(state));
             Fraction(_enemyHealth, state.EnemyHp, state.EnemyMaxHp);
 
-            if (_heroHealthText != null) _heroHealthText.text = state.HeroHp.ToString();
+            if (_heroHealthText != null) _heroHealthText.text = $"{state.HeroHp.ToString()}/{state.HeroMaxHp.ToString()}";
+            if (_enemyHealthText != null) _enemyHealthText.text = $"{state.EnemyHp.ToString()}/{state.EnemyMaxHp.ToString()}";
             if (_gold != null) _gold.text = state.Gold.ToString();
 
             Stats(state);
