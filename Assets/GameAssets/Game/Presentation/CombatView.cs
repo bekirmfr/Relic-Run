@@ -411,10 +411,6 @@ namespace RelicRun.Game.Presentation
                 return;
             }
 
-            // Laid out NOW, so the flight aims at where the slot actually ends up rather than at
-            // wherever the row happened to be before it grew.
-            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_tray.transform);
-
             _tray.Veil(at, true);
 
             _flight.Fly(icon, from, to, over, () =>

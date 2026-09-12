@@ -3,6 +3,7 @@ using RelicRun.Core.Combat;
 using RelicRun.Core.Presentation;
 using RelicRun.Game.Data;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace RelicRun.Game.Presentation
 {
@@ -37,7 +38,16 @@ namespace RelicRun.Game.Presentation
 
             foreach (RelicSlot slot in _slots)
             {
-                if (slot != null) Destroy(slot.gameObject);
+                if (slot == null) continue;
+
+                // OUT of the row before it is destroyed, because Destroy does not happen until
+                // the end of the frame and a layout run before then still counts the corpse.
+                // Anything asking where a slot IS in between — the flight carrying a freshly
+                // taken relic onto the shelf — was told a position the row was about to give up,
+                // so the icon flew to the wrong place and then jumped to the right one.
+                slot.transform.SetParent(null, false);
+
+                Destroy(slot.gameObject);
             }
 
             _slots.Clear();
@@ -76,6 +86,11 @@ namespace RelicRun.Game.Presentation
         public RectTransform Where(int index)
         {
             if (index < 0 || index >= _slots.Count || _slots[index] == null) return null;
+
+            // Laid out before it is pointed at. A slot instantiated this frame sits at the row's
+            // origin until the layout runs, and a caller that took its position first would aim
+            // at where every slot starts rather than at where this one ends up.
+            if (_row != null) LayoutRebuilder.ForceRebuildLayoutImmediate(_row);
 
             return (RectTransform)_slots[index].transform;
         }
