@@ -53,7 +53,11 @@ namespace RelicRun.Game.Presentation
             // The label is dimmed and the value is not, in every stat. A row of five names as
             // loud as their numbers is a row where the numbers have to be hunted for, and the
             // numbers are the only part that changes.
-            if (_icon != null) _icon.enabled = _icon.sprite != null;
+            if (_icon != null)
+            {
+                _icon.color = Of(line.Stat);
+                _icon.enabled = _icon.sprite != null;
+            }
         }
 
         /// <summary>Gives this stat a picture, if it ever has one.</summary>

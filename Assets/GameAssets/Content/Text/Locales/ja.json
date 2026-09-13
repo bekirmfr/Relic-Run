@@ -28,7 +28,7 @@
   "hitsFor": "{h}/{m} · 攻撃 {a}",
   "purseLine": "財布：{g} ゴールド。階段は下へ続く…",
   "previewLine": "下には：{i} {n} — HP {h}、攻撃 {a}、約 {g} ゴールド所持",
-  "descendBtn": "⬇️ 下りる（{n}階）",
+  "descendBtn": "⬇️ 下りる",
   "cashOut": "💰 引き上げる",
   "dieWarn": "下で死ぬと半分しか残らない。",
   "logEnter": "{i} {n} が行く手を阻む",

@@ -28,7 +28,7 @@
   "hitsFor": "{h}/{m} · vuruşu {a}",
   "purseLine": "Kese: {g} altın. Merdivenler aşağı iniyor…",
   "previewLine": "Aşağıda: {i} {n} — {h} can, vuruşu {a}, ~{g} altın taşıyor",
-  "descendBtn": "⬇️ İn (kat {n})",
+  "descendBtn": "⬇️ İn",
   "cashOut": "💰 Çek ve çık",
   "dieWarn": "Aşağıda ölürsen yalnızca yarısı kalır.",
   "logEnter": "{i} {n} yolu kesiyor",

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5082514460467477756}
   - component: {fileID: 8665119148581601982}
   - component: {fileID: 3499328023682400894}
+  - component: {fileID: 8348874872598439082}
   m_Layer: 0
   m_Name: Icon
   m_TagString: Untagged
@@ -53,7 +54,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 893835977134601055}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
@@ -96,6 +97,21 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!114 &8348874872598439082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 893835977134601055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_EffectDistance: {x: 2, y: -2}
+  m_UseGraphicAlpha: 1
 --- !u!1 &2170132071820013338
 GameObject:
   m_ObjectHideFlags: 0
@@ -161,7 +177,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 0
+  m_text: 123
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 166f9588a855f1840af045de5ceea88e, type: 2}
   m_sharedMaterial: {fileID: -7522413538804189498, guid: 166f9588a855f1840af045de5ceea88e, type: 2}
@@ -316,10 +332,10 @@ MonoBehaviour:
   _label: {fileID: 891273453499856242}
   _value: {fileID: 7188823236673265188}
   _name: {r: 0.55, g: 0.51, b: 0.45, a: 1}
-  _attack: {r: 0.91, g: 0.88, b: 0.82, a: 1}
+  _attack: {r: 0.84276724, g: 0.23273906, b: 0.18816493, a: 1}
   _defence: {r: 0.68, g: 0.71, b: 0.75, a: 1}
-  _speed: {r: 0.49, g: 0.6, b: 0.42, a: 1}
-  _luck: {r: 0.89, g: 0.7, b: 0.25, a: 1}
+  _speed: {r: 0.8901961, g: 0.69803923, b: 0.2509804, a: 1}
+  _luck: {r: 0.25098038, g: 0.8901961, b: 0.4154438, a: 1}
 --- !u!114 &3496956632550714157
 MonoBehaviour:
   m_ObjectHideFlags: 0

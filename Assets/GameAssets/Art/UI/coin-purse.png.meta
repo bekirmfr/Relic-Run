@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: dd1b952d752506e4ead382dd0673daa1
+guid: 47ed54183b013cd438087c7d54e54433
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -69,10 +69,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 1024
+    maxTextureSize: 32
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 2
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -97,89 +97,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: defence
+      name: coin-purse_0
       rect:
         serializedVersion: 2
-        x: 1
+        x: 6
         y: 4
-        width: 11
-        height: 11
+        width: 20
+        height: 23
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: bbdc5ceb766a71645a6e019b2034d59c
-      internalID: -288376069
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: attack
-      rect:
-        serializedVersion: 2
-        x: 17
-        y: 4
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 4f4e6321187ddf044b2ba6ed1eda0a4c
-      internalID: -1952983824
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: speed
-      rect:
-        serializedVersion: 2
-        x: 33
-        y: 4
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 09b77e200de0bcd44a239f6ca6f4eb3b
-      internalID: -1129167682
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: luck
-      rect:
-        serializedVersion: 2
-        x: 49
-        y: 4
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 0a4e9975d0612b14686176a1ae9cca4a
-      internalID: 1771163241
+      spriteID: 933323028d5a7bb47ae882f7ff4e1c94
+      internalID: -104620199
       vertices: []
       indices: 
       edges: []
@@ -188,7 +122,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: c42dcb71f86ea194c8870e7f52fc2b5d
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -198,10 +132,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      attack: -1952983824
-      defence: -288376069
-      luck: 1771163241
-      speed: -1129167682
+      coin-purse_0: -104620199
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

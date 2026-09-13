@@ -1,6 +1,9 @@
-using System.Collections.Generic;
 using RelicRun.Core.Presentation;
+using RelicRun.Core.Stats;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using static PlasticPipe.PlasticProtocol.Messages.Serialization.ItemHandlerMessagesSerialization;
 
 namespace RelicRun.Game.Presentation
 {
@@ -21,6 +24,12 @@ namespace RelicRun.Game.Presentation
     {
         [SerializeField] private RectTransform _row;
         [SerializeField] private StatChip _chip;
+
+        [Header("Stat icons")]
+        [SerializeField] private Sprite _attackIcon;
+        [SerializeField] private Sprite _defenceIcon;
+        [SerializeField] private Sprite _speedIcon;
+        [SerializeField] private Sprite _luckIcon;
 
         private readonly List<StatChip> _chips = new List<StatChip>();
 
@@ -45,8 +54,24 @@ namespace RelicRun.Game.Presentation
                 // destroying is the harder half to get right for a case that does not arise.
                 _chips[i].gameObject.SetActive(i < lines.Count);
 
-                if (i < lines.Count) _chips[i].Show(lines[i]);
+                if (i < lines.Count)
+                {
+                    _chips[i].Wear(Of(lines[i].Stat));
+                    _chips[i].Show(lines[i]);
+                }
             }
+        }
+
+        private Sprite Of(Stat stat)
+        {
+            return stat switch
+            {
+                Stat.Atk => _attackIcon,
+                Stat.Def => _defenceIcon,
+                Stat.Spd => _speedIcon,
+                Stat.Lck => _luckIcon,
+                _ => null,
+            };
         }
     }
 }
