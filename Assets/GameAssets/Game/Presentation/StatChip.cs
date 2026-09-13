@@ -1,3 +1,4 @@
+using NUnit.Framework;
 using RelicRun.Core.Presentation;
 using RelicRun.Core.Stats;
 using TMPro;
@@ -35,6 +36,10 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Color _speed = new Color(0.49f, 0.60f, 0.42f);
         [SerializeField] private Color _luck = new Color(0.89f, 0.70f, 0.25f);
 
+        [Header("Dim the label and icon, but not the value")]
+        [Min(0), Tooltip("0.5 is half as bright, 1.0 is the same brightness, 0.0 is black.")]
+        [SerializeField] private float _dimMultiplier = 0.5f;
+
         /// <summary>Draws one stat.</summary>
         public void Show(StatLine line)
         {
@@ -55,7 +60,7 @@ namespace RelicRun.Game.Presentation
             // numbers are the only part that changes.
             if (_icon != null)
             {
-                _icon.color = Of(line.Stat);
+                _icon.color = Dimmed(Of(line.Stat));
                 _icon.enabled = _icon.sprite != null;
             }
         }
@@ -79,6 +84,11 @@ namespace RelicRun.Game.Presentation
                 case Stat.Lck: return _luck;
                 default: return _name;
             }
+        }
+
+        private Color Dimmed(Color color)
+        {
+            return new Color(color.r * _dimMultiplier, color.g * _dimMultiplier, color.b * _dimMultiplier, color.a);
         }
     }
 }
