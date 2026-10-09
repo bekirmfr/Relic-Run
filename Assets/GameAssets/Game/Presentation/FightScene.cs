@@ -881,17 +881,15 @@ namespace RelicRun.Game.Presentation
         /// Puts the finished run into the save, and works out what to tell the delver.
         /// </summary>
         /// <remarks>
-        /// The level and the progress are read BEFORE settling, because they are what the
-        /// experience bar opens on: reading them afterwards would fill a bar that is already
-        /// full. Everything else the end screen shows comes out of <c>Settled</c>, which is the
+        /// The experience is read BEFORE settling, because it is what the experience bar opens
+        /// on: reading it afterwards would fill a bar that is already full. Everything else the end screen shows comes out of <c>Settled</c>, which is the
         /// same scoring and banking the corpus gates.
         /// </remarks>
         private void Settle(Delve delve, RunOrder order, SaveState earned)
         {
             if (Gone) return;
 
-            int level = earned.Level;
-            double progress = Progression.Progress(earned.Xp);
+            int xpBefore = earned.Xp;
             List<string> before = Career.NewlyEarned(new List<string>(), earned);
 
             double rate = Progression.RewardMultiplier(order.Tier, Career.Frontier(earned));
@@ -914,8 +912,7 @@ namespace RelicRun.Game.Presentation
                     Over = OverCards.Of(settled.Reward, delve.Ending, delve.EndedOn,
                         delve.State.Hero.Kills, settled.Banked.NewBest, null, rate),
 
-                    Level = level,
-                    Progress = progress,
+                    XpBefore = xpBefore,
                     Gains = Career.NewlyEarned(before, earned),
                 });
             }

@@ -38,13 +38,13 @@ namespace RelicRun.Game.Services
         /// <summary>The end screen, whole.</summary>
         public OverCard Over;
 
-        /// <summary>The level to open the experience bar on — the one held BEFORE the run.</summary>
-        public int Level;
+        /// <summary>
+        /// The experience held BEFORE the run, which is where the bar opens. The level, the fill
+        /// and every boundary crossed on the way all come out of it and what the run paid.
+        /// </summary>
+        public int XpBefore;
 
-        /// <summary>And how full it was.</summary>
-        public double Progress;
-
-        /// <summary>What was unlocked on the way, if anything.</summary>
+        /// <summary>Achievements the run earned, if any.</summary>
         public IReadOnlyList<string> Gains;
     }
 
