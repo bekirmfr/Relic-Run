@@ -64,7 +64,7 @@ namespace RelicRun.Core.Run
 
         /// <summary>
         /// Whether to be brought back. Asked once per run, the moment the hero falls; what it
-        /// costs — sparks, an advertisement, nothing at all — is the caller's business.
+        /// costs — gems, an advertisement, nothing at all — is the caller's business.
         /// </summary>
         bool Revive(RunState run, int floor);
 

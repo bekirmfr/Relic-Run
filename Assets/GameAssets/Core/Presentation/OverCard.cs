@@ -31,6 +31,9 @@ namespace RelicRun.Core.Presentation
         /// <summary>Experience paid out.</summary>
         public int Xp;
 
+        /// <summary>Gems paid into the account, which outlive the run.</summary>
+        public int Gems;
+
         /// <summary>Whether this beat everything before it.</summary>
         public bool Best;
 
@@ -93,8 +96,9 @@ namespace RelicRun.Core.Presentation
         /// The translated words for a new best, or null. The one translated thing on this screen,
         /// which is why it arrives rather than being spelled.
         /// </param>
+        /// <param name="gems">Gems the run paid, which settling decides and this only carries.</param>
         public static OverCard Of(RunReward reward, RunEnding ending, int floor, int kills,
-            bool best, string newBest, double rate)
+            bool best, string newBest, double rate, int gems = 0)
         {
             return new OverCard
             {
@@ -115,6 +119,7 @@ namespace RelicRun.Core.Presentation
                 Floor = floor,
                 Kills = kills,
                 Xp = reward.Xp,
+                Gems = gems,
                 Best = best,
 
                 Note = Under(ending, best, newBest),

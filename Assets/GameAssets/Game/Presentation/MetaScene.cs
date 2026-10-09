@@ -186,7 +186,7 @@ namespace RelicRun.Game.Presentation
 
             if (xp != null)
             {
-                xp.Show(report.Over.Xp, report.Level, report.Progress, true, report.Gains);
+                xp.Show(report.XpBefore, report.Over.Xp, report.Gains);
             }
 
             Go(Page.Over);

@@ -187,7 +187,7 @@ namespace RelicRun.Game.Services
         /// <remarks>
         /// Public because the caller is a purchase callback that does not exist yet, and a
         /// restore path that will call the same thing. Idempotent on purpose: a restore on a
-        /// device that already has it must not hand over another three hundred sparks.
+        /// device that already has it must not hand over another three hundred gems.
         /// </remarks>
         public void Keep()
         {
@@ -195,7 +195,7 @@ namespace RelicRun.Game.Services
             if (_vault.Chosen.Supporter) return;
 
             _vault.Chosen.Supporter = true;
-            _vault.Earned.Sparks += SupporterCards.Sparks;
+            _vault.Earned.Gems += SupporterCards.Gems;
 
             _vault.CommitChoices();
             _vault.CommitProgress();

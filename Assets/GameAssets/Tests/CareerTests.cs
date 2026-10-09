@@ -191,6 +191,25 @@ namespace RelicRun.Tests
                 "when it started");
         }
 
+        /// <summary>A run pays the purse it brought home as gems, and a death brings none.</summary>
+        [Test]
+        public void TheRunPaysItsPurseHomeAsGems()
+        {
+            var save = new SaveState { Gems = 40 };
+            Settled kept = Career.Settle(save, Delved(tier: 1), RunEnding.CashedOut, 1,
+                daily: false, day: 0, name: "you", stamp: 0);
+
+            Assert.That(kept.Gems, Is.GreaterThan(0), "a cashed-out purse paid nothing");
+            Assert.That(kept.Gems, Is.EqualTo(kept.Reward.Banked));
+            Assert.That(save.Gems, Is.EqualTo(40 + kept.Gems));
+
+            Settled lost = Career.Settle(save, Delved(tier: 1), RunEnding.Died, 1,
+                daily: false, day: 0, name: "you", stamp: 1);
+
+            Assert.That(lost.Gems, Is.Zero, "a death brought gems home");
+            Assert.That(save.Gems, Is.EqualTo(40 + kept.Gems));
+        }
+
         /// <summary>
         /// A hall opens only by being cleared, and the frontier is what bounds the next run.
         /// </summary>

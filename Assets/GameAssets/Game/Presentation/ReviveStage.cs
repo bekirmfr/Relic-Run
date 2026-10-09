@@ -13,10 +13,10 @@ namespace RelicRun.Game.Presentation
     /// <remarks>
     /// Offered once per delve and never again — a delver who rises and falls again has fallen for
     /// good — so this is the last screen most runs ever show. What it asks is whether to spend a
-    /// hundred and fifty sparks to stand back up on the floor that killed you, at half health,
+    /// hundred and fifty gems to stand back up on the floor that killed you, at half health,
     /// against the foe that did it and whatever is still behind it.
     ///
-    /// The purse is NOT what pays. Sparks outlive a run, which is why the answer the engine gets
+    /// The purse is NOT what pays. Gems outlive a run, which is why the answer the engine gets
     /// is a bare yes and the spending happens in the scene against the save — see
     /// <c>FightScene.Rose</c>.
     /// </remarks>
@@ -71,7 +71,7 @@ namespace RelicRun.Game.Presentation
         private void Awake()
         {
             // Rising is guarded by the balance rather than by the button being gone: a delver
-            // short of sparks should see what they were short OF.
+            // short of gems should see what they were short OF.
             if (_rise != null) _rise.onClick.AddListener(Spend);
 
             if (_accept != null) _accept.onClick.AddListener(() => Decide(new Answer()));
@@ -79,7 +79,7 @@ namespace RelicRun.Game.Presentation
 
         /// <summary>Whether the delver paid to rise, which the scene reads once it is answered.</summary>
         /// <remarks>
-        /// Sparks are the save's, not the run's, so the stage cannot spend them itself. It says
+        /// Gems are the save's, not the run's, so the stage cannot spend them itself. It says
         /// that it WOULD have, and the scene — which holds the save — does the spending.
         /// </remarks>
         public bool Paid { get; private set; }
@@ -89,9 +89,9 @@ namespace RelicRun.Game.Presentation
         {
             Paid = false;
 
-            int sparks = Sparks;
+            int gems = Gems;
 
-            ReviveCard card = ReviveCards.Of(ask.Floor, sparks);
+            ReviveCard card = ReviveCards.Of(ask.Floor, gems);
 
             Write(_kicker, Fallen, Blood);
             Write(_title, Dark, Ink);
@@ -115,12 +115,12 @@ namespace RelicRun.Game.Presentation
             Write(_acceptLabel, Accept, Faint);
         }
 
-        /// <summary>How many sparks the delver has, which the scene keeps up to date.</summary>
+        /// <summary>How many gems the delver has, which the scene keeps up to date.</summary>
         /// <remarks>
         /// A plain property rather than a fetch, for the same reason <c>Words</c> is: the save is
         /// the scene's to hold, and a stage drawing itself is not allowed to wait for anything.
         /// </remarks>
-        public int Sparks { get; set; }
+        public int Gems { get; set; }
 
         /// <summary>Rising, and saying so, so the scene knows to charge for it.</summary>
         private void Spend()

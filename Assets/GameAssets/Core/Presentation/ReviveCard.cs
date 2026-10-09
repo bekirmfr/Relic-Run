@@ -7,7 +7,7 @@ namespace RelicRun.Core.Presentation
         public int Floor;
 
         /// <summary>What they have.</summary>
-        public int Sparks;
+        public int Gems;
 
         /// <summary>What rising costs.</summary>
         public int Cost;
@@ -30,11 +30,11 @@ namespace RelicRun.Core.Presentation
     /// <remarks>
     /// Offered once per delve and never again: <c>Delve</c> asks only while <c>Revived</c> is
     /// false, so a delver who rises and falls again has fallen for good. The engine's question is
-    /// a single yes — it does not know what sparks are, and it should not: rising is a fact about
+    /// a single yes — it does not know what gems are, and it should not: rising is a fact about
     /// the RUN, and paying for it is a fact about the delver's account, which outlives the run.
     ///
     /// The source offers two ways to say yes — watch an advertisement, or spend a hundred and
-    /// fifty sparks. Only the second is ported. An advertisement button with no advertisement
+    /// fifty gems. Only the second is ported. An advertisement button with no advertisement
     /// behind it is a button that lies, and the port has no ad SDK wired; the line that adds it
     /// back is the one that makes this card carry two prices instead of one.
     /// </remarks>
@@ -43,18 +43,18 @@ namespace RelicRun.Core.Presentation
         /// <summary>The source's <c>REVIVE_SPARKS</c>.</summary>
         public const int Cost = 150;
 
-        /// <summary>The offer, for a delver who fell on this floor holding these sparks.</summary>
-        public static ReviveCard Of(int floor, int sparks)
+        /// <summary>The offer, for a delver who fell on this floor holding these gems.</summary>
+        public static ReviveCard Of(int floor, int gems)
         {
-            bool afford = sparks >= Cost;
+            bool afford = gems >= Cost;
 
             return new ReviveCard
             {
                 Floor = floor,
-                Sparks = sparks,
+                Gems = gems,
                 Cost = Cost,
                 Afford = afford,
-                After = afford ? sparks - Cost : Cost - sparks,
+                After = afford ? gems - Cost : Cost - gems,
             };
         }
     }

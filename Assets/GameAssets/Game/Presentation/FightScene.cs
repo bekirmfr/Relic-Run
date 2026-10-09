@@ -261,7 +261,7 @@ namespace RelicRun.Game.Presentation
                             if (Gone) return;
                         }
 
-                        // The one stop that spends something the run does not own. Sparks are the
+                        // The one stop that spends something the run does not own. Gems are the
                         // delver's account rather than the delve's purse, so the stage is told
                         // the balance on the way in and the scene charges it on the way out.
                         Lend(stage, earned);
@@ -743,15 +743,15 @@ namespace RelicRun.Game.Presentation
         {
             var rising = stage as ReviveStage;
 
-            if (rising != null) rising.Sparks = earned != null ? earned.Sparks : 0;
+            if (rising != null) rising.Gems = earned != null ? earned.Gems : 0;
         }
 
         /// <summary>
-        /// Takes the sparks a delver just spent standing back up.
+        /// Takes the gems a delver just spent standing back up.
         /// </summary>
         /// <remarks>
         /// After the answer rather than inside the button, so a delver whose scene went away
-        /// mid-press is not charged for a run that never resumed. Committed at once: sparks are
+        /// mid-press is not charged for a run that never resumed. Committed at once: gems are
         /// bought, and a crash between spending and saving would be a delver paying twice.
         /// </remarks>
         private void Charge(RunStage stage, SaveState earned)
@@ -760,12 +760,12 @@ namespace RelicRun.Game.Presentation
 
             if (rising == null || !rising.Paid || earned == null) return;
 
-            earned.Sparks = Math.Max(0, earned.Sparks - ReviveCards.Cost);
+            earned.Gems = Math.Max(0, earned.Gems - ReviveCards.Cost);
 
             if (_vault != null) _vault.CommitProgress();
 
-            Debug.Log("the delver spent " + ReviveCards.Cost + " sparks to rise, leaving " +
-                      earned.Sparks, this);
+            Debug.Log("the delver spent " + ReviveCards.Cost + " gems to rise, leaving " +
+                      earned.Gems, this);
         }
 
         /// <summary>Which stage draws a stop, or null when nothing does yet.</summary>
@@ -881,17 +881,15 @@ namespace RelicRun.Game.Presentation
         /// Puts the finished run into the save, and works out what to tell the delver.
         /// </summary>
         /// <remarks>
-        /// The level and the progress are read BEFORE settling, because they are what the
-        /// experience bar opens on: reading them afterwards would fill a bar that is already
-        /// full. Everything else the end screen shows comes out of <c>Settled</c>, which is the
+        /// The experience is read BEFORE settling, because it is what the experience bar opens
+        /// on: reading it afterwards would fill a bar that is already full. Everything else the end screen shows comes out of <c>Settled</c>, which is the
         /// same scoring and banking the corpus gates.
         /// </remarks>
         private void Settle(Delve delve, RunOrder order, SaveState earned)
         {
             if (Gone) return;
 
-            int level = earned.Level;
-            double progress = Progression.Progress(earned.Xp);
+            int xpBefore = earned.Xp;
             List<string> before = Career.NewlyEarned(new List<string>(), earned);
 
             double rate = Progression.RewardMultiplier(order.Tier, Career.Frontier(earned));
@@ -912,10 +910,9 @@ namespace RelicRun.Game.Presentation
                 _order.Report(new RunReport
                 {
                     Over = OverCards.Of(settled.Reward, delve.Ending, delve.EndedOn,
-                        delve.State.Hero.Kills, settled.Banked.NewBest, null, rate),
+                        delve.State.Hero.Kills, settled.Banked.NewBest, null, rate, settled.Gems),
 
-                    Level = level,
-                    Progress = progress,
+                    XpBefore = xpBefore,
                     Gains = Career.NewlyEarned(before, earned),
                 });
             }

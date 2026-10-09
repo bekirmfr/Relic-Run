@@ -620,10 +620,44 @@ namespace RelicRun.Editor.Importers
             GameObject board = Press(boardPanel, "Board", face, "RUNS", Text(16),
                 new Color(0.16f, 0.15f, 0.12f), new Color(0.70f, 0.67f, 0.60f), 40f);
 
+            // The gem wallet, top right, for the run's gems to fly into. Its own small dark plate so the
+            // count reads over any backdrop.
+            GameObject pill = Panel(panel, "WalletPill", Vector2.one, Vector2.one,
+                new Vector2(-Margin - 64f, -Margin - 18f), new Vector2(128f, 36f));
+            Image plate = pill.AddComponent<Image>();
+            plate.sprite = White();
+            plate.color = new Color(0.16f, 0.15f, 0.12f);
+
+            GameObject mark = Panel(pill, "Mark", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+                new Vector2(18f, 0f), new Vector2(12f, 12f));
+            Image gem = mark.AddComponent<Image>();
+            gem.sprite = White();
+            gem.color = new Color(0.40f, 0.66f, 0.78f);
+            mark.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+            GameObject wallet = Say(pill, face, "0", Text(16), TextAlignmentOptions.Right,
+                Vector2.zero, new Vector2(0f, 28f), true);
+            ((RectTransform)wallet.transform).sizeDelta = new Vector2(-48f, 28f);
+            ((RectTransform)wallet.transform).anchoredPosition = new Vector2(10f, 0f);
+
+            // One gem, hidden, sitting where the stats line is: the panel copies it for each
+            // gem in flight, and where it sits is where they take off from.
+            GameObject flier = Panel(panel, "Gem", new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -72f), new Vector2(10f, 10f));
+            Image gemImage = flier.AddComponent<Image>();
+            gemImage.sprite = White();
+            gemImage.color = new Color(0.40f, 0.66f, 0.78f);
+            flier.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            gemImage.raycastTarget = false;
+            flier.SetActive(false);
+
             var view = panel.AddComponent<OverPanel>();
 
             Wire(view, new[]
             {
+                Pair("_pill", pill.GetComponent<RectTransform>()),
+                Pair("_wallet", wallet.GetComponent<TMP_Text>()),
+                Pair("_gem", gemImage),
                 Pair("_title", title.GetComponent<TMP_Text>()),
                 Pair("_titleUnder", under.GetComponent<TMP_Text>()),
                 Pair("_score", score.GetComponent<TMP_Text>()),

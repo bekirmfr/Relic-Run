@@ -11,7 +11,7 @@ namespace RelicRun.Tests
     /// The revive, which is the one part of the run loop with no corpus behind it.
     /// </summary>
     /// <remarks>
-    /// The source's revive lives in a React method: it spends sparks or plays an advertisement,
+    /// The source's revive lives in a React method: it spends gems or plays an advertisement,
     /// animates, and calls back into the fight pipeline. None of that lifts, and the Balance
     /// Lab's headless loop has no notion of being brought back — so there is nothing to record.
     ///
