@@ -210,6 +210,17 @@ namespace RelicRun.Tests
             Assert.That(loaded.Damaged, Is.EqualTo(4), "damage was not reported");
         }
 
+        /// <summary>Gems saved under their old name, sparks, are still the delver's.</summary>
+        [Test]
+        public void GemsSavedAsSparksAreKept()
+        {
+            Loaded loaded = SaveCodec.Read("v 1\nsparks 240\n");
+
+            Assert.That(loaded.Save.Gems, Is.EqualTo(240));
+            Assert.That(loaded.Damaged, Is.Zero);
+            Assert.That(SaveCodec.Write(loaded.Save), Does.Contain("gems 240"));
+        }
+
         /// <summary>
         /// A key from a later version is not damage.
         /// </summary>
@@ -267,7 +278,7 @@ namespace RelicRun.Tests
             var save = new SaveState
             {
                 Runs = 41, Clears = 6, GoldLife = 5120, Gold = 340, Best = 2870,
-                Xp = 18400, Unlocked = 5, VsCrowns = 3, Sparks = 2,
+                Xp = 18400, Unlocked = 5, VsCrowns = 3, Gems = 2,
             };
 
             save.Scores.Add(new ScoreRow
@@ -303,7 +314,7 @@ namespace RelicRun.Tests
             Assert.That(after.Xp, Is.EqualTo(before.Xp));
             Assert.That(after.Unlocked, Is.EqualTo(before.Unlocked));
             Assert.That(after.VsCrowns, Is.EqualTo(before.VsCrowns));
-            Assert.That(after.Sparks, Is.EqualTo(before.Sparks));
+            Assert.That(after.Gems, Is.EqualTo(before.Gems));
 
             Assert.That(after.Scores.Count, Is.EqualTo(before.Scores.Count));
 

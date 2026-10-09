@@ -14,6 +14,9 @@ namespace RelicRun.Core.Meta
 
         /// <summary>What went into the save, and what is worth telling the delver about.</summary>
         public Banked Banked;
+
+        /// <summary>Gems the run paid into the delver's account.</summary>
+        public int Gems;
     }
 
     /// <summary>
@@ -124,7 +127,10 @@ namespace RelicRun.Core.Meta
                 Stamp = stamp,
             }, reward);
 
-            return new Settled { Reward = reward, Banked = banked };
+            int gems = GemsFor(reward);
+            save.Gems += gems;
+
+            return new Settled { Reward = reward, Banked = banked, Gems = gems };
         }
 
         /// <summary>
@@ -156,7 +162,10 @@ namespace RelicRun.Core.Meta
                 Stamp = stamp,
             }, reward);
 
-            return new Settled { Reward = reward, Banked = banked };
+            int gems = GemsFor(reward);
+            save.Gems += gems;
+
+            return new Settled { Reward = reward, Banked = banked, Gems = gems };
         }
 
         /// <summary>
@@ -169,6 +178,22 @@ namespace RelicRun.Core.Meta
 
             foreach (int slot in match.AwakenedSlots) hand.Awaken(slot);
             return hand;
+        }
+
+        /// <summary>
+        /// The gems a finished run pays: the purse it brought home, one for one.
+        /// </summary>
+        /// <remarks>
+        /// Gold is spent inside a run and nowhere else; gems are what outlives it. Paying out the
+        /// purse that came home keeps the run's one real choice meaning something: cash out and
+        /// keep it, or go deeper and risk it. A death brings nothing home, so it pays nothing.
+        ///
+        /// Paid here rather than in <see cref="RunBanking"/>, which is the source's banking and
+        /// gated against its recorded corpus; gems are this port's, and the corpus has no say.
+        /// </remarks>
+        public static int GemsFor(RunReward reward)
+        {
+            return Math.Max(0, reward.Banked);
         }
 
         /// <summary>Which achievements this save has earned that it had not before.</summary>

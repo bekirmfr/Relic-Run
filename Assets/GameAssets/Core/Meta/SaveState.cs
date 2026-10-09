@@ -62,7 +62,7 @@ namespace RelicRun.Core.Meta
         public int VsCrowns;
 
         /// <summary>Hard currency, spent on a revive.</summary>
-        public int Sparks;
+        public int Gems;
 
         /// <summary>The ten best runs, best first.</summary>
         public readonly List<ScoreRow> Scores = new List<ScoreRow>();

@@ -34,10 +34,10 @@ namespace RelicRun.Game.Presentation
         [SerializeField] private Button _home;
         [SerializeField] private Button _board;
 
-        [Header("The purse coming home")]
+        [Header("The gems coming home")]
         [SerializeField] private RectTransform _pill;
         [SerializeField] private TMP_Text _wallet;
-        [SerializeField] private Image _coin;
+        [SerializeField] private Image _gem;
         [SerializeField] private int _most = 12;
         [SerializeField] private float _flight = 0.6f;
         [SerializeField] private float _stagger = 0.07f;
@@ -48,6 +48,8 @@ namespace RelicRun.Game.Presentation
         private static readonly Color Faint = new Color(0.42f, 0.40f, 0.35f);
 
         private static readonly Color Lit = new Color(0.89f, 0.70f, 0.25f);
+
+        private static readonly Color Gem = new Color(0.40f, 0.66f, 0.78f);
 
         /// <summary>What the last run came to, or nothing if none has finished this session.</summary>
         private OverCard _card;
@@ -65,7 +67,7 @@ namespace RelicRun.Game.Presentation
             // screen on the way, which is Core's rule and is asked rather than repeated here.
             if (_home != null)
             {
-                // The first press while the purse is still flying lands it rather than leaving,
+                // The first press while the gems are still flying lands them rather than leaving,
                 // so the wallet a delver walks away from is the one they actually hold.
                 _home.onClick.AddListener(() =>
                 {
@@ -74,7 +76,7 @@ namespace RelicRun.Game.Presentation
                 });
             }
 
-            if (_coin != null) _coin.gameObject.SetActive(false);
+            if (_gem != null) _gem.gameObject.SetActive(false);
 
             if (_board != null) _board.onClick.AddListener(() => Go(Page.Board));
         }
@@ -108,39 +110,39 @@ namespace RelicRun.Game.Presentation
         {
             Paint();
 
-            // The save already holds the banked purse, so the wallet before the run is what it
-            // holds less what this run brought. Read at this moment and nowhere later: nothing
-            // can be spent between the run ending and this screen opening.
-            _held = vault.Earned.Gold;
+            // The save already holds the gems this run paid, so the wallet before the run is what
+            // it holds less those. Read at this moment and nowhere later: nothing can be spent
+            // between the run ending and this screen opening.
+            _held = vault.Earned.Gems;
 
-            if (_have && !_flown && _card.Banked > 0) Fly();
+            if (_have && !_flown && _card.Gems > 0) Fly();
             else Land();
         }
 
-        /* ---------- the purse coming home ---------- */
+        /* ---------- the gems coming home ---------- */
 
         /// <summary>The wallet once everything has landed.</summary>
         private int _held;
 
-        /// <summary>Whether this run's purse has already flown, so coming back does not fly it twice.</summary>
+        /// <summary>Whether this run's gems have already flown, so coming back does not fly them twice.</summary>
         private bool _flown;
 
         private bool _flying;
         private float _clock;
         private int _landed;
-        private readonly List<RectTransform> _coins = new List<RectTransform>();
+        private readonly List<RectTransform> _gems = new List<RectTransform>();
 
-        /// <summary>Coins drawn for a purse: one per stretch of gold, never more than the screen can read.</summary>
+        /// <summary>Gems drawn in flight: one per gem, never more than the screen can read.</summary>
         private int Count()
         {
-            return Mathf.Clamp(_card.Banked, 1, Mathf.Max(1, _most));
+            return Mathf.Clamp(_card.Gems, 1, Mathf.Max(1, _most));
         }
 
         private void Fly()
         {
             _flown = true;
 
-            if (_coin == null || _pill == null)
+            if (_gem == null || _pill == null)
             {
                 Land();
                 return;
@@ -148,19 +150,19 @@ namespace RelicRun.Game.Presentation
 
             int count = Count();
 
-            while (_coins.Count < count)
+            while (_gems.Count < count)
             {
-                Image made = Instantiate(_coin, _coin.transform.parent);
-                _coins.Add((RectTransform)made.transform);
+                Image made = Instantiate(_gem, _gem.transform.parent);
+                _gems.Add((RectTransform)made.transform);
             }
 
-            for (int i = 0; i < _coins.Count; i++) _coins[i].gameObject.SetActive(false);
+            for (int i = 0; i < _gems.Count; i++) _gems[i].gameObject.SetActive(false);
 
             _flying = true;
             _clock = 0f;
             _landed = 0;
 
-            Wallet(_held - _card.Banked);
+            Wallet(_held - _card.Gems);
         }
 
         private void Update()
@@ -170,39 +172,39 @@ namespace RelicRun.Game.Presentation
             _clock += Time.unscaledDeltaTime;
 
             int count = Count();
-            Vector3 from = _coin.transform.position;
+            Vector3 from = _gem.transform.position;
             Vector3 to = _pill.position;
             int landed = 0;
 
             for (int i = 0; i < count; i++)
             {
-                RectTransform coin = _coins[i];
+                RectTransform gem = _gems[i];
                 float t = (_clock - i * _stagger) / Mathf.Max(0.01f, _flight);
 
                 if (t <= 0f) continue;
 
                 if (t >= 1f)
                 {
-                    coin.gameObject.SetActive(false);
+                    gem.gameObject.SetActive(false);
                     landed++;
                     continue;
                 }
 
-                // Up and over in an arc, eased in, so a coin leaves slowly and lands with intent.
-                coin.gameObject.SetActive(true);
+                // Up and over in an arc, eased in, so a gem leaves slowly and lands with intent.
+                gem.gameObject.SetActive(true);
                 float eased = t * t;
                 Vector3 at = Vector3.Lerp(from, to, eased);
                 at.y += Mathf.Sin(t * Mathf.PI) * _arc * _pill.lossyScale.y;
-                coin.position = at;
+                gem.position = at;
             }
 
             if (landed != _landed)
             {
                 _landed = landed;
 
-                // The wallet counts up as each coin arrives, and the last one lands it exactly.
-                int start = _held - _card.Banked;
-                Wallet(landed >= count ? _held : start + _card.Banked * landed / count);
+                // The wallet counts up as each gem arrives, and the last one lands it exactly.
+                int start = _held - _card.Gems;
+                Wallet(landed >= count ? _held : start + _card.Gems * landed / count);
                 _pill.localScale = Vector3.one * 1.15f;
             }
             else
@@ -219,9 +221,9 @@ namespace RelicRun.Game.Presentation
         {
             _flying = false;
 
-            foreach (RectTransform coin in _coins)
+            foreach (RectTransform gem in _gems)
             {
-                if (coin != null) coin.gameObject.SetActive(false);
+                if (gem != null) gem.gameObject.SetActive(false);
             }
 
             if (_pill != null) _pill.localScale = Vector3.one;
@@ -229,12 +231,12 @@ namespace RelicRun.Game.Presentation
             Wallet(_held);
         }
 
-        private void Wallet(int gold)
+        private void Wallet(int gems)
         {
             if (_wallet == null) return;
 
-            _wallet.text = gold.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            _wallet.color = Lit;
+            _wallet.text = gems.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            _wallet.color = Gem;
         }
 
         private void Paint()
@@ -261,7 +263,7 @@ namespace RelicRun.Game.Presentation
             Put(_rate, _card.Rate ?? string.Empty, Faint);
 
             Put(_stats, "FLOOR " + _card.Floor + "   KILLS " + _card.Kills +
-                        "   GOLD " + _card.Banked + "   XP " + _card.Xp, Ink);
+                        "   GEMS " + _card.Gems + "   XP " + _card.Xp, Ink);
         }
 
         private static void Put(TMP_Text text, string what, Color ink)

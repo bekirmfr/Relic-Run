@@ -22,7 +22,7 @@ namespace RelicRun.Core.Presentation
         /// <summary>What it buys, in the order the source lists them.</summary>
         public IReadOnlyList<Perk> Perks;
 
-        /// <summary>How many sparks buying it hands over.</summary>
+        /// <summary>How many gems buying it hands over.</summary>
         public int Grants;
 
         /// <summary>What the delver would have afterwards.</summary>
@@ -44,7 +44,7 @@ namespace RelicRun.Core.Presentation
     public static class SupporterCards
     {
         /// <summary>
-        /// How many sparks the pack hands over.
+        /// How many gems the pack hands over.
         /// </summary>
         /// <remarks>
         /// A constant in the source beside the chain cap and the revive price, which is where it
@@ -52,7 +52,7 @@ namespace RelicRun.Core.Presentation
         /// The copy says "300 starting sparks" separately, in eight languages, and if this ever
         /// moves that is eight strings to change.
         /// </remarks>
-        public const int Sparks = 300;
+        public const int Gems = 300;
 
         /// <summary>What the pack buys, in the order the source lists them.</summary>
         public static readonly IReadOnlyList<Perk> Perks = new[]
@@ -66,18 +66,18 @@ namespace RelicRun.Core.Presentation
         public static SupporterCard Of(Preferences prefs, SaveState save)
         {
             bool owned = prefs != null && prefs.Supporter;
-            int held = save != null ? save.Sparks : 0;
+            int held = save != null ? save.Gems : 0;
 
             return new SupporterCard
             {
                 Owned = owned,
                 Perks = Perks,
-                Grants = Sparks,
+                Grants = Gems,
 
                 // What they would have, not what they would gain. Already owning it grants
                 // nothing further — the pack is bought once, and a card offering another three
                 // hundred to somebody who has already paid is an offer that cannot be taken.
-                Afterwards = owned ? held : held + Sparks,
+                Afterwards = owned ? held : held + Gems,
             };
         }
     }

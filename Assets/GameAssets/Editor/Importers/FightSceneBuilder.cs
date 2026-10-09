@@ -677,7 +677,7 @@ namespace RelicRun.Editor.Importers
 
 
         /// <summary>
-        /// The one second chance: rise for sparks, or accept it.
+        /// The one second chance: rise for gems, or accept it.
         /// </summary>
         /// <remarks>
         /// The source offers a third way — watch an advertisement — and it is deliberately not

@@ -44,7 +44,7 @@ namespace RelicRun.Tests
         }
 
         /// <summary>
-        /// Buying it hands over three hundred sparks, once.
+        /// Buying it hands over three hundred gems, once.
         /// </summary>
         /// <remarks>
         /// The card says what the delver would HAVE rather than what they would gain, so the
@@ -55,9 +55,9 @@ namespace RelicRun.Tests
         [Test]
         public void ThePackIsBoughtOnce()
         {
-            Assert.That(SupporterCards.Sparks, Is.EqualTo(300));
+            Assert.That(SupporterCards.Gems, Is.EqualTo(300));
 
-            var save = new SaveState { Sparks = 40 };
+            var save = new SaveState { Gems = 40 };
 
             SupporterCard offered = SupporterCards.Of(new Preferences(), save);
 
@@ -68,7 +68,7 @@ namespace RelicRun.Tests
             SupporterCard kept = SupporterCards.Of(new Preferences { Supporter = true }, save);
 
             Assert.That(kept.Owned, Is.True);
-            Assert.That(kept.Afterwards, Is.EqualTo(40), "an owned pack offered its sparks again");
+            Assert.That(kept.Afterwards, Is.EqualTo(40), "an owned pack offered its gems again");
         }
 
         /// <summary>A card asked about nothing at all still has its three perks.</summary>
@@ -83,7 +83,7 @@ namespace RelicRun.Tests
 
             Assert.That(card.Owned, Is.False);
             Assert.That(card.Perks.Count, Is.EqualTo(3));
-            Assert.That(card.Afterwards, Is.EqualTo(SupporterCards.Sparks));
+            Assert.That(card.Afterwards, Is.EqualTo(SupporterCards.Gems));
         }
     }
 }

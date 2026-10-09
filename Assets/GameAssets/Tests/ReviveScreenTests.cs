@@ -43,7 +43,7 @@ namespace RelicRun.Tests
         /// <summary>Exactly the price is enough.</summary>
         /// <remarks>
         /// The off-by-one that would sting most: a delver who has saved precisely a hundred and
-        /// fifty sparks and is told they cannot afford the thing they saved for.
+        /// fifty gems and is told they cannot afford the thing they saved for.
         /// </remarks>
         [Test]
         public void ExactlyEnoughIsEnough()

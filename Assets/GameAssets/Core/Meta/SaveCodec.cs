@@ -65,7 +65,7 @@ namespace RelicRun.Core.Meta
         /// </remarks>
         public static readonly IReadOnlyList<string> Fields = new[]
         {
-            "Runs", "Clears", "GoldLife", "Gold", "Best", "Xp", "Unlocked", "VsCrowns", "Sparks",
+            "Runs", "Clears", "GoldLife", "Gold", "Best", "Xp", "Unlocked", "VsCrowns", "Gems",
             "Scores", "Arts", "DailyBest", "DailyDone", "Seen",
         };
 
@@ -91,7 +91,7 @@ namespace RelicRun.Core.Meta
             Line(text, "xp", save.Xp);
             Line(text, "unlocked", save.Unlocked);
             Line(text, "vsCrowns", save.VsCrowns);
-            Line(text, "sparks", save.Sparks);
+            Line(text, "gems", save.Gems);
 
             foreach (ScoreRow row in save.Scores)
             {
@@ -169,7 +169,11 @@ namespace RelicRun.Core.Meta
                 case "xp": return Int(value, out save.Xp);
                 case "unlocked": return Int(value, out save.Unlocked);
                 case "vsCrowns": return Int(value, out save.VsCrowns);
-                case "sparks": return Int(value, out save.Sparks);
+                case "gems": return Int(value, out save.Gems);
+
+                // Gems were called sparks until they became the reward a run pays out. A save
+                // written before the rename still holds them under the old key.
+                case "sparks": return Int(value, out save.Gems);
 
                 case "score": return Score(save, value);
                 case "art": save.Arts.Add(Lines.Plain(value)); return true;
